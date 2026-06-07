@@ -7,6 +7,13 @@ import {
 import { initIndexAndNotifier, unregisterNotifier } from "./modules/notifier";
 import { registerLibraryColumns } from "./modules/libraryColumns";
 import { openGraphView } from "./modules/graphView";
+import {
+  getCurrentPaletteId,
+  PALETTE_PREF,
+  paletteOverrideCss,
+} from "./modules/stancePalette";
+
+let palettePrefObserver: symbol | undefined;
 
 async function onStartup() {
   await Promise.all([
@@ -40,6 +47,24 @@ async function onStartup() {
     );
   }
 
+  // Preferences pane (M7). rootURI is a plugin-scope global (set by bootstrap).
+  Zotero.PreferencePanes.register({
+    pluginID: addon.data.config.addonID,
+    src: rootURI + "content/preferences.xhtml",
+    label: getString("prefs-title"),
+    image: `chrome://${addon.data.config.addonRef}/content/icons/favicon.png`,
+  });
+  // Re-apply the stance palette to all main windows when the pref changes.
+  palettePrefObserver = Zotero.Prefs.registerObserver(
+    PALETTE_PREF,
+    () => {
+      for (const win of Zotero.getMainWindows()) {
+        applyStancePalette(win as unknown as Window);
+      }
+    },
+    true,
+  );
+
   await Promise.all(
     Zotero.getMainWindows().map((win) => onMainWindowLoad(win)),
   );
@@ -59,6 +84,7 @@ async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
   // the icon is shown.
   injectLocaleIntoWindow(win as unknown as Window);
   injectStylesIntoWindow(win as unknown as Window);
+  applyStancePalette(win as unknown as Window);
   // Tools menu entry to open the reference graph (M5). Registered via ztoolkit
   // so it is auto-removed by ztoolkit.unregisterAll() on unload/shutdown.
   addon.data.ztoolkit.Menu.register("menuTools", {
@@ -90,6 +116,27 @@ function injectStylesIntoWindow(win: Window): void {
 }
 
 /**
+ * Apply the chosen stance palette (M7) by injecting/updating an override
+ * <style> after qref.css. Empty CSS (default palette) removes the override.
+ */
+function applyStancePalette(win: Window): void {
+  const doc = win.document;
+  const id = `${addon.data.config.addonRef}-palette-override`;
+  const css = paletteOverrideCss(getCurrentPaletteId());
+  let style = doc.getElementById(id);
+  if (!css) {
+    style?.remove();
+    return;
+  }
+  if (!style) {
+    style = doc.createElement("style");
+    style.id = id;
+    (doc.head ?? doc.documentElement)?.appendChild(style);
+  }
+  style.textContent = css;
+}
+
+/**
  * Add our FTL resource to a window's Fluent bundle. Idempotent — safe to call
  * multiple times for the same window.
  *
@@ -118,6 +165,10 @@ function onShutdown(): void {
   ztoolkit.unregisterAll();
   unregisterReferenceSection();
   unregisterNotifier();
+  if (palettePrefObserver !== undefined) {
+    Zotero.Prefs.unregisterObserver(palettePrefObserver);
+    palettePrefObserver = undefined;
+  }
   // Remove addon object
   addon.data.alive = false;
   // @ts-expect-error - Plugin instance is not typed

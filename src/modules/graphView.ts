@@ -1,4 +1,5 @@
 import { getString } from "../utils/locale";
+import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import type { Stance } from "./types";
 import type { GraphArg, GraphLink, GraphNode } from "../graph/types";
 
@@ -111,6 +112,7 @@ export function openGraphView(win: Window): void {
     selectItem: (id: number) => {
       Zotero.getActiveZoteroPane()?.selectItem(id);
     },
+    paletteCss: paletteOverrideCss(getCurrentPaletteId()),
   };
 
   (win as unknown as { openDialog: (...a: unknown[]) => void }).openDialog(

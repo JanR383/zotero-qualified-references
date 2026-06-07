@@ -72,6 +72,8 @@ This project reuses the following libraries, code patterns and design sources:
   header FTL attribute syntax (`.label` / `.tooltiptext`), the
   `collapsible-section` title binding, and `MozXULElement.insertFTLIfNeeded`
   for synchronous l10n resource loading.
-- **Stance colours** — the green→red palette in `addon/content/qref.css` is
-  based on the [GitHub Primer](https://primer.style/) success/danger/neutral
-  scales (contrast-checked for light and dark mode).
+- **Stance colours** — the default green→red palette in `addon/content/qref.css`
+  is based on the [GitHub Primer](https://primer.style/) success/danger/neutral
+  scales (contrast-checked for light and dark mode). The optional colour-blind
+  safe palette (Preferences → Stance colours) uses the
+  [Okabe–Ito palette](https://jfly.uni-koeln.de/color/) (blue ↔ orange/vermillion).

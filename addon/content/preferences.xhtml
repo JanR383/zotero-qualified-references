@@ -1,0 +1,21 @@
+<vbox
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+>
+  <html:link rel="localization" href="qref-addon.ftl" />
+  <groupbox>
+    <html:h2 data-l10n-id="prefs-title"></html:h2>
+    <hbox align="center">
+      <html:label data-l10n-id="prefs-palette-label" for="qref-palette" />
+      <menulist id="qref-palette" preference="stancePalette">
+        <menupopup>
+          <menuitem value="default" data-l10n-id="prefs-palette-default" />
+          <menuitem
+            value="colorblind"
+            data-l10n-id="prefs-palette-colorblind"
+          />
+        </menupopup>
+      </menulist>
+    </hbox>
+  </groupbox>
+</vbox>

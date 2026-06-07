@@ -31,4 +31,6 @@ export interface GraphArg {
   links: GraphLink[];
   strings: GraphStrings;
   selectItem: (id: number) => void;
+  /** Optional stance-palette override CSS (M7); injected before reading vars. */
+  paletteCss?: string;
 }

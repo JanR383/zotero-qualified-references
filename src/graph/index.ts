@@ -91,6 +91,15 @@ function main(): void {
   if (!arg) return;
 
   document.title = arg.strings.title;
+
+  // Apply the stance-palette override (M7) before reading any --qref-stance-*
+  // values, so legend swatches and edge colours pick up the chosen palette.
+  if (arg.paletteCss) {
+    const style = create("style");
+    style.textContent = arg.paletteCss;
+    (document.head ?? document.documentElement)?.appendChild(style);
+  }
+
   renderLegend(arg.strings);
 
   if (arg.nodes.length === 0) {
