@@ -1,0 +1,175 @@
+import type { IncomingLink, ReferenceLink, Stance } from "./types";
+
+/**
+ * Storage layer for qualified references.
+ *
+ * Source of truth = a single line in the source item's synced "Extra" field:
+ *   Reference-Graph: <JSON array of ReferenceLink>
+ * "Reference-Graph" is not a CSL variable, so CSL/BibTeX parsers ignore it. The
+ * line stays single-line (JSON.stringify escapes newlines), so multi-line
+ * comments are safe.
+ *
+ * Everything outward-facing goes through this module so the underlying storage
+ * (Extra field today, possibly a dedicated note later) can be swapped without
+ * touching the UI.
+ */
+
+const EXTRA_KEY = "Reference-Graph";
+const EXTRA_LINE_RE = new RegExp(`^${EXTRA_KEY}:\\s*(.*)$`);
+
+function indexKey(lib: number, key: string): string {
+  return `${lib}:${key}`;
+}
+
+function uuid(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function makeLink(
+  targetKey: string,
+  targetLib: number,
+  stance: Stance = 0,
+): ReferenceLink {
+  const now = new Date().toISOString();
+  return {
+    id: uuid(),
+    targetKey,
+    targetLib,
+    stance,
+    added: now,
+    modified: now,
+  };
+}
+
+// --- Read/write the source item's links -----------------------------------
+
+export function getLinks(item: Zotero.Item): ReferenceLink[] {
+  const extra = item.getField("extra") || "";
+  for (const line of extra.split(/\r?\n/)) {
+    const m = line.match(EXTRA_LINE_RE);
+    if (!m) continue;
+    try {
+      const parsed = JSON.parse(m[1]);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
+ * Persist the given links onto the source item (replacing the existing
+ * Reference-Graph line) and save. The notifier keeps the reverse index fresh.
+ */
+export async function setLinks(
+  item: Zotero.Item,
+  links: ReferenceLink[],
+): Promise<void> {
+  const extra = item.getField("extra") || "";
+  const kept = extra.split(/\r?\n/).filter((line) => !EXTRA_LINE_RE.test(line));
+  if (links.length > 0) {
+    kept.push(`${EXTRA_KEY}: ${JSON.stringify(links)}`);
+  }
+  // Drop leading/trailing empties left behind by removing our line.
+  item.setField("extra", kept.join("\n").replace(/^\n+|\n+$/g, ""));
+  await item.saveTx();
+}
+
+// --- Reverse index ----------------------------------------------------------
+
+function index(): Map<string, IncomingLink[]> {
+  return addon.data.incomingIndex;
+}
+
+function removeSourceFromIndex(sourceID: number): void {
+  const map = index();
+  for (const [key, list] of map) {
+    const filtered = list.filter((l) => l.sourceID !== sourceID);
+    if (filtered.length === 0) map.delete(key);
+    else if (filtered.length !== list.length) map.set(key, filtered);
+  }
+}
+
+function addSourceToIndex(item: Zotero.Item): void {
+  const map = index();
+  for (const link of getLinks(item)) {
+    const key = indexKey(link.targetLib, link.targetKey);
+    const entry: IncomingLink = {
+      sourceID: item.id,
+      sourceKey: item.key,
+      sourceLib: item.libraryID,
+      link,
+    };
+    const list = map.get(key);
+    if (list) list.push(entry);
+    else map.set(key, [entry]);
+  }
+}
+
+/** Incoming references pointing at `item` (read-only reverse view). */
+export function getIncoming(item: Zotero.Item): IncomingLink[] {
+  return index().get(indexKey(item.libraryID, item.key)) || [];
+}
+
+/**
+ * Rebuild the reverse index.
+ *
+ * Strategy:
+ *   1. Query the DB for all item IDs in the library (plain WHERE, no LIKE).
+ *   2. Batch-load the item shells via getAsync(array), then explicitly load
+ *      their "itemData" so getField("extra") works. getAsync alone returns
+ *      data-less shells in Zotero 9 — reading Extra throws UnloadedDataException.
+ *   3. Filter for regular, non-deleted items and call getLinks().
+ */
+export async function rebuildIndex(): Promise<void> {
+  index().clear();
+  let total = 0;
+  const libs = Zotero.Libraries.getAll();
+  ztoolkit.log(`QRef: rebuildIndex start — ${libs.length} lib(s)`);
+  for (const lib of libs) {
+    try {
+      const ids = (await Zotero.DB.columnQueryAsync(
+        "SELECT itemID FROM items WHERE libraryID=?",
+        [lib.libraryID],
+      )) as number[] | false;
+
+      if (!ids || ids.length === 0) {
+        ztoolkit.log(`QRef: lib ${lib.libraryID} — 0 rows`);
+        continue;
+      }
+      ztoolkit.log(`QRef: lib ${lib.libraryID} — ${ids.length} row(s)`);
+
+      const items = (await (Zotero.Items as any).getAsync(
+        ids.map(Number),
+      )) as Zotero.Item[];
+
+      // getAsync returns data-less shells; load the Extra field (itemData)
+      // before reading it, or getField("extra") throws UnloadedDataException.
+      await (Zotero.Items as any).loadDataTypes(items, ["itemData"]);
+
+      for (const item of items) {
+        if (!item || !item.isRegularItem() || item.deleted) continue;
+        const links = getLinks(item);
+        if (links.length > 0) {
+          addSourceToIndex(item);
+          total++;
+        }
+      }
+    } catch (e) {
+      ztoolkit.log(`QRef: rebuildIndex failed for lib ${lib.libraryID}`, e);
+    }
+  }
+  ztoolkit.log(`QRef: rebuildIndex complete — ${total} source item(s) indexed`);
+}
+
+/**
+ * Keep the index in sync with a single item change.
+ * @param removed true for delete events (item no longer available).
+ */
+export function onItemChanged(id: number, removed: boolean): void {
+  removeSourceFromIndex(id);
+  if (removed) return;
+  const item = Zotero.Items.get(id);
+  if (item && item.isRegularItem() && !item.deleted) addSourceToIndex(item);
+}

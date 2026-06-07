@@ -1,0 +1,31 @@
+/* Qualified References — stance colours.
+ *
+ * Defined as CSS custom properties so the same STANCE_COLOR var() reference in
+ * referenceSection.ts resolves to mode-appropriate values. Zotero follows the
+ * OS theme via prefers-color-scheme (see its own --custom-section-icon-dark
+ * rules), so we key off the same media query.
+ *
+ * Light mode: darker backgrounds + white text.
+ * Dark mode:  brighter backgrounds (enough contrast against the dark pane) +
+ *             dark text, since white-on-bright is hard to read.
+ * Values are GitHub Primer success/danger/neutral scales (contrast-checked).
+ */
+:root {
+  --qref-stance-strong-pos: #1a7f37;
+  --qref-stance-pos: #2da44e;
+  --qref-stance-neutral: #6e7781;
+  --qref-stance-neg: #cf222e;
+  --qref-stance-strong-neg: #a40e26;
+  --qref-stance-fg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --qref-stance-strong-pos: #3fb950;
+    --qref-stance-pos: #2ea043;
+    --qref-stance-neutral: #8b949e;
+    --qref-stance-neg: #f85149;
+    --qref-stance-strong-neg: #da3633;
+    --qref-stance-fg: #0d1117;
+  }
+}
