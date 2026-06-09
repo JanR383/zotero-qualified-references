@@ -181,6 +181,25 @@ function main(): void {
   const container = byId("graph");
   if (!container) return;
 
+  // Curve parallel / bidirectional edges apart so each keeps a visible arrow
+  // (a single edge between a pair stays straight). source/target are still ids
+  // here (before force-graph replaces them with node objects).
+  const groups = new Map<string, GraphLink[]>();
+  for (const l of arg.links) {
+    const a = l.source as number;
+    const b = l.target as number;
+    const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+    const arr = groups.get(key);
+    if (arr) arr.push(l);
+    else groups.set(key, [l]);
+  }
+  for (const arr of groups.values()) {
+    if (arr.length === 1) arr[0].curvature = 0;
+    else arr.forEach((l, i) => (l.curvature = 0.12 * (i + 1)));
+  }
+
+  const haloColor = isDark ? "rgba(28,28,30,0.85)" : "rgba(255,255,255,0.85)";
+
   const colorCache = new Map<Stance, string>();
   const colorFor = (s: Stance): string => {
     let c = colorCache.get(s);
@@ -202,7 +221,8 @@ function main(): void {
     .nodeLabel((n) => n.tooltip)
     .linkColor((l) => colorFor(l.stance))
     .linkWidth(1.5)
-    .linkDirectionalArrowLength(5)
+    .linkCurvature("curvature")
+    .linkDirectionalArrowLength(7)
     .linkDirectionalArrowColor((l) => colorFor(l.stance))
     .linkDirectionalArrowRelPos(1)
     .onNodeClick((n) => arg.selectItem(n.id))
@@ -221,9 +241,15 @@ function main(): void {
       ctx.font = `${fontSize}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillStyle = labelColor;
       const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
-      ctx.fillText(text, x, y + R + 2 / scale);
+      const ly = y + R + 2 / scale;
+      // Contrasting halo behind the label so it stays legible over edges/nodes.
+      ctx.lineWidth = 3 / scale;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = haloColor;
+      ctx.strokeText(text, x, ly);
+      ctx.fillStyle = labelColor;
+      ctx.fillText(text, x, ly);
     })
     // Paint the clickable hit area to match the drawn shape.
     .nodePointerAreaPaint((n, color, ctx) => {

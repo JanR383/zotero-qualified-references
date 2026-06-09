@@ -19,6 +19,7 @@ export interface GraphLink {
   source: number; // source item id
   target: number; // target item id
   stance: Stance;
+  curvature?: number; // arc bow, set by the renderer to separate parallel edges
 }
 
 export interface GraphStrings {
