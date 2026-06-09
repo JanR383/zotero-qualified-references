@@ -8,8 +8,9 @@ import type { Stance } from "../modules/types";
  */
 export interface GraphNode {
   id: number; // Zotero item id (also the force-graph node id)
-  label: string; // item.getDisplayTitle()
-  tooltip: string; // HTML shown on hover (title + stance distribution)
+  label: string; // formatItem(item, graphFields())
+  itemType: string; // Zotero item type (for colour-by-type, N5)
+  tooltip: string; // HTML shown on hover (header + type + stance pills)
   x?: number; // filled by the force engine at runtime
   y?: number;
 }
@@ -33,4 +34,8 @@ export interface GraphArg {
   selectItem: (id: number) => void;
   /** Optional stance-palette override CSS (M7); injected before reading vars. */
   paletteCss?: string;
+  /** Colour nodes by item type (N5). */
+  colorByType: boolean;
+  /** Localized labels for the item types present (legend, N5). */
+  typeLegend: { type: string; label: string }[];
 }

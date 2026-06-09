@@ -14,6 +14,12 @@
  * var() does not apply to canvas drawing, so we resolve to concrete hex.
  */
 import ForceGraph from "force-graph";
+import {
+  SHAPE_GLYPH,
+  typeColor,
+  typeShape,
+  type NodeShape,
+} from "../modules/itemTypeColors";
 import type { Stance } from "../modules/types";
 import type { GraphArg, GraphLink, GraphNode, GraphStrings } from "./types";
 
@@ -70,19 +76,78 @@ function stanceColor(stance: Stance): string {
   return cssVar(STANCE_VAR[stance]) || "#888888";
 }
 
-function renderLegend(strings: GraphStrings): void {
+/** Trace the path of a node shape centred at (x,y) with "radius" r. */
+function pathShape(
+  ctx: CanvasRenderingContext2D,
+  shape: NodeShape,
+  x: number,
+  y: number,
+  r: number,
+): void {
+  ctx.beginPath();
+  if (shape === "square") {
+    ctx.rect(x - r, y - r, 2 * r, 2 * r);
+  } else if (shape === "triangle") {
+    ctx.moveTo(x, y - r);
+    ctx.lineTo(x + r, y + r);
+    ctx.lineTo(x - r, y + r);
+    ctx.closePath();
+  } else if (shape === "diamond") {
+    ctx.moveTo(x, y - r);
+    ctx.lineTo(x + r, y);
+    ctx.lineTo(x, y + r);
+    ctx.lineTo(x - r, y);
+    ctx.closePath();
+  } else {
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+  }
+}
+
+function legendRow(swatchColor: string, label: string): HTMLElement {
+  const row = create("div");
+  row.className = "legend-row";
+  const swatch = create("span");
+  swatch.className = "legend-swatch";
+  swatch.style.background = swatchColor;
+  const text = create("span");
+  text.textContent = label;
+  row.append(swatch, text);
+  return row;
+}
+
+function renderLegend(arg: GraphArg, isDark: boolean): void {
   const legend = byId("legend");
   if (!legend) return;
+  // Edge colours = stance.
   for (const { key, stance } of LEGEND_ORDER) {
-    const row = create("div");
-    row.className = "legend-row";
-    const swatch = create("span");
-    swatch.className = "legend-swatch";
-    swatch.style.background = stanceColor(stance);
-    const text = create("span");
-    text.textContent = `${STANCE_GLYPH[key]}  ${strings.legend[key]}`;
-    row.append(swatch, text);
-    legend.appendChild(row);
+    legend.appendChild(
+      legendRow(
+        stanceColor(stance),
+        `${STANCE_GLYPH[key]}  ${arg.strings.legend[key]}`,
+      ),
+    );
+  }
+  // Node shapes (+ colours when enabled) = item type (N5).
+  if (arg.typeLegend.length > 0) {
+    const sep = create("div");
+    sep.style.height = "6px";
+    legend.appendChild(sep);
+    const neutral =
+      (document.body && getComputedStyle(document.body).color) || "#888";
+    for (const { type, label } of arg.typeLegend) {
+      const row = create("div");
+      row.className = "legend-row";
+      const glyph = create("span");
+      glyph.className = "legend-swatch";
+      glyph.style.background = "transparent";
+      glyph.style.textAlign = "center";
+      glyph.style.color = arg.colorByType ? typeColor(type, isDark) : neutral;
+      glyph.textContent = SHAPE_GLYPH[typeShape(type)];
+      const text = create("span");
+      text.textContent = label;
+      row.append(glyph, text);
+      legend.appendChild(row);
+    }
   }
 }
 
@@ -100,7 +165,9 @@ function main(): void {
     (document.head ?? document.documentElement)?.appendChild(style);
   }
 
-  renderLegend(arg.strings);
+  const isDark = !!(window as any).matchMedia?.("(prefers-color-scheme: dark)")
+    ?.matches;
+  renderLegend(arg, isDark);
 
   if (arg.nodes.length === 0) {
     const empty = byId("empty");
@@ -128,11 +195,10 @@ function main(): void {
   const body = document.body;
   const labelColor = (body && getComputedStyle(body).color) || "#222222";
 
+  const R = 5; // node "radius" in graph units (matches the old default size)
   const graph = new ForceGraph<GraphNode, GraphLink>(container)
     .graphData({ nodes: arg.nodes, links: arg.links })
     .nodeId("id")
-    .nodeRelSize(5)
-    .nodeColor(() => nodeColor)
     .nodeLabel((n) => n.tooltip)
     .linkColor((l) => colorFor(l.stance))
     .linkWidth(1.5)
@@ -140,17 +206,30 @@ function main(): void {
     .linkDirectionalArrowColor((l) => colorFor(l.stance))
     .linkDirectionalArrowRelPos(1)
     .onNodeClick((n) => arg.selectItem(n.id))
-    .nodeCanvasObjectMode(() => "after")
+    // Custom node rendering: shape by item type (N5b), filled with the type
+    // colour (or a uniform colour when colour-by-type is off), plus the label.
+    .nodeCanvasObjectMode(() => "replace")
     .nodeCanvasObject((n, ctx, scale) => {
+      const x = n.x ?? 0;
+      const y = n.y ?? 0;
+      pathShape(ctx, typeShape(n.itemType), x, y, R);
+      ctx.fillStyle = arg.colorByType
+        ? typeColor(n.itemType, isDark)
+        : nodeColor;
+      ctx.fill();
       const fontSize = 12 / scale;
       ctx.font = `${fontSize}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillStyle = labelColor;
-      const max = 40;
-      const text =
-        n.label.length > max ? `${n.label.slice(0, max - 1)}…` : n.label;
-      ctx.fillText(text, n.x ?? 0, (n.y ?? 0) + 7 / scale);
+      const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
+      ctx.fillText(text, x, y + R + 2 / scale);
+    })
+    // Paint the clickable hit area to match the drawn shape.
+    .nodePointerAreaPaint((n, color, ctx) => {
+      pathShape(ctx, typeShape(n.itemType), n.x ?? 0, n.y ?? 0, R);
+      ctx.fillStyle = color;
+      ctx.fill();
     });
 
   const resize = (): void => {
