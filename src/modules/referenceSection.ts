@@ -1,4 +1,5 @@
 import { getLocaleID, getString } from "../utils/locale";
+import { formatItem, paneFields } from "./itemFormat";
 import { getIncoming, getLinks, makeLink, setLinks } from "./storage";
 import { pickItems } from "./picker";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
@@ -107,7 +108,7 @@ function outgoingRow(
   row.appendChild(
     titleLink(
       doc,
-      target ? target.getDisplayTitle() : getString("missing-item"),
+      target ? formatItem(target, paneFields()) : getString("missing-item"),
       target || undefined,
     ),
   );
@@ -191,7 +192,7 @@ function incomingRow(doc: Document, inc: IncomingLink): HTMLElement {
   row.appendChild(
     titleLink(
       doc,
-      source ? source.getDisplayTitle() : getString("missing-item"),
+      source ? formatItem(source, paneFields()) : getString("missing-item"),
       source || undefined,
     ),
   );

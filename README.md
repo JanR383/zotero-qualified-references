@@ -1,5 +1,9 @@
 # Qualified References (Zotero 9 plugin)
 
+> ⚠️ **Note:** This plugin was largely "vibe-coded" with **Claude Opus 4.8**. It
+> may contain bugs or rough edges — use at your own discretion, and please
+> report issues.
+
 Adds **directed, qualified references** between Zotero items — beyond Zotero's
 plain, undirected "Related" links. In an item's right-hand pane you can link to
 one or more other items, each with:

@@ -8,6 +8,13 @@ declare namespace _ZoteroTypes {
   interface Prefs {
     PluginPrefsMap: {
       "stancePalette": string;
+      "displayPaneAuthor": boolean;
+      "displayPaneYear": boolean;
+      "displayPaneTitle": boolean;
+      "displayGraphAuthor": boolean;
+      "displayGraphYear": boolean;
+      "displayGraphTitle": boolean;
+      "graphColorByType": boolean;
     };
   }
 }

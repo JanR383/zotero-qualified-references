@@ -1,4 +1,5 @@
 import { getString } from "../utils/locale";
+import { formatItem, graphFields } from "./itemFormat";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import type { Stance } from "./types";
 import type { GraphArg, GraphLink, GraphNode } from "../graph/types";
@@ -55,12 +56,13 @@ function buildData(): { nodes: GraphNode[]; links: GraphLink[] } {
   const links: GraphLink[] = [];
   const outCounts = new Map<number, Map<Stance, number>>();
   const inCounts = new Map<number, Map<Stance, number>>();
+  const fields = graphFields();
 
   const ensureNode = (item: Zotero.Item): void => {
     if (!nodes.has(item.id)) {
       nodes.set(item.id, {
         id: item.id,
-        label: item.getDisplayTitle(),
+        label: formatItem(item, fields),
         tooltip: "",
       });
     }
