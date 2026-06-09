@@ -7,6 +7,7 @@ import {
 import { initIndexAndNotifier, unregisterNotifier } from "./modules/notifier";
 import { registerLibraryColumns } from "./modules/libraryColumns";
 import { openGraphView } from "./modules/graphView";
+import { openListView } from "./modules/listView";
 import { registerReaderHook, unregisterReaderHook } from "./modules/readerHook";
 import {
   getCurrentPaletteId,
@@ -94,6 +95,12 @@ async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
     id: `${addon.data.config.addonRef}-menu-graph`,
     label: getString("menu-graph"),
     commandListener: () => openGraphView(win as unknown as Window),
+  });
+  addon.data.ztoolkit.Menu.register("menuTools", {
+    tag: "menuitem",
+    id: `${addon.data.config.addonRef}-menu-list`,
+    label: getString("menu-list"),
+    commandListener: () => openListView(win as unknown as Window),
   });
 }
 

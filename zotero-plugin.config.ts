@@ -52,6 +52,19 @@ export default defineConfig({
         legalComments: "linked",
         outfile: `.scaffold/build/addon/content/scripts/graph.js`,
       },
+      {
+        // Separate bundle for the standalone reference-list window (N3).
+        // Plain HTML/CSS, no third-party lib.
+        entryPoints: ["src/list/index.ts"],
+        define: {
+          __env__: `"${process.env.NODE_ENV}"`,
+        },
+        bundle: true,
+        target: "firefox115",
+        platform: "browser",
+        format: "iife",
+        outfile: `.scaffold/build/addon/content/scripts/list.js`,
+      },
     ],
   },
 
