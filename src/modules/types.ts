@@ -12,6 +12,13 @@ export interface ReferenceLink {
   targetLib: number;
   sourcePages?: string;
   targetPages?: string;
+  /**
+   * Optional PDF anchor in the SOURCE item (M6): the passage in A's PDF that
+   * cites the target. Created from the reader's annotation context menu; the
+   * source page is auto-filled into sourcePages. Lives in the source library.
+   */
+  sourceAttachmentKey?: string; // PDF attachment item key (in the source library)
+  sourceAnnotationKey?: string; // annotation item key within that attachment
   stance: Stance;
   comment?: string;
   added: string;

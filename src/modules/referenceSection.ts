@@ -163,6 +163,14 @@ function outgoingRow(
   });
   row.appendChild(comment);
 
+  const anchor = sourceAnchorLink(doc, link, source.libraryID);
+  if (anchor) {
+    const anchorRow = doc.createElement("div");
+    anchorRow.style.margin = "4px 0";
+    anchorRow.appendChild(anchor);
+    row.appendChild(anchorRow);
+  }
+
   if (editable) {
     const del = button(doc, getString("delete-button"));
     del.addEventListener("click", async () => {
@@ -200,6 +208,8 @@ function incomingRow(doc: Document, inc: IncomingLink): HTMLElement {
   if (inc.link.targetPages)
     pages.push(`${getString("field-target-pages")}: ${inc.link.targetPages}`);
   if (pages.length > 0) metaWrap.appendChild(muted(doc, pages.join("  ·  ")));
+  const inAnchor = sourceAnchorLink(doc, inc.link, inc.sourceLib);
+  if (inAnchor) metaWrap.appendChild(inAnchor);
   row.appendChild(metaWrap);
 
   if (inc.link.comment) {
@@ -353,4 +363,55 @@ function pageField(
   input.addEventListener("change", () => onChange(input.value.trim()));
   wrap.append(span, input);
   return wrap;
+}
+
+// --- PDF anchor (M6) ---------------------------------------------------------
+// A reference may carry an anchor to the passage in the SOURCE item's PDF that
+// cites the target. The anchor is created from the reader's annotation context
+// menu (see src/modules/readerHook.ts); here we only render a jump link that
+// opens that PDF at the annotation via
+//   Zotero.Reader.open(attachmentID, { annotationID: key })
+// — the same `location` Zotero's `zotero://open-pdf` handler builds.
+
+function openAnnotation(lib: number, attKey: string, annKey: string): void {
+  const att = Zotero.Items.getByLibraryAndKey(lib, attKey);
+  if (!att) return;
+  try {
+    void (Zotero as any).Reader.open(att.id, { annotationID: annKey });
+  } catch (e) {
+    ztoolkit.log("QRef: failed to open annotation", e);
+  }
+}
+
+function linkButton(
+  doc: Document,
+  text: string,
+  onClick: () => void,
+): HTMLElement {
+  const a = doc.createElement("a");
+  a.textContent = text;
+  a.setAttribute("href", "#");
+  a.style.cursor = "pointer";
+  a.style.fontSize = "0.9em";
+  a.addEventListener("click", (e: Event) => {
+    e.preventDefault();
+    onClick();
+  });
+  return a;
+}
+
+/** "↗ open in A's PDF" link for a stored source anchor (or null if none). */
+function sourceAnchorLink(
+  doc: Document,
+  link: ReferenceLink,
+  sourceLib: number,
+): HTMLElement | null {
+  if (!link.sourceAnnotationKey || !link.sourceAttachmentKey) return null;
+  return linkButton(doc, getString("anchor-open"), () =>
+    openAnnotation(
+      sourceLib,
+      link.sourceAttachmentKey!,
+      link.sourceAnnotationKey!,
+    ),
+  );
 }

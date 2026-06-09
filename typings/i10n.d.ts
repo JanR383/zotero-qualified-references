@@ -4,6 +4,8 @@
 // @ts-nocheck
 export type FluentMessageId =
   | 'add-button-label'
+  | 'anchor-open'
+  | 'anchor-page'
   | 'column-neg-label'
   | 'column-pos-label'
   | 'delete-button'
@@ -20,6 +22,8 @@ export type FluentMessageId =
   | 'prefs-palette-default'
   | 'prefs-palette-label'
   | 'prefs-title'
+  | 'reader-add-ref'
+  | 'reader-ref-created'
   | 'section-head-text'
   | 'section-incoming-title'
   | 'section-outgoing-title'

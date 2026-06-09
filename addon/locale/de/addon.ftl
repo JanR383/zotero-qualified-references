@@ -28,3 +28,7 @@ prefs-palette-default =
     .label = Standard
 prefs-palette-colorblind =
     .label = Farbenblind-sicher
+anchor-open = ↗ Im PDF (A)
+anchor-page = S.
+reader-add-ref = Qualifizierte Referenz von hier…
+reader-ref-created = Referenz angelegt

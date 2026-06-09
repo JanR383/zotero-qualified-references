@@ -6,7 +6,10 @@ one or more other items, each with:
 
 - optional **source** and **target page numbers**,
 - a 5-point **stance** (`++ + 0 − −−`),
-- a free-text **comment**.
+- a free-text **comment**,
+- an optional **PDF anchor** — right-click a highlight in the source item's PDF
+  to create the reference; its page number is filled in automatically and you
+  can jump back to the passage from either side.
 
 The target item shows a read-only **"Referenced by"** list of incoming links.
 
@@ -68,6 +71,10 @@ This project reuses the following libraries, code patterns and design sources:
 - **Window pattern** — opening the graph via `openDialog` + `window.arguments`
   follows Zotero's own `selectItemsDialog.xhtml` (mirrored in
   `src/modules/picker.ts`).
+- **PDF anchors** — the reader integration uses
+  `Zotero.Reader.registerEventListener("createAnnotationContextMenu", …)`;
+  jumping to an annotation uses `Zotero.Reader.open(id, { annotationID })`, the
+  same `location` Zotero's `zotero://open-pdf` handler builds.
 - **Zotero source patterns** (reverse-engineered from `omni.ja`) — the section
   header FTL attribute syntax (`.label` / `.tooltiptext`), the
   `collapsible-section` title binding, and `MozXULElement.insertFTLIfNeeded`

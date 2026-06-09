@@ -7,6 +7,7 @@ import {
 import { initIndexAndNotifier, unregisterNotifier } from "./modules/notifier";
 import { registerLibraryColumns } from "./modules/libraryColumns";
 import { openGraphView } from "./modules/graphView";
+import { registerReaderHook, unregisterReaderHook } from "./modules/readerHook";
 import {
   getCurrentPaletteId,
   PALETTE_PREF,
@@ -38,6 +39,7 @@ async function onStartup() {
     );
   }
   registerReferenceSection();
+  registerReaderHook();
   try {
     await registerLibraryColumns();
   } catch (e) {
@@ -164,6 +166,7 @@ async function onMainWindowUnload(_win: Window): Promise<void> {
 function onShutdown(): void {
   ztoolkit.unregisterAll();
   unregisterReferenceSection();
+  unregisterReaderHook();
   unregisterNotifier();
   if (palettePrefObserver !== undefined) {
     Zotero.Prefs.unregisterObserver(palettePrefObserver);
