@@ -1,4 +1,4 @@
-import { getString, initLocale } from "./utils/locale";
+import { getLocaleID, getString, initLocale } from "./utils/locale";
 import { createZToolkit } from "./utils/ztoolkit";
 import {
   registerReferenceSection,
@@ -41,6 +41,7 @@ async function onStartup() {
   }
   registerReferenceSection();
   registerReaderHook();
+  registerMenus();
   try {
     await registerLibraryColumns();
   } catch (e) {
@@ -88,19 +89,31 @@ async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
   injectLocaleIntoWindow(win as unknown as Window);
   injectStylesIntoWindow(win as unknown as Window);
   applyStancePalette(win as unknown as Window);
-  // Tools menu entry to open the reference graph (M5). Registered via ztoolkit
-  // so it is auto-removed by ztoolkit.unregisterAll() on unload/shutdown.
-  addon.data.ztoolkit.Menu.register("menuTools", {
-    tag: "menuitem",
-    id: `${addon.data.config.addonRef}-menu-graph`,
-    label: getString("menu-graph"),
-    commandListener: () => openGraphView(win as unknown as Window),
-  });
-  addon.data.ztoolkit.Menu.register("menuTools", {
-    tag: "menuitem",
-    id: `${addon.data.config.addonRef}-menu-list`,
-    label: getString("menu-list"),
-    commandListener: () => openListView(win as unknown as Window),
+}
+
+/**
+ * Register the Tools-menu entries (Reference Graph + List) via Zotero's native
+ * MenuManager (zotero-plugin-toolkit dropped its Menu manager in v5.1.2). This
+ * registers once globally; Zotero injects the items into every main window's
+ * Tools menu. Labels come from the FTL `.label` attribute via l10nID.
+ */
+function registerMenus(): void {
+  (Zotero as any).MenuManager?.registerMenu({
+    menuID: `${addon.data.config.addonRef}-tools`,
+    pluginID: addon.data.config.addonID,
+    target: "main/menubar/tools",
+    menus: [
+      {
+        menuType: "menuitem",
+        l10nID: getLocaleID("menu-graph"),
+        onCommand: () => openGraphView(Zotero.getMainWindow() as Window),
+      },
+      {
+        menuType: "menuitem",
+        l10nID: getLocaleID("menu-list"),
+        onCommand: () => openListView(Zotero.getMainWindow() as Window),
+      },
+    ],
   });
 }
 
@@ -174,6 +187,9 @@ function onShutdown(): void {
   ztoolkit.unregisterAll();
   unregisterReferenceSection();
   unregisterReaderHook();
+  (Zotero as any).MenuManager?.unregisterMenu(
+    `${addon.data.config.addonRef}-tools`,
+  );
   unregisterNotifier();
   if (palettePrefObserver !== undefined) {
     Zotero.Prefs.unregisterObserver(palettePrefObserver);
