@@ -1,4 +1,5 @@
 import { config } from "../../package.json";
+import { zDate } from "../utils/zoteroApis";
 
 /**
  * Configurable item display format (N2). Which of author / year / title are
@@ -42,7 +43,7 @@ export function formatItem(item: Zotero.Item, f: FieldSet): string {
   let year = "";
   if (f.year) {
     const date = (item.getField("date") as string) || "";
-    const parsed = date ? (Zotero as any).Date.strToDate(date) : null;
+    const parsed = date ? zDate().strToDate(date) : null;
     if (parsed && parsed.year) year = String(parsed.year);
   }
   const title = f.title ? item.getDisplayTitle() : "";

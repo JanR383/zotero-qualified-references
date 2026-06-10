@@ -1,4 +1,5 @@
 import { getLocaleID, getString } from "../utils/locale";
+import { zReader } from "../utils/zoteroApis";
 import { STANCE_GLYPH, STANCE_ORDER, stanceCssValue } from "./stanceMeta";
 import { formatItem, paneFields } from "./itemFormat";
 import { getIncoming, getLinks, makeLink, setLinks } from "./storage";
@@ -398,7 +399,7 @@ function openAnnotation(lib: number, attKey: string, annKey: string): void {
   const att = Zotero.Items.getByLibraryAndKey(lib, attKey);
   if (!att) return;
   try {
-    void (Zotero as any).Reader.open(att.id, { annotationID: annKey });
+    void zReader().open(att.id, { annotationID: annKey });
   } catch (e) {
     ztoolkit.log("QRef: failed to open annotation", e);
   }

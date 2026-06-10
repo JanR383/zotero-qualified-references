@@ -28,7 +28,11 @@ import type { GraphArg, GraphLink, GraphNode, GraphStrings } from "./types";
 // This module runs in a real browser-like window (graph.xhtml). The plugin's
 // tsconfig (zotero-types sandbox) provides DOM *types* but not the browser
 // global *values*, so declare the few we use here.
-declare const window: Window & typeof globalThis & { arguments?: unknown[] };
+declare const window: Window &
+  typeof globalThis & {
+    arguments?: unknown[];
+    matchMedia(query: string): { matches: boolean } | null;
+  };
 declare const document: Document;
 declare function getComputedStyle(
   elt: Element,
@@ -142,8 +146,7 @@ function main(): void {
     (document.head ?? document.documentElement)?.appendChild(style);
   }
 
-  const isDark = !!(window as any).matchMedia?.("(prefers-color-scheme: dark)")
-    ?.matches;
+  const isDark = !!window.matchMedia("(prefers-color-scheme: dark)")?.matches;
   renderLegend(arg, isDark);
 
   if (arg.nodes.length === 0) {

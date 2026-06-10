@@ -1,5 +1,6 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
+import { zItemTypes } from "../utils/zoteroApis";
 import { escapeHtml, truncate } from "../shared/text";
 import { formatItem, graphFields } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
@@ -95,9 +96,7 @@ function buildData(): {
 
   for (const node of nodes.values()) {
     const item = items.get(node.id)!;
-    const typeName = (Zotero as any).ItemTypes.getLocalizedString(
-      item.itemType,
-    );
+    const typeName = zItemTypes().getLocalizedString(item.itemType);
     node.tooltip =
       `<div style="max-width:380px">` +
       `<b>${escapeHtml(node.label)}</b>` +
@@ -117,7 +116,7 @@ function buildData(): {
     if (present.has(t)) {
       typeLegend.push({
         type: t,
-        label: (Zotero as any).ItemTypes.getLocalizedString(t),
+        label: zItemTypes().getLocalizedString(t),
       });
     }
   }

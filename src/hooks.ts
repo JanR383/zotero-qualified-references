@@ -1,5 +1,4 @@
 import { getLocaleID, getString, initLocale } from "./utils/locale";
-import { createZToolkit } from "./utils/ztoolkit";
 import {
   registerReferenceSection,
   unregisterReferenceSection,
@@ -9,6 +8,7 @@ import { registerLibraryColumns } from "./modules/libraryColumns";
 import { openGraphView } from "./modules/graphView";
 import { openListView } from "./modules/listView";
 import { registerReaderHook, unregisterReaderHook } from "./modules/readerHook";
+import { zMenuManager } from "./utils/zoteroApis";
 import {
   getCurrentPaletteId,
   PALETTE_PREF,
@@ -79,8 +79,6 @@ async function onStartup() {
 }
 
 async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
-  // Create ztoolkit for every window
-  addon.data.ztoolkit = createZToolkit();
   // Inject our FTL file into the window's Fluent bundle.
   // ItemPaneManager renders section headers with data-l10n-id, which is resolved
   // by the document's own Fluent bundle — not by our standalone Localization
@@ -98,7 +96,7 @@ async function onMainWindowLoad(win: _ZoteroTypes.MainWindow): Promise<void> {
  * Tools menu. Labels come from the FTL `.label` attribute via l10nID.
  */
 function registerMenus(): void {
-  (Zotero as any).MenuManager?.registerMenu({
+  zMenuManager()?.registerMenu({
     menuID: `${addon.data.config.addonRef}-tools`,
     pluginID: addon.data.config.addonID,
     target: "main/menubar/tools",
@@ -175,21 +173,27 @@ function applyStancePalette(win: Window): void {
  */
 function injectLocaleIntoWindow(win: Window): void {
   const href = `${addon.data.config.addonRef}-addon.ftl`;
-  (win as any).MozXULElement.insertFTLIfNeeded(href);
+  (
+    win as Window & {
+      MozXULElement: { insertFTLIfNeeded(href: string): void };
+    }
+  ).MozXULElement.insertFTLIfNeeded(href);
   ztoolkit.log(`QRef: locale registered → ${href}`);
 }
 
 async function onMainWindowUnload(_win: Window): Promise<void> {
-  ztoolkit.unregisterAll();
+  // Nothing per-window to tear down: menus/sections/reader hooks are global
+  // registrations (cleaned up in onShutdown), and the injected <style>/<link>
+  // elements die with the window's document. Deliberately NOT calling
+  // ztoolkit.unregisterAll() here — that would wipe global toolkit state when
+  // a secondary window closes.
 }
 
 function onShutdown(): void {
   ztoolkit.unregisterAll();
   unregisterReferenceSection();
   unregisterReaderHook();
-  (Zotero as any).MenuManager?.unregisterMenu(
-    `${addon.data.config.addonRef}-tools`,
-  );
+  zMenuManager()?.unregisterMenu(`${addon.data.config.addonRef}-tools`);
   unregisterNotifier();
   if (palettePrefObserver !== undefined) {
     Zotero.Prefs.unregisterObserver(palettePrefObserver);

@@ -1,3 +1,4 @@
+import { zItems } from "../utils/zoteroApis";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
 
 /**
@@ -195,8 +196,11 @@ export async function rebuildIndex(): Promise<void> {
   ztoolkit.log(`QRef: rebuildIndex start — ${libs.length} lib(s)`);
   for (const lib of libs) {
     try {
+      // Only regular items can carry an Extra field worth parsing; skip
+      // attachments/notes/annotations up front so loadDataTypes stays cheap.
       const ids = (await Zotero.DB.columnQueryAsync(
-        "SELECT itemID FROM items WHERE libraryID=?",
+        `SELECT itemID FROM items JOIN itemTypes USING (itemTypeID)
+         WHERE libraryID=? AND typeName NOT IN ('attachment','note','annotation')`,
         [lib.libraryID],
       )) as number[] | false;
 
@@ -206,13 +210,11 @@ export async function rebuildIndex(): Promise<void> {
       }
       ztoolkit.log(`QRef: lib ${lib.libraryID} — ${ids.length} row(s)`);
 
-      const items = (await (Zotero.Items as any).getAsync(
-        ids.map(Number),
-      )) as Zotero.Item[];
+      const items = await zItems().getAsync(ids.map(Number));
 
       // getAsync returns data-less shells; load the Extra field (itemData)
       // before reading it, or getField("extra") throws UnloadedDataException.
-      await (Zotero.Items as any).loadDataTypes(items, ["itemData"]);
+      await zItems().loadDataTypes(items, ["itemData"]);
 
       for (const item of items) {
         if (!item || !item.isRegularItem() || item.deleted) continue;

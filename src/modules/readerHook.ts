@@ -1,6 +1,7 @@
 import { getString } from "../utils/locale";
 import { pickItems } from "./picker";
 import { getLinks, makeLink, setLinks } from "./storage";
+import { zReader, type ReaderEvent } from "../utils/zoteroApis";
 
 /**
  * Reader integration (M6): add a "Create qualified reference from here" entry to
@@ -22,7 +23,7 @@ import { getLinks, makeLink, setLinks } from "./storage";
  */
 
 async function createReferenceFromAnnotation(
-  reader: any,
+  reader: { itemID: number },
   annKey: string,
 ): Promise<void> {
   try {
@@ -76,7 +77,7 @@ async function createReferenceFromAnnotation(
   }
 }
 
-function handler(event: any): void {
+function handler(event: ReaderEvent): void {
   const { reader, params, append } = event;
   const annKey: string | undefined = params?.ids?.[0];
   if (!annKey) return;
@@ -85,7 +86,9 @@ function handler(event: any): void {
     onCommand: () => {
       // Defer: opening the modal picker from within the menu command would
       // spin a nested event loop on the reader's native stack and crash.
-      const win = Zotero.getMainWindow() as any;
+      const win = Zotero.getMainWindow() as Window & {
+        setTimeout(fn: () => void, ms: number): number;
+      };
       win.setTimeout(() => {
         void createReferenceFromAnnotation(reader, annKey);
       }, 0);
@@ -94,7 +97,7 @@ function handler(event: any): void {
 }
 
 export function registerReaderHook(): void {
-  (Zotero as any).Reader.registerEventListener(
+  zReader().registerEventListener(
     "createAnnotationContextMenu",
     handler,
     addon.data.config.addonID,
@@ -102,8 +105,5 @@ export function registerReaderHook(): void {
 }
 
 export function unregisterReaderHook(): void {
-  (Zotero as any).Reader.unregisterEventListener(
-    "createAnnotationContextMenu",
-    handler,
-  );
+  zReader().unregisterEventListener("createAnnotationContextMenu", handler);
 }
