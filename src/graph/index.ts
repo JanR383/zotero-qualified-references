@@ -20,6 +20,8 @@ import {
   typeShape,
   type NodeShape,
 } from "../modules/itemTypeColors";
+import { STANCE_CSS_VAR, STANCE_GLYPH } from "../modules/stanceMeta";
+import { byId, create } from "../shared/dom";
 import type { Stance } from "../modules/types";
 import type { GraphArg, GraphLink, GraphNode, GraphStrings } from "./types";
 
@@ -32,31 +34,6 @@ declare function getComputedStyle(
   elt: Element,
   pseudoElt?: string | null,
 ): CSSStyleDeclaration;
-
-// The sandbox lib types createElement/getElementById as returning the base
-// Element; wrap them so we get HTMLElement (with .style etc.).
-function byId(id: string): HTMLElement | null {
-  return document.getElementById(id) as HTMLElement | null;
-}
-function create(tag: string): HTMLElement {
-  return document.createElement(tag) as unknown as HTMLElement;
-}
-
-const STANCE_VAR: Record<Stance, string> = {
-  2: "--qref-stance-strong-pos",
-  1: "--qref-stance-pos",
-  0: "--qref-stance-neutral",
-  [-1]: "--qref-stance-neg",
-  [-2]: "--qref-stance-strong-neg",
-};
-
-const STANCE_GLYPH: Record<keyof GraphStrings["legend"], string> = {
-  pp: "++",
-  p: "+",
-  o: "0",
-  m: "−",
-  mm: "−−",
-};
 
 const LEGEND_ORDER: { key: keyof GraphStrings["legend"]; stance: Stance }[] = [
   { key: "pp", stance: 2 },
@@ -73,7 +50,7 @@ function cssVar(name: string): string {
 }
 
 function stanceColor(stance: Stance): string {
-  return cssVar(STANCE_VAR[stance]) || "#888888";
+  return cssVar(STANCE_CSS_VAR[stance]) || "#888888";
 }
 
 /** Trace the path of a node shape centred at (x,y) with "radius" r. */
@@ -123,7 +100,7 @@ function renderLegend(arg: GraphArg, isDark: boolean): void {
     legend.appendChild(
       legendRow(
         stanceColor(stance),
-        `${STANCE_GLYPH[key]}  ${arg.strings.legend[key]}`,
+        `${STANCE_GLYPH[stance]}  ${arg.strings.legend[key]}`,
       ),
     );
   }

@@ -1,7 +1,7 @@
 import { getString } from "../utils/locale";
 import { formatItem, paneFields } from "./itemFormat";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
-import type { Stance } from "./types";
+import { forEachResolvedLink } from "./storage";
 import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 /**
@@ -16,37 +16,37 @@ function byStance(a: ListEntry, b: ListEntry): number {
 }
 
 function buildNodes(): ListNode[] {
-  const index = addon.data.incomingIndex;
   const fields = paneFields();
   const nodes = new Map<number, ListNode>();
-  const labels = new Map<number, string>();
 
   const ensure = (item: Zotero.Item): ListNode => {
     let node = nodes.get(item.id);
     if (!node) {
-      const label = formatItem(item, fields);
-      labels.set(item.id, label);
-      node = { id: item.id, label, outgoing: [], incoming: [] };
+      node = {
+        id: item.id,
+        label: formatItem(item, fields),
+        outgoing: [],
+        incoming: [],
+      };
       nodes.set(item.id, node);
     }
     return node;
   };
 
-  for (const list of index.values()) {
-    for (const inc of list) {
-      const source = Zotero.Items.get(inc.sourceID);
-      const target = Zotero.Items.getByLibraryAndKey(
-        inc.link.targetLib,
-        inc.link.targetKey,
-      );
-      if (!source || !target) continue;
-      const sNode = ensure(source);
-      const tNode = ensure(target);
-      const stance = inc.link.stance as Stance;
-      sNode.outgoing.push({ stance, id: target.id, label: tNode.label });
-      tNode.incoming.push({ stance, id: source.id, label: sNode.label });
-    }
-  }
+  forEachResolvedLink((source, target, link) => {
+    const sNode = ensure(source);
+    const tNode = ensure(target);
+    sNode.outgoing.push({
+      stance: link.stance,
+      id: target.id,
+      label: tNode.label,
+    });
+    tNode.incoming.push({
+      stance: link.stance,
+      id: source.id,
+      label: sNode.label,
+    });
+  });
 
   const result = [...nodes.values()];
   for (const node of result) {

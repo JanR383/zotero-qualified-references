@@ -1,4 +1,5 @@
 import { getLocaleID, getString } from "../utils/locale";
+import { STANCE_GLYPH, STANCE_ORDER, stanceCssValue } from "./stanceMeta";
 import { formatItem, paneFields } from "./itemFormat";
 import { getIncoming, getLinks, makeLink, setLinks } from "./storage";
 import { pickItems } from "./picker";
@@ -25,17 +26,13 @@ function catching<A extends unknown[]>(
   };
 }
 
-const STANCES: {
-  value: Stance;
-  glyph: string;
-  tip: Parameters<typeof getString>[0];
-}[] = [
-  { value: 2, glyph: "++", tip: "stance-pp" },
-  { value: 1, glyph: "+", tip: "stance-p" },
-  { value: 0, glyph: "0", tip: "stance-0" },
-  { value: -1, glyph: "−", tip: "stance-m" },
-  { value: -2, glyph: "−−", tip: "stance-mm" },
-];
+const STANCE_TIP: Record<Stance, Parameters<typeof getString>[0]> = {
+  2: "stance-pp",
+  1: "stance-p",
+  0: "stance-0",
+  [-1]: "stance-m",
+  [-2]: "stance-mm",
+};
 
 export function registerReferenceSection() {
   registeredID = Zotero.ItemPaneManager.registerSection({
@@ -301,38 +298,20 @@ function titleLink(
   return el;
 }
 
-/**
- * Background colour for each stance value. Values are CSS custom properties
- * defined in addon/content/qref.css and overridden under
- * prefers-color-scheme: dark, so badges/buttons adapt to the Zotero theme.
- */
-const STANCE_COLOR: Record<Stance, string> = {
-  2: "var(--qref-stance-strong-pos)", // ++
-  1: "var(--qref-stance-pos)", // +
-  0: "var(--qref-stance-neutral)", // 0
-  [-1]: "var(--qref-stance-neg)", // −
-  [-2]: "var(--qref-stance-strong-neg)", // −−
-};
-
 /** Foreground (text) colour for stance badges/buttons; flips per theme. */
 const STANCE_FG = "var(--qref-stance-fg)";
 
-function stanceGlyph(value: Stance): string {
-  return STANCES.find((s) => s.value === value)?.glyph ?? "0";
-}
-
 /** Read-only coloured badge showing the active stance (used in incoming rows). */
 function stanceBadge(doc: Document, value: Stance): HTMLElement {
-  const s = STANCES.find((s) => s.value === value) ?? STANCES[2];
   const el = doc.createElement("span");
-  el.textContent = s.glyph;
-  el.title = getString(s.tip);
+  el.textContent = STANCE_GLYPH[value];
+  el.title = getString(STANCE_TIP[value]);
   el.style.display = "inline-block";
   el.style.padding = "1px 7px";
   el.style.borderRadius = "10px";
   el.style.fontSize = "0.85em";
   el.style.fontWeight = "bold";
-  el.style.background = STANCE_COLOR[value] ?? STANCE_COLOR[0];
+  el.style.background = stanceCssValue(value);
   el.style.color = STANCE_FG;
   return el;
 }
@@ -347,17 +326,17 @@ function stanceControl(
   wrap.style.display = "inline-flex";
   wrap.style.gap = "2px";
   wrap.style.margin = "4px 0";
-  for (const s of STANCES) {
+  for (const value of STANCE_ORDER) {
     const b = doc.createElement("button");
-    b.textContent = s.glyph;
-    b.title = getString(s.tip);
+    b.textContent = STANCE_GLYPH[value];
+    b.title = getString(STANCE_TIP[value]);
     b.disabled = !editable;
     // Tint every button with its stance colour so the whole scale (green→red)
     // is readable at a glance. The active one is emphasised (full opacity +
     // bold + ring); the rest are dimmed but keep their hue, instead of being
     // left uncoloured (white), which hid the colour coding until selection.
     // Styled like the round stance badges (stanceBadge) plus a thin border.
-    const active = s.value === current;
+    const active = value === current;
     b.style.appearance = "none";
     b.style.minWidth = "28px";
     b.style.padding = "1px 7px";
@@ -365,14 +344,14 @@ function stanceControl(
     b.style.fontSize = "0.85em";
     b.style.border =
       "1px solid var(--material-border-quarternary, rgba(0,0,0,.3))";
-    b.style.background = STANCE_COLOR[s.value];
+    b.style.background = stanceCssValue(value);
     b.style.color = STANCE_FG;
     b.style.fontWeight = active ? "bold" : "normal";
     b.style.opacity = active ? "1" : "0.4";
     if (active) b.style.boxShadow = `inset 0 0 0 2px ${STANCE_FG}`;
     b.addEventListener(
       "click",
-      catching(() => onPick(s.value)),
+      catching(() => onPick(value)),
     );
     wrap.appendChild(b);
   }

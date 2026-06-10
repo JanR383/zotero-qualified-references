@@ -158,6 +158,27 @@ export function getIncoming(item: Zotero.Item): IncomingLink[] {
 }
 
 /**
+ * Walk every link in the reverse index with source and target resolved to live
+ * items (entries whose items are gone are skipped). Used by the graph and list
+ * views to build their data without duplicating the resolution logic.
+ */
+export function forEachResolvedLink(
+  cb: (source: Zotero.Item, target: Zotero.Item, link: ReferenceLink) => void,
+): void {
+  for (const list of index().values()) {
+    for (const inc of list) {
+      const source = Zotero.Items.get(inc.sourceID);
+      const target = Zotero.Items.getByLibraryAndKey(
+        inc.link.targetLib,
+        inc.link.targetKey,
+      );
+      if (!source || !target) continue;
+      cb(source, target, inc.link);
+    }
+  }
+}
+
+/**
  * Rebuild the reverse index.
  *
  * Strategy:

@@ -1,4 +1,5 @@
 import { config } from "../../package.json";
+import { STANCE_CSS_VAR, STANCE_ORDER } from "./stanceMeta";
 import type { Stance } from "./types";
 
 /**
@@ -18,16 +19,6 @@ export type StancePaletteId = "default" | "colorblind";
 
 /** Full preference key (scaffold prefixes prefs.js keys with this prefix). */
 export const PALETTE_PREF = `${config.prefsPrefix}.stancePalette`;
-
-const VAR: Record<Stance, string> = {
-  2: "--qref-stance-strong-pos",
-  1: "--qref-stance-pos",
-  0: "--qref-stance-neutral",
-  [-1]: "--qref-stance-neg",
-  [-2]: "--qref-stance-strong-neg",
-};
-
-const STANCES: Stance[] = [2, 1, 0, -1, -2];
 
 // Only the five background vars are overridden; --qref-stance-fg (white in
 // light, dark in dark) from qref.css remains and reads well on these colours.
@@ -52,7 +43,7 @@ const COLORBLIND: {
 };
 
 function rootBlock(colors: Record<Stance, string>): string {
-  return `:root{${STANCES.map((s) => `${VAR[s]}:${colors[s]};`).join("")}}`;
+  return `:root{${STANCE_ORDER.map((s) => `${STANCE_CSS_VAR[s]}:${colors[s]};`).join("")}}`;
 }
 
 /** CSS that overrides qref.css for the given palette ("" for the default). */

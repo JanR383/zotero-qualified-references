@@ -7,39 +7,19 @@
  * (+ the palette override) via the --qref-stance-* custom properties, which
  * apply directly here since this is regular DOM (not canvas).
  */
+import { STANCE_GLYPH, stanceCssValue } from "../modules/stanceMeta";
+import { byId, create } from "../shared/dom";
 import type { Stance } from "../modules/types";
 import type { ListArg, ListEntry, ListNode } from "./types";
 
 declare const window: Window & typeof globalThis & { arguments?: unknown[] };
 declare const document: Document;
 
-function create(tag: string): HTMLElement {
-  return document.createElement(tag) as unknown as HTMLElement;
-}
-function byId(id: string): HTMLElement | null {
-  return document.getElementById(id) as HTMLElement | null;
-}
-
-const STANCE_VAR: Record<Stance, string> = {
-  2: "--qref-stance-strong-pos",
-  1: "--qref-stance-pos",
-  0: "--qref-stance-neutral",
-  [-1]: "--qref-stance-neg",
-  [-2]: "--qref-stance-strong-neg",
-};
-const GLYPH: Record<Stance, string> = {
-  2: "++",
-  1: "+",
-  0: "0",
-  [-1]: "−",
-  [-2]: "−−",
-};
-
 function stancePill(stance: Stance): HTMLElement {
   const pill = create("span");
   pill.className = "pill";
-  pill.style.background = `var(${STANCE_VAR[stance]})`;
-  pill.textContent = GLYPH[stance];
+  pill.style.background = stanceCssValue(stance);
+  pill.textContent = STANCE_GLYPH[stance];
   return pill;
 }
 

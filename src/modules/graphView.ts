@@ -1,8 +1,11 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
+import { escapeHtml, truncate } from "../shared/text";
 import { formatItem, graphFields } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
+import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
+import { forEachResolvedLink } from "./storage";
 import type { Stance } from "./types";
 import type { GraphArg, GraphLink, GraphNode } from "../graph/types";
 
@@ -15,54 +18,18 @@ import type { GraphArg, GraphLink, GraphNode } from "../graph/types";
  * selectItem callback cross the boundary directly).
  */
 
-const GLYPH: Record<Stance, string> = {
-  2: "++",
-  1: "+",
-  0: "0",
-  [-1]: "−",
-  [-2]: "−−",
-};
-
-// CSS custom property per stance (resolved in the graph window where qref.css
-// + the palette override are loaded). Used for the coloured tooltip pills (N4).
-const STANCE_VAR: Record<Stance, string> = {
-  2: "--qref-stance-strong-pos",
-  1: "--qref-stance-pos",
-  0: "--qref-stance-neutral",
-  [-1]: "--qref-stance-neg",
-  [-2]: "--qref-stance-strong-neg",
-};
-
-function escapeHtml(text: string): string {
-  return text.replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[c] as string,
-  );
-}
-
-function truncate(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
-}
-
 interface Edge {
   stance: Stance;
   id: number; // the *other* item's id
 }
 
-/** One coloured stance pill (glyph only). */
+/** One coloured stance pill (glyph only) for the hover tooltip. */
 function pill(stance: Stance): string {
   return (
     `<span style="display:inline-block;min-width:14px;text-align:center;` +
     `padding:0 5px;margin-right:5px;border-radius:8px;font-size:.8em;` +
-    `background:var(${STANCE_VAR[stance]});color:var(--qref-stance-fg)">` +
-    `${GLYPH[stance]}</span>`
+    `background:var(${STANCE_CSS_VAR[stance]});color:var(--qref-stance-fg)">` +
+    `${STANCE_GLYPH[stance]}</span>`
   );
 }
 
@@ -93,7 +60,6 @@ function buildData(): {
   links: GraphLink[];
   typeLegend: { type: string; label: string }[];
 } {
-  const index = addon.data.incomingIndex;
   const nodes = new Map<number, GraphNode>();
   const items = new Map<number, Zotero.Item>();
   const links: GraphLink[] = [];
@@ -119,22 +85,13 @@ function buildData(): {
     }
   };
 
-  for (const list of index.values()) {
-    for (const inc of list) {
-      const source = Zotero.Items.get(inc.sourceID);
-      const target = Zotero.Items.getByLibraryAndKey(
-        inc.link.targetLib,
-        inc.link.targetKey,
-      );
-      if (!source || !target) continue;
-      ensureNode(source);
-      ensureNode(target);
-      const stance = inc.link.stance;
-      links.push({ source: source.id, target: target.id, stance });
-      push(outEdges, source.id, { stance, id: target.id });
-      push(inEdges, target.id, { stance, id: source.id });
-    }
-  }
+  forEachResolvedLink((source, target, link) => {
+    ensureNode(source);
+    ensureNode(target);
+    links.push({ source: source.id, target: target.id, stance: link.stance });
+    push(outEdges, source.id, { stance: link.stance, id: target.id });
+    push(inEdges, target.id, { stance: link.stance, id: source.id });
+  });
 
   for (const node of nodes.values()) {
     const item = items.get(node.id)!;
