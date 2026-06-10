@@ -6,6 +6,25 @@ import type { IncomingLink, ReferenceLink, Stance } from "./types";
 
 let registeredID: string | false = false;
 
+/**
+ * Wrap a (possibly async) event handler so rejections are logged instead of
+ * surfacing as unhandled promise rejections.
+ */
+function catching<A extends unknown[]>(
+  fn: (...args: A) => Promise<void> | void,
+): (...args: A) => void {
+  return (...args) => {
+    try {
+      const result = fn(...args);
+      if (result instanceof Promise) {
+        result.catch((e) => ztoolkit.log("QRef: handler failed", e));
+      }
+    } catch (e) {
+      ztoolkit.log("QRef: handler failed", e);
+    }
+  };
+}
+
 const STANCES: {
   value: Stance;
   glyph: string;
@@ -66,17 +85,20 @@ function renderSection(
   }
   if (editable) {
     const add = button(doc, getString("add-button-label"));
-    add.addEventListener("click", async () => {
-      const win = doc.defaultView as Window;
-      const ids = pickItems(win).filter((id) => id !== item.id);
-      if (ids.length === 0) return;
-      for (const id of ids) {
-        const target = Zotero.Items.get(id);
-        if (target) links.push(makeLink(target.key, target.libraryID));
-      }
-      await setLinks(item, links);
-      rerender();
-    });
+    add.addEventListener(
+      "click",
+      catching(async () => {
+        const win = doc.defaultView as Window;
+        const ids = pickItems(win).filter((id) => id !== item.id);
+        if (ids.length === 0) return;
+        for (const id of ids) {
+          const target = Zotero.Items.get(id);
+          if (target) links.push(makeLink(target.key, target.libraryID));
+        }
+        await setLinks(item, links);
+        rerender();
+      }),
+    );
     body.appendChild(add);
   }
 
@@ -158,10 +180,13 @@ function outgoingRow(
   comment.style.width = "100%";
   comment.style.marginTop = "4px";
   comment.disabled = !editable;
-  comment.addEventListener("change", async () => {
-    link.comment = comment.value || undefined;
-    await save();
-  });
+  comment.addEventListener(
+    "change",
+    catching(async () => {
+      link.comment = comment.value || undefined;
+      await save();
+    }),
+  );
   row.appendChild(comment);
 
   const anchor = sourceAnchorLink(doc, link, source.libraryID);
@@ -174,12 +199,15 @@ function outgoingRow(
 
   if (editable) {
     const del = button(doc, getString("delete-button"));
-    del.addEventListener("click", async () => {
-      const idx = links.findIndex((l) => l.id === link.id);
-      if (idx >= 0) links.splice(idx, 1);
-      await setLinks(source, links);
-      rerender();
-    });
+    del.addEventListener(
+      "click",
+      catching(async () => {
+        const idx = links.findIndex((l) => l.id === link.id);
+        if (idx >= 0) links.splice(idx, 1);
+        await setLinks(source, links);
+        rerender();
+      }),
+    );
     row.appendChild(del);
   }
 
@@ -342,7 +370,10 @@ function stanceControl(
     b.style.fontWeight = active ? "bold" : "normal";
     b.style.opacity = active ? "1" : "0.4";
     if (active) b.style.boxShadow = `inset 0 0 0 2px ${STANCE_FG}`;
-    b.addEventListener("click", () => onPick(s.value));
+    b.addEventListener(
+      "click",
+      catching(() => onPick(s.value)),
+    );
     wrap.appendChild(b);
   }
   return wrap;
@@ -368,7 +399,10 @@ function pageField(
   input.value = value || "";
   input.size = 6;
   input.disabled = !editable;
-  input.addEventListener("change", () => onChange(input.value.trim()));
+  input.addEventListener(
+    "change",
+    catching(() => onChange(input.value.trim())),
+  );
   wrap.append(span, input);
   return wrap;
 }
@@ -401,10 +435,13 @@ function linkButton(
   a.setAttribute("href", "#");
   a.style.cursor = "pointer";
   a.style.fontSize = "0.9em";
-  a.addEventListener("click", (e: Event) => {
-    e.preventDefault();
-    onClick();
-  });
+  a.addEventListener(
+    "click",
+    catching((e: Event) => {
+      e.preventDefault();
+      onClick();
+    }),
+  );
   return a;
 }
 

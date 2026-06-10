@@ -43,6 +43,48 @@ export function makeLink(
 
 // --- Read/write the source item's links -----------------------------------
 
+// The Reference-Graph line is untrusted input: in group libraries any member
+// can edit Extra, and synced data may be malformed. Validate every entry
+// before it reaches the index or the UI.
+
+const MAX_FIELD_LENGTH = 10_000;
+
+function asCappedString(value: unknown): string | undefined {
+  return typeof value === "string"
+    ? value.slice(0, MAX_FIELD_LENGTH)
+    : undefined;
+}
+
+/** Validate one parsed entry; returns a clean ReferenceLink or null to drop. */
+function sanitizeLink(raw: unknown): ReferenceLink | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  // Required identity fields — drop the entry if they are unusable.
+  if (typeof o.id !== "string" || o.id.length === 0) return null;
+  if (typeof o.targetKey !== "string" || o.targetKey.length === 0) return null;
+  if (typeof o.targetLib !== "number" || !Number.isInteger(o.targetLib)) {
+    return null;
+  }
+  // Stance: clamp to the known scale, defaulting to neutral.
+  const stance: Stance =
+    typeof o.stance === "number" && [-2, -1, 0, 1, 2].includes(o.stance)
+      ? (o.stance as Stance)
+      : 0;
+  return {
+    id: o.id.slice(0, 100),
+    targetKey: o.targetKey.slice(0, 100),
+    targetLib: o.targetLib,
+    stance,
+    sourcePages: asCappedString(o.sourcePages),
+    targetPages: asCappedString(o.targetPages),
+    sourceAttachmentKey: asCappedString(o.sourceAttachmentKey)?.slice(0, 100),
+    sourceAnnotationKey: asCappedString(o.sourceAnnotationKey)?.slice(0, 100),
+    comment: asCappedString(o.comment),
+    added: asCappedString(o.added) ?? "",
+    modified: asCappedString(o.modified) ?? "",
+  };
+}
+
 export function getLinks(item: Zotero.Item): ReferenceLink[] {
   const extra = item.getField("extra") || "";
   for (const line of extra.split(/\r?\n/)) {
@@ -50,7 +92,10 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
     if (!m) continue;
     try {
       const parsed = JSON.parse(m[1]);
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map(sanitizeLink)
+        .filter((l): l is ReferenceLink => l !== null);
     } catch {
       return [];
     }

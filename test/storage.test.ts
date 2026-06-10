@@ -120,4 +120,77 @@ describe("storage", function () {
       assert.isNotOk(getIncoming(target).find((i) => i.sourceID === source.id));
     });
   });
+
+  describe("sanitizing untrusted Reference-Graph data (S1)", function () {
+    async function writeRaw(json: string): Promise<void> {
+      source.setField("extra", `Reference-Graph: ${json}`);
+      await source.saveTx();
+    }
+
+    it("drops entries that are not objects or lack identity fields", async function () {
+      await writeRaw(
+        JSON.stringify([
+          "string-entry",
+          42,
+          null,
+          { stance: 1 }, // no id/targetKey/targetLib
+          { id: "ok1", targetKey: target.key, targetLib: "not-a-number" },
+          { id: "ok2", targetKey: target.key, targetLib: lib, stance: 1 },
+        ]),
+      );
+      const links = getLinks(source);
+      assert.lengthOf(links, 1);
+      assert.equal(links[0].id, "ok2");
+    });
+
+    it("clamps out-of-range stance to neutral", async function () {
+      await writeRaw(
+        JSON.stringify([
+          { id: "a", targetKey: target.key, targetLib: lib, stance: 99 },
+          { id: "b", targetKey: target.key, targetLib: lib, stance: "++" },
+        ]),
+      );
+      const links = getLinks(source);
+      assert.lengthOf(links, 2);
+      assert.equal(links[0].stance, 0);
+      assert.equal(links[1].stance, 0);
+    });
+
+    it("caps oversized string fields", async function () {
+      const huge = "x".repeat(50_000);
+      await writeRaw(
+        JSON.stringify([
+          {
+            id: "a",
+            targetKey: target.key,
+            targetLib: lib,
+            stance: 1,
+            comment: huge,
+          },
+        ]),
+      );
+      const links = getLinks(source);
+      assert.lengthOf(links, 1);
+      assert.isAtMost(links[0].comment!.length, 10_000);
+    });
+
+    it("coerces non-string optional fields to undefined", async function () {
+      await writeRaw(
+        JSON.stringify([
+          {
+            id: "a",
+            targetKey: target.key,
+            targetLib: lib,
+            stance: 1,
+            comment: { nested: true },
+            sourcePages: 42,
+          },
+        ]),
+      );
+      const links = getLinks(source);
+      assert.lengthOf(links, 1);
+      assert.isUndefined(links[0].comment);
+      assert.isUndefined(links[0].sourcePages);
+    });
+  });
 });

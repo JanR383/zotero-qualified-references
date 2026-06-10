@@ -35,8 +35,15 @@ const STANCE_VAR: Record<Stance, string> = {
 
 function escapeHtml(text: string): string {
   return text.replace(
-    /[&<>]/g,
-    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string,
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[c] as string,
   );
 }
 
