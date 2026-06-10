@@ -324,12 +324,19 @@ function stanceControl(
     b.textContent = s.glyph;
     b.title = getString(s.tip);
     b.disabled = !editable;
-    b.style.minWidth = "28px";
     // Tint every button with its stance colour so the whole scale (green→red)
     // is readable at a glance. The active one is emphasised (full opacity +
     // bold + ring); the rest are dimmed but keep their hue, instead of being
     // left uncoloured (white), which hid the colour coding until selection.
+    // Styled like the round stance badges (stanceBadge) plus a thin border.
     const active = s.value === current;
+    b.style.appearance = "none";
+    b.style.minWidth = "28px";
+    b.style.padding = "1px 7px";
+    b.style.borderRadius = "10px";
+    b.style.fontSize = "0.85em";
+    b.style.border =
+      "1px solid var(--material-border-quarternary, rgba(0,0,0,.3))";
     b.style.background = STANCE_COLOR[s.value];
     b.style.color = STANCE_FG;
     b.style.fontWeight = active ? "bold" : "normal";

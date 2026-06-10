@@ -34,6 +34,9 @@ export default defineConfig({
         },
         bundle: true,
         target: "firefox115",
+        // Preserve third-party licence notices (zotero-plugin-toolkit, MIT)
+        // in a sibling .LEGAL.txt file instead of stripping them on minify.
+        legalComments: "linked",
         outfile: `.scaffold/build/addon/content/scripts/${pkg.config.addonRef}.js`,
       },
       {
@@ -63,6 +66,7 @@ export default defineConfig({
         target: "firefox115",
         platform: "browser",
         format: "iife",
+        legalComments: "linked",
         outfile: `.scaffold/build/addon/content/scripts/list.js`,
       },
     ],

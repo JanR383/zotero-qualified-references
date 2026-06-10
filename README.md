@@ -21,7 +21,9 @@ Multiple references from A to B are allowed (e.g. supporting on p. 36,
 contrasting on p. 90).
 
 A **Tools → Reference Graph** window visualises the whole network: items as
-nodes, references as directed arrows coloured by stance.
+nodes (shaped and coloured by item type), references as directed arrows
+coloured by stance. A **Tools → Reference List** window shows the same data as
+an expandable list.
 
 ## Data storage
 
@@ -35,6 +37,29 @@ This syncs natively via Zotero's sync server. The reverse ("referenced by")
 view is served by an in-memory index rebuilt at startup and kept fresh through
 Zotero's notifier. All storage goes through `src/modules/storage.ts`, so the
 backing store can be swapped later without touching the UI.
+
+## Sync & data safety
+
+How the Extra-field storage behaves with Zotero sync (verified against
+Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
+
+- **Different fields, different devices → safe.** Zotero merges synced items
+  with a three-way diff _per field_. Edits to other fields of the same item
+  never touch the `Reference-Graph:` line.
+- **Same item's references edited on two devices before syncing → conflict.**
+  The whole `Extra` field is one unit: Zotero shows its conflict dialog and the
+  side you discard loses its reference changes (there is no line-level merge).
+  _Recommendation:_ edit a given item's references on one device at a time; in
+  the conflict dialog, the `Reference-Graph:` line is visible — when in doubt,
+  keep the side with the longer line, then re-add the missing reference.
+- **No auto-conversion.** Zotero only converts known field names / CSL
+  variables out of Extra (`Type:` etc.); `Reference-Graph` matches none of
+  them and is left untouched.
+- **Coexistence.** The plugin parses Extra line-by-line and preserves all
+  other lines (covered by tests). Third-party tools that _replace_ the whole
+  Extra field would, however, also wipe this line.
+- **Export side-effect.** BibTeX/BibLaTeX export maps Extra to the `note`
+  field, so the JSON line appears there; CSL citations ignore unknown keys.
 
 ## Installation
 
@@ -70,8 +95,10 @@ This project reuses the following libraries, code patterns and design sources:
   dependencies' licence notices are preserved in
   `content/scripts/graph.js.LEGAL.txt`.
 - **[zotero-plugin-template](https://github.com/windingwind/zotero-plugin-template)**
-  & **[zotero-plugin-toolkit](https://github.com/windingwind/zotero-plugin-toolkit)**
-  by windingwind — project scaffold, build pipeline and UI/menu helpers.
+  (AGPL-3.0-or-later) & **[zotero-plugin-toolkit](https://github.com/windingwind/zotero-plugin-toolkit)**
+  (MIT) by windingwind — project scaffold, build pipeline and UI/menu helpers.
+  The toolkit is bundled into the main script; its full licence text ships in
+  `THIRD-PARTY-LICENSES.md` inside the plugin.
 - **Window pattern** — opening the graph via `openDialog` + `window.arguments`
   follows Zotero's own `selectItemsDialog.xhtml` (mirrored in
   `src/modules/picker.ts`).
@@ -88,3 +115,10 @@ This project reuses the following libraries, code patterns and design sources:
   scales (contrast-checked for light and dark mode). The optional colour-blind
   safe palette (Preferences → Stance colours) uses the
   [Okabe–Ito palette](https://jfly.uni-koeln.de/color/) (blue ↔ orange/vermillion).
+- **Item-type colours** — the graph's node colours per item type
+  (`src/modules/itemTypeColors.ts`) are taken from the
+  [Open Color](https://yeun.github.io/open-color/) palette (MIT).
+
+This plugin is licensed under **AGPL-3.0-or-later** (see `LICENSE`). While the
+repository is private, the complete corresponding source is available on
+request to anyone who receives the `.xpi`.
