@@ -1,3 +1,8 @@
+# Kanonische Begriffe (für künftige Übersetzungen konsistent halten):
+#   Bezug / Bezüge        = ausgehender qualifizierter Link (EN: reference)
+#   Referenziert von      = eingehender Link (EN: referenced by)
+#   Stance                = die ++/+/0/−/−− Bewertung (Anglizismus, bleibt)
+#   Quelle/Ziel S.        = source/target page
 section-head-text =
     .label = Qualifizierte Referenzen
 section-sidenav-tooltip =
@@ -35,7 +40,7 @@ prefs-palette-default =
     .label = Standard
 prefs-palette-colorblind =
     .label = Farbenblind-sicher
-prefs-display-pane-title = Anzeige in Referenzen/Verweisen
+prefs-display-pane-title = Anzeige in Bezügen
 prefs-display-graph-title = Anzeige im Referenzgraph
 prefs-field-author =
     .label = Autor

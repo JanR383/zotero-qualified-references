@@ -1,3 +1,8 @@
+# Canonical terms (keep consistent across translations):
+#   reference(s)     = an outgoing qualified link (DE: Bezug)
+#   referenced by    = an incoming link (DE: Referenziert von)
+#   stance           = the ++/+/0/−/−− rating (kept in all locales)
+#   Source/Target p. = source/target page
 section-head-text =
     .label = Qualified References
 section-sidenav-tooltip =
@@ -35,7 +40,7 @@ prefs-palette-default =
     .label = Default
 prefs-palette-colorblind =
     .label = Colour-blind safe
-prefs-display-pane-title = Display in references / back-links
+prefs-display-pane-title = Display in references
 prefs-display-graph-title = Display in reference graph
 prefs-field-author =
     .label = Author
