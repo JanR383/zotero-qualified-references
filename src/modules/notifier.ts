@@ -20,7 +20,13 @@ export async function initIndexAndNotifier(): Promise<void> {
       }
       if (type !== "item" || !HANDLED.has(event)) return;
       const removed = event === "delete";
-      for (const id of ids) onItemChanged(Number(id), removed);
+      for (const id of ids) {
+        try {
+          onItemChanged(Number(id), removed);
+        } catch (e) {
+          Zotero.log(`[qref] notifier error for item ${id}: ${e}`, "warning");
+        }
+      }
     },
   };
   notifierID = Zotero.Notifier.registerObserver(callback, ["item"], "qref");

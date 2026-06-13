@@ -60,6 +60,10 @@ Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
   Extra field would, however, also wipe this line.
 - **Export side-effect.** BibTeX/BibLaTeX export maps Extra to the `note`
   field, so the JSON line appears there; CSL citations ignore unknown keys.
+- **Notifier resilience.** Each incoming sync notification is processed
+  individually inside a try/catch so that one unloadable item (e.g. during a
+  large batch sync) cannot abort the reverse-index update for the rest of the
+  batch.
 
 ## Installation
 
