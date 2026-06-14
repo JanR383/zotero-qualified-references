@@ -15,15 +15,29 @@ one or more other items, each with:
   to create the reference; its page number is filled in automatically and you
   can jump back to the passage from either side.
 
-The target item shows a read-only **"Referenced by"** list of incoming links.
+![Editing outgoing references in the item pane](docs/item-pane.png)
+
+The target item shows a read-only **"Referenced by"** list of incoming links,
+each with its stance, pages and a jump-back link.
+
+![The read-only "Referenced by" view on a target item](docs/referenced-by.png)
 
 Multiple references from A to B are allowed (e.g. supporting on p. 36,
 contrasting on p. 90).
+
+The **PDF anchor** is created straight from a highlight: right-click a passage
+in the source item's PDF and choose _"Add qualified reference from here…"_.
+
+![Creating a reference from a PDF highlight](docs/pdf-annotation-menu.png)
 
 A **Tools → Reference Graph** window visualises the whole network: items as
 nodes (shaped and coloured by item type), references as directed arrows
 coloured by stance. A **Tools → Reference List** window shows the same data as
 an expandable list.
+
+![The reference graph window](docs/reference-graph.png)
+
+![The reference list window](docs/reference-list.png)
 
 ## Data storage
 
@@ -64,6 +78,22 @@ Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
   individually inside a try/catch so that one unloadable item (e.g. during a
   large batch sync) cannot abort the reverse-index update for the rest of the
   batch.
+- **Copying into a group library.** When you copy an item that carries
+  references into a group library, the references — including your private
+  comments and stance ratings — are **not** copied by default, mirroring how
+  Zotero itself drops "Related" links across libraries. This is controlled by
+  **Settings → Privacy** (see below) and can be turned on if you do want to
+  share them with the group.
+
+## Settings
+
+Open **Zotero → Settings → Qualified References**. You can choose the stance
+colour palette (default or colour-blind safe), which fields (author / year /
+title) appear in the references list and in the graph, whether graph nodes are
+coloured by item type, and the **Privacy** option for copying references into
+group libraries (off by default).
+
+![The plugin's settings pane](docs/preferences.png)
 
 ## Installation
 
