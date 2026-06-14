@@ -1,3 +1,4 @@
+import { handlePossibleGroupCopy } from "./groupCopyGuard";
 import { onItemChanged, rebuildIndex } from "./storage";
 
 let notifierID: string | undefined;
@@ -25,6 +26,19 @@ export async function initIndexAndNotifier(): Promise<void> {
           onItemChanged(Number(id), removed);
         } catch (e) {
           Zotero.log(`[qref] notifier error for item ${id}: ${e}`, "warning");
+        }
+      }
+      // Privacy guard: a personal item copied into a group fires `add` with the
+      // cloned Extra (incl. references) already present. Drop them unless the
+      // user opted in. Fire-and-forget; notify() is sync.
+      if (event === "add") {
+        for (const id of ids) {
+          void handlePossibleGroupCopy(Number(id)).catch((e) =>
+            Zotero.log(
+              `[qref] group-copy guard failed for ${id}: ${e}`,
+              "warning",
+            ),
+          );
         }
       }
     },

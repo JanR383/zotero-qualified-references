@@ -14,3 +14,8 @@ pref("displayGraphTitle", true);
 
 // Graph: colour nodes by item type (N5).
 pref("graphColorByType", true);
+
+// Privacy: copy qualified references along when an item is added to a group
+// library? Default false — like Zotero's own "Related" links, references
+// (incl. private comments/stance) are dropped so they aren't shared.
+pref("copyRefsToGroup", false);
