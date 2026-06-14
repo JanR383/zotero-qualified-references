@@ -119,8 +119,7 @@ function renderLegend(arg: GraphArg, isDark: boolean): void {
       const row = create("div");
       row.className = "legend-row";
       const glyph = create("span");
-      glyph.className = "legend-swatch";
-      glyph.style.background = "transparent";
+      glyph.className = "legend-type-glyph";
       glyph.style.textAlign = "center";
       glyph.style.color = arg.colorByType ? typeColor(type, isDark) : neutral;
       glyph.textContent = SHAPE_GLYPH[typeShape(type)];
@@ -194,11 +193,16 @@ function main(): void {
   const body = document.body;
   const labelColor = (body && getComputedStyle(body).color) || "#222222";
 
-  const R = 5; // node "radius" in graph units (matches the old default size)
+  const R = 8; // node "radius" in graph units (symbol size + hit area)
   const graph = new ForceGraph<GraphNode, GraphLink>(container)
     .graphData({ nodes: arg.nodes, links: arg.links })
     .nodeId("id")
     .nodeLabel((n) => n.tooltip)
+    // Tell force-graph the real node radius so its built-in arrow placement
+    // (which insets the tip by the target's radius) stops the arrowhead at the
+    // node border instead of overlapping our custom R=8 shapes. nodeRelSize is
+    // the circle radius per unit nodeVal (default 1), so this yields endR = R.
+    .nodeRelSize(R)
     .linkColor((l) => colorFor(l.stance))
     .linkWidth(1.5)
     .linkCurvature("curvature")
@@ -237,6 +241,31 @@ function main(): void {
       ctx.fillStyle = color;
       ctx.fill();
     });
+
+  // Edge-length control: set the initial force-link distance and wire the
+  // in-window slider so dense graphs can be spread out for legibility.
+  const linkForce = graph.d3Force("link") as
+    | { distance: (d: number) => unknown }
+    | undefined;
+  const applyDistance = (d: number): void => {
+    linkForce?.distance(d);
+    graph.d3ReheatSimulation();
+  };
+  applyDistance(arg.linkDistance);
+
+  const controls = byId("controls");
+  const slider = byId("link-distance") as HTMLInputElement | null;
+  if (controls && slider) {
+    const label = controls.querySelector("label");
+    if (label) label.textContent = arg.strings.linkDistance;
+    slider.value = String(arg.linkDistance);
+    controls.style.display = "flex";
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value);
+      applyDistance(v);
+      arg.onLinkDistanceChange?.(v);
+    });
+  }
 
   const resize = (): void => {
     graph.width(window.innerWidth).height(window.innerHeight);

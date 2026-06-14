@@ -5,9 +5,14 @@ let notifierID: string | undefined;
 
 const HANDLED = new Set(["add", "modify", "trash", "delete"]);
 
-/** Build the reverse index once, then keep it fresh via a Notifier observer. */
-export async function initIndexAndNotifier(): Promise<void> {
-  await rebuildIndex();
+/**
+ * Register the Notifier observer, then build the reverse index in the
+ * background. The rebuild is returned (not awaited here) so startup is not
+ * blocked on large databases. Incremental events that arrive while the rebuild
+ * is in flight keep the (initially empty) index fresh; addSourceToIndex is
+ * idempotent per source, so the rebuild re-indexing the same item is safe.
+ */
+export function initIndexAndNotifier(): Promise<void> {
   const callback = {
     notify: (
       event: string,
@@ -25,7 +30,7 @@ export async function initIndexAndNotifier(): Promise<void> {
         try {
           onItemChanged(Number(id), removed);
         } catch (e) {
-          Zotero.log(`[qref] notifier error for item ${id}: ${e}`, "warning");
+          ztoolkit.log(`QRef: notifier error for item ${id}`, e);
         }
       }
       // Privacy guard: a personal item copied into a group fires `add` with the
@@ -34,16 +39,14 @@ export async function initIndexAndNotifier(): Promise<void> {
       if (event === "add") {
         for (const id of ids) {
           void handlePossibleGroupCopy(Number(id)).catch((e) =>
-            Zotero.log(
-              `[qref] group-copy guard failed for ${id}: ${e}`,
-              "warning",
-            ),
+            ztoolkit.log(`QRef: group-copy guard failed for ${id}`, e),
           );
         }
       }
     },
   };
   notifierID = Zotero.Notifier.registerObserver(callback, ["item"], "qref");
+  return rebuildIndex();
 }
 
 export function unregisterNotifier(): void {

@@ -14,6 +14,7 @@ export type FluentMessageId =
   | 'field-target-pages'
   | 'graph-empty'
   | 'graph-in'
+  | 'graph-link-distance'
   | 'graph-out'
   | 'graph-type-other'
   | 'graph-window-title'

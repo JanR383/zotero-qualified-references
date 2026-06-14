@@ -17,6 +17,9 @@ class Addon {
     // In-memory reverse index: targetKey -> incoming links pointing at it.
     // Built at startup, kept fresh by the notifier. See modules/storage.ts.
     incomingIndex: Map<string, IncomingLink[]>;
+    // Secondary index: sourceID -> the target index-keys it contributes to, so
+    // removing a source is O(its targets) instead of O(whole index).
+    incomingBySource: Map<number, Set<string>>;
   };
   // Lifecycle hooks
   public hooks: typeof hooks;
@@ -31,6 +34,7 @@ class Addon {
       initialized: false,
       ztoolkit: createZToolkit(),
       incomingIndex: new Map(),
+      incomingBySource: new Map(),
     };
     this.hooks = hooks;
     this.api = {};

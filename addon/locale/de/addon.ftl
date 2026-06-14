@@ -34,6 +34,7 @@ graph-empty = Noch keine Bezüge.
 graph-type-other = Sonstige
 graph-out = Bezüge auf
 graph-in = Referenziert von
+graph-link-distance = Kantenlänge
 prefs-title = Qualifizierte Referenzen
 prefs-palette-label = Stance-Farben
 prefs-palette-default =

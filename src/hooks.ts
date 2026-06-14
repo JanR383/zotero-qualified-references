@@ -31,14 +31,14 @@ async function onStartup() {
   for (const win of Zotero.getMainWindows()) {
     injectLocaleIntoWindow(win as unknown as Window);
   }
-  try {
-    await initIndexAndNotifier();
-  } catch (e) {
+  // Registers the notifier synchronously and builds the reverse index in the
+  // background — startup is not blocked on large databases.
+  initIndexAndNotifier().catch((e) =>
     ztoolkit.log(
       "QRef: index build failed, continuing without reverse index",
       e,
-    );
-  }
+    ),
+  );
   registerReferenceSection();
   registerReaderHook();
   registerMenus();
@@ -56,7 +56,7 @@ async function onStartup() {
     pluginID: addon.data.config.addonID,
     src: rootURI + "content/preferences.xhtml",
     label: getString("prefs-title"),
-    image: `chrome://${addon.data.config.addonRef}/content/icons/favicon.png`,
+    image: `chrome://${addon.data.config.addonRef}/content/icons/book-open.svg`,
   });
   // Re-apply the stance palette to all main windows when the pref changes.
   palettePrefObserver = Zotero.Prefs.registerObserver(

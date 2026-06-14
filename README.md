@@ -85,6 +85,27 @@ Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
   **Settings → Privacy** (see below) and can be turned on if you do want to
   share them with the group.
 
+## Scale & limits
+
+The plugin is built around an in-memory reverse index, sized to the number of
+**references** rather than the size of your library:
+
+- **The index only holds items that actually have references.** A library with
+  tens of thousands of items but a few hundred references uses a correspondingly
+  small index (memory grows with reference count, not library size).
+- **Startup is non-blocking.** The reverse index is built in the background
+  after Zotero's UI is ready; the item-pane section and views work as soon as
+  the index finishes (typically well under a second; a few seconds for very
+  large libraries). Incremental edits stay O(1) via a secondary
+  `source → targets` index, so bulk add/delete does not degrade.
+- **Per-item cap.** Each item's reference data lives on one line of its `Extra`
+  field, capped at 10 000 characters (~dozens of references per item); beyond
+  that, extra entries are dropped on read.
+- **Practical ceiling.** Tens of thousands of references are fine. The graph and
+  list windows render every reference at once, so a graph with thousands of
+  edges becomes visually dense — use the graph's **edge-length slider** to
+  spread it out.
+
 ## Settings
 
 Open **Zotero → Settings → Qualified References**. You can choose the stance

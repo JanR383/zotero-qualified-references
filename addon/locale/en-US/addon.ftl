@@ -34,6 +34,7 @@ graph-empty = No references yet.
 graph-type-other = Other
 graph-out = References
 graph-in = Referenced by
+graph-link-distance = Edge length
 prefs-title = Qualified References
 prefs-palette-label = Stance colours
 prefs-palette-default =

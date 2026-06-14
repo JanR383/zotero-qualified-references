@@ -89,8 +89,8 @@ function nodeRow(node: ListNode, arg: ListArg): HTMLElement {
     body.style.display = open ? "none" : "block";
     caret.textContent = open ? "▸" : "▾";
   };
-  caret.addEventListener("click", toggle);
-  // Header click (outside the title) also toggles.
+  // Any header click outside the title toggles (this covers the caret too —
+  // a separate caret listener would double-toggle via bubbling and cancel out).
   header.addEventListener("click", (e: Event) => {
     if (e.target !== title) toggle();
   });

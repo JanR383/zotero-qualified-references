@@ -26,6 +26,7 @@ export interface GraphStrings {
   title: string;
   empty: string;
   legend: Record<"pp" | "p" | "o" | "m" | "mm", string>;
+  linkDistance: string;
 }
 
 export interface GraphArg {
@@ -39,4 +40,8 @@ export interface GraphArg {
   colorByType: boolean;
   /** Localized labels for the item types present (legend, N5). */
   typeLegend: { type: string; label: string }[];
+  /** Initial force-link distance (edge length) from prefs. */
+  linkDistance: number;
+  /** Persist a changed link distance back to prefs. */
+  onLinkDistanceChange?: (v: number) => void;
 }

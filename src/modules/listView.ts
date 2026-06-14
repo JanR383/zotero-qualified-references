@@ -1,4 +1,5 @@
 import { getString } from "../utils/locale";
+import { openViewWindow, selectItemInPane } from "./navigation";
 import { formatItem, paneFields } from "./itemFormat";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import { forEachResolvedLink } from "./storage";
@@ -66,13 +67,12 @@ export function openListView(win: Window): void {
       outgoing: getString("graph-out"),
       incoming: getString("graph-in"),
     },
-    selectItem: (id: number) => {
-      Zotero.getActiveZoteroPane()?.selectItem(id);
-    },
+    selectItem: selectItemInPane,
     paletteCss: paletteOverrideCss(getCurrentPaletteId()),
   };
 
-  (win as unknown as { openDialog: (...a: unknown[]) => void }).openDialog(
+  openViewWindow(
+    win,
     "chrome://qref/content/list.xhtml",
     "qref-list",
     "chrome,resizable,centerscreen,width=700,height=720",

@@ -128,17 +128,32 @@ function index(): Map<string, IncomingLink[]> {
   return addon.data.incomingIndex;
 }
 
+function bySource(): Map<number, Set<string>> {
+  return addon.data.incomingBySource;
+}
+
 function removeSourceFromIndex(sourceID: number): void {
+  // Only touch the target keys this source actually contributed to (O(targets))
+  // instead of scanning the whole index (O(n)).
+  const keys = bySource().get(sourceID);
+  if (!keys) return;
   const map = index();
-  for (const [key, list] of map) {
+  for (const key of keys) {
+    const list = map.get(key);
+    if (!list) continue;
     const filtered = list.filter((l) => l.sourceID !== sourceID);
     if (filtered.length === 0) map.delete(key);
-    else if (filtered.length !== list.length) map.set(key, filtered);
+    else map.set(key, filtered);
   }
+  bySource().delete(sourceID);
 }
 
 function addSourceToIndex(item: Zotero.Item): void {
+  // Idempotent: a concurrent notifier event (during the background rebuild) may
+  // already have indexed this source — drop it first to avoid duplicate entries.
+  if (bySource().has(item.id)) removeSourceFromIndex(item.id);
   const map = index();
+  const keys = new Set<string>();
   for (const link of getLinks(item)) {
     const key = indexKey(link.targetLib, link.targetKey);
     const entry: IncomingLink = {
@@ -150,7 +165,9 @@ function addSourceToIndex(item: Zotero.Item): void {
     const list = map.get(key);
     if (list) list.push(entry);
     else map.set(key, [entry]);
+    keys.add(key);
   }
+  if (keys.size > 0) bySource().set(item.id, keys);
 }
 
 /** Incoming references pointing at `item` (read-only reverse view). */
@@ -191,6 +208,7 @@ export function forEachResolvedLink(
  */
 export async function rebuildIndex(): Promise<void> {
   index().clear();
+  bySource().clear();
   let total = 0;
   const libs = Zotero.Libraries.getAll();
   ztoolkit.log(`QRef: rebuildIndex start — ${libs.length} lib(s)`);

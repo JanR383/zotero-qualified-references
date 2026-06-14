@@ -39,6 +39,30 @@
         border-radius: 3px;
         flex: 0 0 auto;
       }
+      .legend-type-glyph {
+        display: inline-block;
+        width: 16px;
+        font-size: 16px;
+        line-height: 1;
+        flex: 0 0 auto;
+      }
+      #controls {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: color-mix(in srgb, Canvas 85%, transparent);
+        border: 1px solid var(--material-border-quarternary, #ccc);
+        font-size: 12px;
+        line-height: 1.6;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #controls input[type="range"] {
+        width: 120px;
+      }
       #empty {
         display: none;
         position: fixed;
@@ -53,6 +77,10 @@
   <body>
     <div id="graph"></div>
     <div id="legend"></div>
+    <div id="controls" style="display: none">
+      <label for="link-distance"></label>
+      <input id="link-distance" type="range" min="10" max="200" step="5" />
+    </div>
     <div id="empty"></div>
     <script src="chrome://qref/content/scripts/graph.js"></script>
   </body>

@@ -119,6 +119,32 @@ describe("storage", function () {
       onItemChanged(source.id, true);
       assert.isNotOk(getIncoming(target).find((i) => i.sourceID === source.id));
     });
+
+    it("is idempotent: re-indexing the same source does not duplicate (rebuild race)", async function () {
+      await setLinks(source, [makeLink(target.key, lib)]);
+      // Simulate a concurrent notifier add followed by the background rebuild
+      // touching the same source — must not produce two incoming entries.
+      onItemChanged(source.id, false);
+      onItemChanged(source.id, false);
+      const incoming = getIncoming(target).filter(
+        (i) => i.sourceID === source.id,
+      );
+      assert.lengthOf(incoming, 1);
+    });
+
+    it("keeps the secondary source index in sync on add and remove", async function () {
+      await setLinks(source, [makeLink(target.key, lib)]);
+      onItemChanged(source.id, false);
+      assert.isOk(
+        (addon as any).data.incomingBySource.has(source.id),
+        "source should be tracked after add",
+      );
+      onItemChanged(source.id, true);
+      assert.isNotOk(
+        (addon as any).data.incomingBySource.has(source.id),
+        "source should be dropped from the secondary index after remove",
+      );
+    });
   });
 
   describe("sanitizing untrusted Reference-Graph data (S1)", function () {

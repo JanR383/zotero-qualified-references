@@ -1,4 +1,5 @@
 import { getLocaleID, getString } from "../utils/locale";
+import { selectItemInPane } from "./navigation";
 import { zReader } from "../utils/zoteroApis";
 import { STANCE_GLYPH, STANCE_ORDER, stanceCssValue } from "./stanceMeta";
 import { formatItem, paneFields } from "./itemFormat";
@@ -56,8 +57,17 @@ export function registerReferenceSection() {
     },
     onRender: ({ body, item, editable }) => {
       if (!item) return;
-      lastRender = { body, item, editable };
-      renderSection(body, item, editable);
+      // Attachments (PDF/snapshot) have their own pane but references live on
+      // the parent regular item — mirror the parent so the section shows the
+      // same data as the main item (cf. readerHook.ts parent resolution).
+      const target = resolveTargetItem(item);
+      if (!target) {
+        body.replaceChildren();
+        lastRender = null;
+        return;
+      }
+      lastRender = { body, item: target, editable };
+      renderSection(body, target, editable);
     },
   });
 }
@@ -68,6 +78,21 @@ export function unregisterReferenceSection() {
     registeredID = false;
   }
   lastRender = null;
+}
+
+/**
+ * Resolve the item that actually carries references: for an attachment, its
+ * parent regular item; otherwise the item itself. Returns null for an
+ * attachment without a regular parent (no valid reference carrier).
+ */
+function resolveTargetItem(item: Zotero.Item): Zotero.Item | null {
+  if (item.isAttachment()) {
+    const parent = item.parentItemID
+      ? Zotero.Items.get(item.parentItemID)
+      : false;
+    return parent && parent.isRegularItem() ? parent : null;
+  }
+  return item;
 }
 
 /** Re-render the section in place if itemID is currently displayed. */
@@ -309,7 +334,7 @@ function titleLink(
     el.setAttribute("href", "#");
     el.addEventListener("click", (e: Event) => {
       e.preventDefault();
-      Zotero.getActiveZoteroPane()?.selectItem(item.id);
+      selectItemInPane(item.id);
     });
   }
   return el;

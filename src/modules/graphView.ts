@@ -1,5 +1,6 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
+import { openViewWindow, selectItemInPane } from "./navigation";
 import { zItemTypes } from "../utils/zoteroApis";
 import { escapeHtml, truncate } from "../shared/text";
 import { formatItem, graphFields } from "./itemFormat";
@@ -131,6 +132,9 @@ export function openGraphView(win: Window): void {
   const { nodes, links, typeLegend } = buildData();
   const colorByType =
     Zotero.Prefs.get(`${config.prefsPrefix}.graphColorByType`, true) === true;
+  const linkDistance = Number(
+    Zotero.Prefs.get(`${config.prefsPrefix}.graphLinkDistance`, true) ?? 40,
+  );
   const arg: GraphArg = {
     nodes,
     links,
@@ -144,16 +148,20 @@ export function openGraphView(win: Window): void {
         m: getString("stance-m"),
         mm: getString("stance-mm"),
       },
+      linkDistance: getString("graph-link-distance"),
     },
-    selectItem: (id: number) => {
-      Zotero.getActiveZoteroPane()?.selectItem(id);
-    },
+    selectItem: selectItemInPane,
     paletteCss: paletteOverrideCss(getCurrentPaletteId()),
     colorByType,
     typeLegend,
+    linkDistance: Number.isFinite(linkDistance) ? linkDistance : 40,
+    onLinkDistanceChange: (v: number) => {
+      Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v);
+    },
   };
 
-  (win as unknown as { openDialog: (...a: unknown[]) => void }).openDialog(
+  openViewWindow(
+    win,
     "chrome://qref/content/graph.xhtml",
     "qref-graph",
     "chrome,resizable,centerscreen,width=900,height=700",
