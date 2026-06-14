@@ -81,7 +81,8 @@ async function createReferenceFromAnnotation(
 
 function handler(event: ReaderEvent): void {
   const { reader, params, append } = event;
-  const annKey: string | undefined = params?.ids?.[0];
+  // Use the right-clicked annotation (currentID), not the first selected one.
+  const annKey: string | undefined = params?.currentID ?? params?.ids?.[0];
   if (!annKey) return;
   append({
     label: getString("reader-add-ref"),

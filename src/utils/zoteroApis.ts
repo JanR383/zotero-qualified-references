@@ -6,7 +6,9 @@
 
 interface ReaderEvent {
   reader: { itemID: number };
-  params: { ids?: string[] };
+  // `ids` = all selected annotations; `currentID` = the one actually
+  // right-clicked (the menu's target). Use currentID for per-annotation actions.
+  params: { ids?: string[]; currentID?: string };
   append: (entry: { label: string; onCommand: () => void }) => void;
 }
 

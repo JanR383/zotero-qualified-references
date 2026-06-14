@@ -9,12 +9,14 @@ import type { IncomingLink, ReferenceLink, Stance } from "./types";
 
 let registeredID: string | false = false;
 
-// Last rendered context — kept so readerHook can trigger a live refresh.
-let lastRender: {
-  body: HTMLElement;
-  item: Zotero.Item;
-  editable: boolean;
-} | null = null;
+// Live render contexts, keyed by the stable section body element. The section
+// renders in several panes at once (library + reader; see ItemPaneManager
+// tabType), so we track them all and refresh every visible one — a single
+// "last render" would update the wrong (often invisible) pane.
+const rendered = new Map<
+  HTMLElement,
+  { item: Zotero.Item; editable: boolean }
+>();
 
 /**
  * Wrap a (possibly async) event handler so rejections are logged instead of
@@ -63,10 +65,10 @@ export function registerReferenceSection() {
       const target = resolveTargetItem(item);
       if (!target) {
         body.replaceChildren();
-        lastRender = null;
+        rendered.delete(body);
         return;
       }
-      lastRender = { body, item: target, editable };
+      rendered.set(body, { item: target, editable });
       renderSection(body, target, editable);
     },
   });
@@ -77,7 +79,7 @@ export function unregisterReferenceSection() {
     Zotero.ItemPaneManager.unregisterSection(registeredID);
     registeredID = false;
   }
-  lastRender = null;
+  rendered.clear();
 }
 
 /**
@@ -95,11 +97,18 @@ function resolveTargetItem(item: Zotero.Item): Zotero.Item | null {
   return item;
 }
 
-/** Re-render the section in place if itemID is currently displayed. */
+/**
+ * Re-render every currently displayed pane showing itemID (reader + library at
+ * once). Disconnected bodies are pruned as we go.
+ */
 export function refreshSectionIfVisible(itemID: number): void {
-  if (!lastRender || lastRender.item.id !== itemID) return;
-  const { body, item, editable } = lastRender;
-  renderSection(body, item, editable);
+  for (const [body, ctx] of rendered) {
+    if (!body.isConnected) {
+      rendered.delete(body);
+      continue;
+    }
+    if (ctx.item.id === itemID) renderSection(body, ctx.item, ctx.editable);
+  }
 }
 
 // --- Rendering --------------------------------------------------------------
