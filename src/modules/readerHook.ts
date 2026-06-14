@@ -1,6 +1,7 @@
 import { getString } from "../utils/locale";
 import { pickItems } from "./picker";
 import { getLinks, makeLink, setLinks } from "./storage";
+import { refreshSectionIfVisible } from "./referenceSection";
 import { zReader, type ReaderEvent } from "../utils/zoteroApis";
 
 /**
@@ -61,6 +62,7 @@ async function createReferenceFromAnnotation(
     }
     if (added === 0) return;
     await setLinks(source, links);
+    refreshSectionIfVisible(source.id);
 
     const pw = new ztoolkit.ProgressWindow(addon.data.config.addonName);
     pw.createLine({

@@ -8,6 +8,13 @@ import type { IncomingLink, ReferenceLink, Stance } from "./types";
 
 let registeredID: string | false = false;
 
+// Last rendered context — kept so readerHook can trigger a live refresh.
+let lastRender: {
+  body: HTMLElement;
+  item: Zotero.Item;
+  editable: boolean;
+} | null = null;
+
 /**
  * Wrap a (possibly async) event handler so rejections are logged instead of
  * surfacing as unhandled promise rejections.
@@ -49,6 +56,7 @@ export function registerReferenceSection() {
     },
     onRender: ({ body, item, editable }) => {
       if (!item) return;
+      lastRender = { body, item, editable };
       renderSection(body, item, editable);
     },
   });
@@ -59,6 +67,14 @@ export function unregisterReferenceSection() {
     Zotero.ItemPaneManager.unregisterSection(registeredID);
     registeredID = false;
   }
+  lastRender = null;
+}
+
+/** Re-render the section in place if itemID is currently displayed. */
+export function refreshSectionIfVisible(itemID: number): void {
+  if (!lastRender || lastRender.item.id !== itemID) return;
+  const { body, item, editable } = lastRender;
+  renderSection(body, item, editable);
 }
 
 // --- Rendering --------------------------------------------------------------
