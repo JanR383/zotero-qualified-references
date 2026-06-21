@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "force-graph": "^1.51.4",
-    "zotero-plugin-toolkit": "^5.1.2"
+    "zotero-plugin-toolkit": "^5.1.4"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",
@@ -36,7 +36,7 @@
     "@types/node": "^25.9.2",
     "@zotero-plugin/eslint-config": "^0.6.9",
     "chai": "^6.2.2",
-    "eslint": "^10.4.1",
+    "eslint": "^10.5.0",
     "mocha": "^11.7.6",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
