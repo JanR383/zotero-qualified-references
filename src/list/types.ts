@@ -1,4 +1,5 @@
 import type { Stance } from "../modules/types";
+import type { ScopeOption } from "../modules/scope";
 
 /**
  * Data contract between the plugin (listView.ts) and the standalone list window
@@ -22,6 +23,7 @@ export interface ListStrings {
   empty: string;
   outgoing: string;
   incoming: string;
+  scope: string;
 }
 
 export interface ListArg {
@@ -29,4 +31,12 @@ export interface ListArg {
   strings: ListStrings;
   selectItem: (id: number) => void;
   paletteCss?: string;
+  /** Scope dropdown options (N6); first is "all", matching the initial nodes. */
+  scopes: ScopeOption[];
+  /**
+   * Rebuild nodes for a scope id, returned as a JSON string of `{ nodes }`. The
+   * list runs in a separate window, so a returned object would cross as an Xray
+   * wrapper and read as empty; we serialize and JSON.parse it back in the window.
+   */
+  getScopedData: (id: string) => string;
 }

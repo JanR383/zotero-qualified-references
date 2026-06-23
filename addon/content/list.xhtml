@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="chrome://qref/content/qref.css" />
     <style>
+      #toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--material-border-quarternary, #ddd);
+        font-size: 12px;
+      }
+      #toolbar #scope {
+        max-width: 320px;
+      }
       #list {
         padding: 8px 10px 20px;
       }
@@ -70,6 +81,10 @@
     </style>
   </head>
   <body>
+    <div id="toolbar">
+      <label id="scope-label"></label>
+      <div id="scope"></div>
+    </div>
     <div id="list"></div>
     <div id="empty"></div>
     <script src="chrome://qref/content/scripts/list.js"></script>

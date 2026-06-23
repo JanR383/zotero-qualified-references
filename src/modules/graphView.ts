@@ -8,8 +8,9 @@ import { TYPED_KEYS } from "./itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import { forEachResolvedLink } from "./storage";
+import { buildScopeOptions, makePredicate } from "./scope";
 import type { Stance } from "./types";
-import type { GraphArg, GraphLink, GraphNode } from "../graph/types";
+import type { GraphArg, GraphData, GraphLink, GraphNode } from "../graph/types";
 
 /**
  * Builds the reference graph from the in-memory reverse index
@@ -57,11 +58,7 @@ function entryRows(
   return rows + more;
 }
 
-function buildData(): {
-  nodes: GraphNode[];
-  links: GraphLink[];
-  typeLegend: { type: string; label: string }[];
-} {
+function buildData(scopeId = "all"): GraphData {
   const nodes = new Map<number, GraphNode>();
   const items = new Map<number, Zotero.Item>();
   const links: GraphLink[] = [];
@@ -93,7 +90,7 @@ function buildData(): {
     links.push({ source: source.id, target: target.id, stance: link.stance });
     push(outEdges, source.id, { stance: link.stance, id: target.id });
     push(inEdges, target.id, { stance: link.stance, id: source.id });
-  });
+  }, makePredicate(scopeId));
 
   for (const node of nodes.values()) {
     const item = items.get(node.id)!;
@@ -149,6 +146,7 @@ export function openGraphView(win: Window): void {
         mm: getString("stance-mm"),
       },
       linkDistance: getString("graph-link-distance"),
+      scope: getString("scope-label"),
     },
     selectItem: selectItemInPane,
     paletteCss: paletteOverrideCss(getCurrentPaletteId()),
@@ -158,6 +156,8 @@ export function openGraphView(win: Window): void {
     onLinkDistanceChange: (v: number) => {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v);
     },
+    scopes: buildScopeOptions(),
+    getScopedData: (id: string) => JSON.stringify(buildData(id)),
   };
 
   openViewWindow(

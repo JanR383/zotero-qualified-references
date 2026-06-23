@@ -9,6 +9,7 @@
  */
 import { STANCE_GLYPH, stanceCssValue } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
+import { buildScopeSelect } from "../shared/scopeSelect";
 import type { Stance } from "../modules/types";
 import type { ListArg, ListEntry, ListNode } from "./types";
 
@@ -112,16 +113,31 @@ function main(): void {
   const root = byId("list");
   if (!root) return;
 
-  if (arg.nodes.length === 0) {
-    const empty = byId("empty");
+  const empty = byId("empty");
+  const renderNodes = (nodes: ListNode[]): void => {
+    root.replaceChildren();
     if (empty) {
       empty.textContent = arg.strings.empty;
-      empty.style.display = "block";
+      empty.style.display = nodes.length === 0 ? "block" : "none";
     }
-    return;
-  }
+    for (const node of nodes) root.appendChild(nodeRow(node, arg));
+  };
+  renderNodes(arg.nodes);
 
-  for (const node of arg.nodes) root.appendChild(nodeRow(node, arg));
+  // Scope switcher (N6): rebuild the list for the chosen library/collection.
+  const scopeMount = byId("scope");
+  const scopeLabel = byId("scope-label");
+  if (scopeMount) {
+    if (scopeLabel) scopeLabel.textContent = arg.strings.scope;
+    scopeMount.appendChild(
+      buildScopeSelect(arg.scopes, (id) => {
+        const data = JSON.parse(arg.getScopedData(id)) as {
+          nodes: ListNode[];
+        };
+        renderNodes(data.nodes);
+      }),
+    );
+  }
 }
 
 main();

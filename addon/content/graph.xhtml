@@ -57,6 +57,12 @@
         font-size: 12px;
         line-height: 1.6;
         display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+      }
+      #controls .control-row {
+        display: flex;
         align-items: center;
         gap: 8px;
       }
@@ -77,9 +83,15 @@
   <body>
     <div id="graph"></div>
     <div id="legend"></div>
-    <div id="controls" style="display: none">
-      <label for="link-distance"></label>
-      <input id="link-distance" type="range" min="10" max="200" step="5" />
+    <div id="controls">
+      <div class="control-row">
+        <label id="scope-label"></label>
+        <div id="scope"></div>
+      </div>
+      <div class="control-row">
+        <label id="link-distance-label" for="link-distance"></label>
+        <input id="link-distance" type="range" min="10" max="200" step="5" />
+      </div>
     </div>
     <div id="empty"></div>
     <script src="chrome://qref/content/scripts/graph.js"></script>

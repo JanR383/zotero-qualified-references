@@ -19,6 +19,10 @@ pref("graphColorByType", true);
 // slider; larger values spread dense graphs out for legibility.
 pref("graphLinkDistance", 40);
 
+// Reader: show a "create qualified reference" button in the PDF text-selection
+// popup (anchors a reference to a highlight created on the fly).
+pref("readerSelectionButton", true);
+
 // Privacy: copy qualified references along when an item is added to a group
 // library? Default false — like Zotero's own "Related" links, references
 // (incl. private comments/stance) are dropped so they aren't shared.

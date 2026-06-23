@@ -1,4 +1,5 @@
 import type { Stance } from "../modules/types";
+import type { ScopeOption } from "../modules/scope";
 
 /**
  * Data contract between the plugin (graphView.ts) and the standalone graph
@@ -27,6 +28,14 @@ export interface GraphStrings {
   empty: string;
   legend: Record<"pp" | "p" | "o" | "m" | "mm", string>;
   linkDistance: string;
+  scope: string;
+}
+
+/** Scoped data the window re-requests when the user switches scope (N6). */
+export interface GraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+  typeLegend: { type: string; label: string }[];
 }
 
 export interface GraphArg {
@@ -44,4 +53,13 @@ export interface GraphArg {
   linkDistance: number;
   /** Persist a changed link distance back to prefs. */
   onLinkDistanceChange?: (v: number) => void;
+  /** Scope dropdown options (N6); first is "all", matching the initial nodes. */
+  scopes: ScopeOption[];
+  /**
+   * Rebuild nodes/links/legend for a scope id, returned as a JSON string of
+   * GraphData. The graph runs in a separate window: a plain object returned by
+   * this parent-side function would cross as an Xray wrapper and read as empty,
+   * so we serialize and JSON.parse it back into native objects in the window.
+   */
+  getScopedData: (id: string) => string;
 }

@@ -12,6 +12,18 @@ interface ReaderEvent {
   append: (entry: { label: string; onCommand: () => void }) => void;
 }
 
+// `renderTextSelectionPopup` fires when text is selected in the reader (before
+// any annotation exists). `params.annotation` is a ready-made AnnotationJson for
+// the selection (position/pageLabel/text); `append` injects a DOM node into the
+// selection popup. This is the only event carrying enough context to anchor a
+// reference from a bare selection (createViewContextMenu has only {x, y}).
+interface ReaderSelectionEvent {
+  reader: { itemID: number };
+  doc: Document; // the reader iframe document; create the injected node from it
+  params: { annotation: _ZoteroTypes.Annotations.AnnotationJson };
+  append: (node: Node) => void;
+}
+
 interface ZoteroExtras {
   Reader: {
     open(
@@ -20,13 +32,22 @@ interface ZoteroExtras {
       options?: object,
     ): Promise<unknown>;
     registerEventListener(
-      type: string,
+      type: "createAnnotationContextMenu",
       handler: (event: ReaderEvent) => void,
       pluginID?: string,
     ): void;
+    registerEventListener(
+      type: "renderTextSelectionPopup",
+      handler: (event: ReaderSelectionEvent) => void,
+      pluginID?: string,
+    ): void;
     unregisterEventListener(
-      type: string,
+      type: "createAnnotationContextMenu",
       handler: (event: ReaderEvent) => void,
+    ): void;
+    unregisterEventListener(
+      type: "renderTextSelectionPopup",
+      handler: (event: ReaderSelectionEvent) => void,
     ): void;
   };
   MenuManager: {
@@ -56,4 +77,4 @@ export const zItemTypes = (): ZoteroExtras["ItemTypes"] => z().ItemTypes;
 export const zDate = (): ZoteroExtras["Date"] => z().Date;
 export const zItems = (): ZoteroExtras["Items"] =>
   Zotero.Items as unknown as ZoteroExtras["Items"];
-export type { ReaderEvent };
+export type { ReaderEvent, ReaderSelectionEvent };

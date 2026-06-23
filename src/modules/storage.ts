@@ -179,9 +179,13 @@ export function getIncoming(item: Zotero.Item): IncomingLink[] {
  * Walk every link in the reverse index with source and target resolved to live
  * items (entries whose items are gone are skipped). Used by the graph and list
  * views to build their data without duplicating the resolution logic.
+ *
+ * An optional `accept` predicate scopes the walk (N6): a link is yielded only
+ * when BOTH endpoints pass, so a scoped view is a self-contained sub-graph.
  */
 export function forEachResolvedLink(
   cb: (source: Zotero.Item, target: Zotero.Item, link: ReferenceLink) => void,
+  accept?: (item: Zotero.Item) => boolean,
 ): void {
   for (const list of index().values()) {
     for (const inc of list) {
@@ -191,6 +195,7 @@ export function forEachResolvedLink(
         inc.link.targetKey,
       );
       if (!source || !target) continue;
+      if (accept && (!accept(source) || !accept(target))) continue;
       cb(source, target, inc.link);
     }
   }

@@ -3,6 +3,7 @@ import { openViewWindow, selectItemInPane } from "./navigation";
 import { formatItem, paneFields } from "./itemFormat";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import { forEachResolvedLink } from "./storage";
+import { buildScopeOptions, makePredicate } from "./scope";
 import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 /**
@@ -16,7 +17,7 @@ function byStance(a: ListEntry, b: ListEntry): number {
   return b.stance - a.stance || a.label.localeCompare(b.label);
 }
 
-function buildNodes(): ListNode[] {
+function buildNodes(scopeId = "all"): ListNode[] {
   const fields = paneFields();
   const nodes = new Map<number, ListNode>();
 
@@ -47,7 +48,7 @@ function buildNodes(): ListNode[] {
       id: source.id,
       label: sNode.label,
     });
-  });
+  }, makePredicate(scopeId));
 
   const result = [...nodes.values()];
   for (const node of result) {
@@ -66,9 +67,12 @@ export function openListView(win: Window): void {
       empty: getString("graph-empty"),
       outgoing: getString("graph-out"),
       incoming: getString("graph-in"),
+      scope: getString("scope-label"),
     },
     selectItem: selectItemInPane,
     paletteCss: paletteOverrideCss(getCurrentPaletteId()),
+    scopes: buildScopeOptions(),
+    getScopedData: (id: string) => JSON.stringify({ nodes: buildNodes(id) }),
   };
 
   openViewWindow(

@@ -22,8 +22,15 @@ import {
 } from "../modules/itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
+import { buildScopeSelect } from "../shared/scopeSelect";
 import type { Stance } from "../modules/types";
-import type { GraphArg, GraphLink, GraphNode, GraphStrings } from "./types";
+import type {
+  GraphArg,
+  GraphData,
+  GraphLink,
+  GraphNode,
+  GraphStrings,
+} from "./types";
 
 // This module runs in a real browser-like window (graph.xhtml). The plugin's
 // tsconfig (zotero-types sandbox) provides DOM *types* but not the browser
@@ -96,9 +103,14 @@ function legendRow(swatchColor: string, label: string): HTMLElement {
   return row;
 }
 
-function renderLegend(arg: GraphArg, isDark: boolean): void {
+function renderLegend(
+  arg: GraphArg,
+  typeLegend: GraphArg["typeLegend"],
+  isDark: boolean,
+): void {
   const legend = byId("legend");
   if (!legend) return;
+  legend.replaceChildren(); // re-rendered on scope change
   // Edge colours = stance.
   for (const { key, stance } of LEGEND_ORDER) {
     legend.appendChild(
@@ -109,13 +121,13 @@ function renderLegend(arg: GraphArg, isDark: boolean): void {
     );
   }
   // Node shapes (+ colours when enabled) = item type (N5).
-  if (arg.typeLegend.length > 0) {
+  if (typeLegend.length > 0) {
     const sep = create("div");
     sep.style.height = "6px";
     legend.appendChild(sep);
     const neutral =
       (document.body && getComputedStyle(document.body).color) || "#888";
-    for (const { type, label } of arg.typeLegend) {
+    for (const { type, label } of typeLegend) {
       const row = create("div");
       row.className = "legend-row";
       const glyph = create("span");
@@ -146,36 +158,35 @@ function main(): void {
   }
 
   const isDark = !!window.matchMedia("(prefers-color-scheme: dark)")?.matches;
-  renderLegend(arg, isDark);
-
-  if (arg.nodes.length === 0) {
-    const empty = byId("empty");
-    if (empty) {
-      empty.textContent = arg.strings.empty;
-      empty.style.display = "block";
-    }
-    return;
-  }
 
   const container = byId("graph");
   if (!container) return;
 
+  const empty = byId("empty");
+  const showEmpty = (show: boolean): void => {
+    if (!empty) return;
+    empty.textContent = arg.strings.empty;
+    empty.style.display = show ? "block" : "none";
+  };
+
   // Curve parallel / bidirectional edges apart so each keeps a visible arrow
   // (a single edge between a pair stays straight). source/target are still ids
   // here (before force-graph replaces them with node objects).
-  const groups = new Map<string, GraphLink[]>();
-  for (const l of arg.links) {
-    const a = l.source as number;
-    const b = l.target as number;
-    const key = a < b ? `${a}:${b}` : `${b}:${a}`;
-    const arr = groups.get(key);
-    if (arr) arr.push(l);
-    else groups.set(key, [l]);
-  }
-  for (const arr of groups.values()) {
-    if (arr.length === 1) arr[0].curvature = 0;
-    else arr.forEach((l, i) => (l.curvature = 0.12 * (i + 1)));
-  }
+  const computeCurvature = (links: GraphLink[]): void => {
+    const groups = new Map<string, GraphLink[]>();
+    for (const l of links) {
+      const a = l.source as number;
+      const b = l.target as number;
+      const key = a < b ? `${a}:${b}` : `${b}:${a}`;
+      const arr = groups.get(key);
+      if (arr) arr.push(l);
+      else groups.set(key, [l]);
+    }
+    for (const arr of groups.values()) {
+      if (arr.length === 1) arr[0].curvature = 0;
+      else arr.forEach((l, i) => (l.curvature = 0.12 * (i + 1)));
+    }
+  };
 
   const haloColor = isDark ? "rgba(28,28,30,0.85)" : "rgba(255,255,255,0.85)";
 
@@ -195,7 +206,7 @@ function main(): void {
 
   const R = 8; // node "radius" in graph units (symbol size + hit area)
   const graph = new ForceGraph<GraphNode, GraphLink>(container)
-    .graphData({ nodes: arg.nodes, links: arg.links })
+    .graphData({ nodes: [], links: [] })
     .nodeId("id")
     .nodeLabel((n) => n.tooltip)
     // Tell force-graph the real node radius so its built-in arrow placement
@@ -253,18 +264,41 @@ function main(): void {
   };
   applyDistance(arg.linkDistance);
 
-  const controls = byId("controls");
+  // (Re)load the graph data, edge curvature and type legend for a scope.
+  const applyData = (data: GraphData): void => {
+    computeCurvature(data.links);
+    graph.graphData({ nodes: data.nodes, links: data.links });
+    renderLegend(arg, data.typeLegend, isDark);
+    showEmpty(data.nodes.length === 0);
+  };
+  applyData({
+    nodes: arg.nodes,
+    links: arg.links,
+    typeLegend: arg.typeLegend,
+  });
+
   const slider = byId("link-distance") as HTMLInputElement | null;
-  if (controls && slider) {
-    const label = controls.querySelector("label");
-    if (label) label.textContent = arg.strings.linkDistance;
+  const sliderLabel = byId("link-distance-label");
+  if (slider) {
+    if (sliderLabel) sliderLabel.textContent = arg.strings.linkDistance;
     slider.value = String(arg.linkDistance);
-    controls.style.display = "flex";
     slider.addEventListener("input", () => {
       const v = Number(slider.value);
       applyDistance(v);
       arg.onLinkDistanceChange?.(v);
     });
+  }
+
+  // Scope switcher (N6): rebuild the data for the chosen library/collection.
+  const scopeMount = byId("scope");
+  const scopeLabel = byId("scope-label");
+  if (scopeMount) {
+    if (scopeLabel) scopeLabel.textContent = arg.strings.scope;
+    scopeMount.appendChild(
+      buildScopeSelect(arg.scopes, (id) => {
+        applyData(JSON.parse(arg.getScopedData(id)) as GraphData);
+      }),
+    );
   }
 
   const resize = (): void => {
