@@ -11,9 +11,10 @@ one or more other items, each with:
 - optional **source** and **target page numbers**,
 - a 5-point **stance** (`++ + 0 − −−`),
 - a free-text **comment**,
-- an optional **PDF anchor** — right-click a highlight in the source item's PDF
-  to create the reference; its page number is filled in automatically and you
-  can jump back to the passage from either side.
+- an optional **PDF anchor** — right-click a highlight, or use the button in
+  the text-selection popup, in the source item's PDF to create the reference;
+  its page number is filled in automatically and you can jump back to the
+  passage from either side.
 
 ![Editing outgoing references in the item pane](docs/item-pane.png)
 
@@ -27,13 +28,17 @@ contrasting on p. 90).
 
 The **PDF anchor** is created straight from a highlight: right-click a passage
 in the source item's PDF and choose _"Add qualified reference from here…"_.
+Alternatively, select text without creating a highlight first and use the
+button in the selection popup — it creates the highlight and the reference in
+one step. This button can be turned off in Settings if you don't want it.
 
 ![Creating a reference from a PDF highlight](docs/pdf-annotation-menu.png)
 
 A **Tools → Reference Graph** window visualises the whole network: items as
 nodes (shaped and coloured by item type), references as directed arrows
 coloured by stance. A **Tools → Reference List** window shows the same data as
-an expandable list.
+an expandable list. Both windows have a **scope switcher** to narrow the view
+down to a single library or a collection (including its sub-collections).
 
 ![The reference graph window](docs/reference-graph.png)
 
@@ -111,8 +116,10 @@ The plugin is built around an in-memory reverse index, sized to the number of
 Open **Zotero → Settings → Qualified References**. You can choose the stance
 colour palette (default or colour-blind safe), which fields (author / year /
 title) appear in the references list and in the graph, whether graph nodes are
-coloured by item type, and the **Privacy** option for copying references into
-group libraries (off by default).
+coloured by item type, whether the PDF reader shows a "create qualified
+reference" button in the text-selection popup (on by default), and the
+**Privacy** option for copying references into group libraries (off by
+default).
 
 ![The plugin's settings pane](docs/preferences.png)
 
@@ -158,9 +165,10 @@ This project reuses the following libraries, code patterns and design sources:
   follows Zotero's own `selectItemsDialog.xhtml` (mirrored in
   `src/modules/picker.ts`).
 - **PDF anchors** — the reader integration uses
-  `Zotero.Reader.registerEventListener("createAnnotationContextMenu", …)`;
-  jumping to an annotation uses `Zotero.Reader.open(id, { annotationID })`, the
-  same `location` Zotero's `zotero://open-pdf` handler builds.
+  `Zotero.Reader.registerEventListener("createAnnotationContextMenu", …)` and
+  `"renderTextSelectionPopup"`; jumping to an annotation uses
+  `Zotero.Reader.open(id, { annotationID })`, the same `location` Zotero's
+  `zotero://open-pdf` handler builds.
 - **Zotero source patterns** (reverse-engineered from `omni.ja`) — the section
   header FTL attribute syntax (`.label` / `.tooltiptext`), the
   `collapsible-section` title binding, and `MozXULElement.insertFTLIfNeeded`
