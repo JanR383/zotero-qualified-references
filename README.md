@@ -103,9 +103,10 @@ The plugin is built around an in-memory reverse index, sized to the number of
   the index finishes (typically well under a second; a few seconds for very
   large libraries). Incremental edits stay O(1) via a secondary
   `source → targets` index, so bulk add/delete does not degrade.
-- **Per-item cap.** Each item's reference data lives on one line of its `Extra`
-  field, capped at 10 000 characters (~dozens of references per item); beyond
-  that, extra entries are dropped on read.
+- **Per-field cap.** Each item's reference data lives on one line of its `Extra`
+  field. Individual text fields within a reference (the comment, page strings
+  and keys) are capped at 10 000 characters on read as a sanity limit; the
+  number of references per item is not otherwise bounded.
 - **Practical ceiling.** Tens of thousands of references are fine. The graph and
   list windows render every reference at once, so a graph with thousands of
   edges becomes visually dense — use the graph's **edge-length slider** to
