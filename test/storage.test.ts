@@ -218,5 +218,19 @@ describe("storage", function () {
       assert.isUndefined(links[0].comment);
       assert.isUndefined(links[0].sourcePages);
     });
+
+    it("returns [] for an unparseable Reference-Graph line (A1)", async function () {
+      // A truncated/corrupted JSON array must not throw; getLinks logs and
+      // yields []. The line itself is left untouched until the next setLinks.
+      await writeRaw('[{"id":"a","targetKey":');
+      assert.deepEqual(getLinks(source), []);
+    });
+
+    it("returns [] when the parsed value is not an array (A1)", async function () {
+      await writeRaw(
+        JSON.stringify({ id: "a", targetKey: target.key, targetLib: lib }),
+      );
+      assert.deepEqual(getLinks(source), []);
+    });
   });
 });

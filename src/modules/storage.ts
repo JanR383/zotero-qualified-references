@@ -93,11 +93,20 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
     if (!m) continue;
     try {
       const parsed = JSON.parse(m[1]);
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed)) {
+        ztoolkit.log(
+          `QRef: Reference-Graph on item ${item.libraryID}:${item.key} is not an array — ignoring`,
+        );
+        return [];
+      }
       return parsed
         .map(sanitizeLink)
         .filter((l): l is ReferenceLink => l !== null);
-    } catch {
+    } catch (e) {
+      ztoolkit.log(
+        `QRef: failed to parse Reference-Graph on item ${item.libraryID}:${item.key}`,
+        e,
+      );
       return [];
     }
   }
