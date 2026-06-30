@@ -186,6 +186,12 @@ function outgoingRow(
   rerender: () => void,
 ): HTMLElement {
   const row = box(doc);
+  // Stack the parts vertically so the stance sits on its own line directly under
+  // the referenced title, instead of flowing inline next to it.
+  row.style.display = "flex";
+  row.style.flexDirection = "column";
+  row.style.alignItems = "flex-start";
+  row.style.gap = "4px";
 
   const target = Zotero.Items.getByLibraryAndKey(
     link.targetLib,
@@ -212,7 +218,11 @@ function outgoingRow(
     }),
   );
 
-  row.appendChild(
+  const fieldsRow = doc.createElement("div");
+  fieldsRow.style.display = "flex";
+  fieldsRow.style.flexWrap = "wrap";
+  fieldsRow.style.gap = "12px";
+  fieldsRow.appendChild(
     pageField(
       doc,
       "field-source-pages",
@@ -224,7 +234,7 @@ function outgoingRow(
       },
     ),
   );
-  row.appendChild(
+  fieldsRow.appendChild(
     pageField(
       doc,
       "field-target-pages",
@@ -236,13 +246,13 @@ function outgoingRow(
       },
     ),
   );
+  row.appendChild(fieldsRow);
 
   const comment = doc.createElement("textarea");
   comment.value = link.comment || "";
   comment.rows = 2;
   comment.placeholder = getString("field-comment");
   comment.style.width = "100%";
-  comment.style.marginTop = "4px";
   comment.disabled = !editable;
   comment.addEventListener(
     "change",
@@ -256,7 +266,6 @@ function outgoingRow(
   const anchor = sourceAnchorLink(doc, link, source.libraryID);
   if (anchor) {
     const anchorRow = doc.createElement("div");
-    anchorRow.style.margin = "4px 0";
     anchorRow.appendChild(anchor);
     row.appendChild(anchorRow);
   }
@@ -412,7 +421,6 @@ function stanceSegmented(
 ): HTMLElement {
   const wrap = doc.createElement("div");
   wrap.style.display = "inline-flex";
-  wrap.style.margin = "4px 0";
   wrap.style.borderRadius = "999px";
   wrap.style.overflow = "hidden";
   wrap.style.border =
@@ -472,7 +480,6 @@ function stanceCompact(
   const wrap = doc.createElement("div");
   wrap.style.position = "relative";
   wrap.style.display = "inline-block";
-  wrap.style.margin = "4px 0";
 
   const trigger = stancePillButton(doc, current);
   trigger.title = getString(STANCE_TIP[current]);
@@ -576,7 +583,6 @@ function pageField(
   wrap.style.display = "inline-flex";
   wrap.style.alignItems = "center";
   wrap.style.gap = "4px";
-  wrap.style.marginRight = "10px";
   const span = doc.createElement("span");
   span.textContent = getString(labelKey);
   span.style.fontSize = "0.9em";
