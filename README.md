@@ -118,9 +118,10 @@ Open **Zotero → Settings → Qualified References**. You can choose the stance
 colour palette (default or colour-blind safe), which fields (author / year /
 title) appear in the references list and in the graph, whether graph nodes are
 coloured by item type, whether the PDF reader shows a "create qualified
-reference" button in the text-selection popup (on by default), and the
-**Privacy** option for copying references into group libraries (off by
-default).
+reference" button in the text-selection popup (on by default), whether the
+stance setter uses the compact single-pill style instead of the default
+segmented scale, and the **Privacy** option for copying references into group
+libraries (off by default).
 
 ![The plugin's settings pane](docs/preferences.png)
 
