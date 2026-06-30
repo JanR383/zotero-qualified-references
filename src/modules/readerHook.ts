@@ -94,8 +94,7 @@ async function createReferenceFromAnnotation(
     const r = resolveSource(reader);
     if (!r) return;
     const ann = Zotero.Items.getByLibraryAndKey(r.att.libraryID, annKey) as
-      | (Zotero.Item & { annotationPageLabel?: string })
-      | false;
+      (Zotero.Item & { annotationPageLabel?: string }) | false;
     const pageLabel = ann ? ann.annotationPageLabel || undefined : undefined;
     await createReference(r.att, r.source, annKey, pageLabel);
   } catch (e) {
