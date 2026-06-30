@@ -256,8 +256,7 @@ function main(): void {
   // Edge-length control: set the initial force-link distance and wire the
   // in-window slider so dense graphs can be spread out for legibility.
   const linkForce = graph.d3Force("link") as
-    | { distance: (d: number) => unknown }
-    | undefined;
+    { distance: (d: number) => unknown } | undefined;
   const applyDistance = (d: number): void => {
     linkForce?.distance(d);
     graph.d3ReheatSimulation();
