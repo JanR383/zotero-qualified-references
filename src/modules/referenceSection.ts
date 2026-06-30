@@ -1,3 +1,4 @@
+import { config } from "../../package.json";
 import { getLocaleID, getString } from "../utils/locale";
 import { selectItemInPane } from "./navigation";
 import { zReader } from "../utils/zoteroApis";
@@ -108,6 +109,21 @@ export function refreshSectionIfVisible(itemID: number): void {
       continue;
     }
     if (ctx.item.id === itemID) renderSection(body, ctx.item, ctx.editable);
+  }
+}
+
+/**
+ * Re-render every currently displayed pane regardless of item — used when a
+ * preference that changes how the section renders (e.g. the stance-control
+ * style) is toggled, so the change is reflected without reopening the pane.
+ */
+export function refreshAllSections(): void {
+  for (const [body, ctx] of rendered) {
+    if (!body.isConnected) {
+      rendered.delete(body);
+      continue;
+    }
+    renderSection(body, ctx.item, ctx.editable);
   }
 }
 
@@ -367,7 +383,28 @@ function stanceBadge(doc: Document, value: Stance): HTMLElement {
   return el;
 }
 
+/** Stance setter. Style follows the `stanceControlCompact` preference. */
 function stanceControl(
+  doc: Document,
+  current: Stance,
+  editable: boolean,
+  onPick: (value: Stance) => void,
+): HTMLElement {
+  const compact =
+    Zotero.Prefs.get(`${config.prefsPrefix}.stanceControlCompact`, true) ===
+    true;
+  return compact
+    ? stanceCompact(doc, current, editable, onPick)
+    : stanceSegmented(doc, current, editable, onPick);
+}
+
+/**
+ * Segmented spectrum control (default): the five stances as one connected,
+ * pill-shaped scale. At rest the cells are neutral; only the selected cell
+ * carries its stance colour, so the active value reads at a glance without the
+ * busy "dimmed rainbow" of fully-tinted buttons.
+ */
+function stanceSegmented(
   doc: Document,
   current: Stance,
   editable: boolean,
@@ -375,37 +412,156 @@ function stanceControl(
 ): HTMLElement {
   const wrap = doc.createElement("div");
   wrap.style.display = "inline-flex";
-  wrap.style.gap = "2px";
   wrap.style.margin = "4px 0";
-  for (const value of STANCE_ORDER) {
+  wrap.style.borderRadius = "999px";
+  wrap.style.overflow = "hidden";
+  wrap.style.border =
+    "0.5px solid var(--material-border-quarternary, rgba(0,0,0,.25))";
+  wrap.style.fontSize = "0.85em";
+  STANCE_ORDER.forEach((value, i) => {
     const b = doc.createElement("button");
     b.textContent = STANCE_GLYPH[value];
     b.title = getString(STANCE_TIP[value]);
     b.disabled = !editable;
-    // Tint every button with its stance colour so the whole scale (green→red)
-    // is readable at a glance. The active one is emphasised (full opacity +
-    // bold + ring); the rest are dimmed but keep their hue, instead of being
-    // left uncoloured (white), which hid the colour coding until selection.
-    // Styled like the round stance badges (stanceBadge) plus a thin border.
     const active = value === current;
     b.style.appearance = "none";
-    b.style.minWidth = "28px";
-    b.style.padding = "1px 7px";
-    b.style.borderRadius = "10px";
-    b.style.fontSize = "0.85em";
-    b.style.border =
-      "1px solid var(--material-border-quarternary, rgba(0,0,0,.3))";
-    b.style.background = stanceCssValue(value);
-    b.style.color = STANCE_FG;
+    b.style.minWidth = "26px";
+    b.style.padding = "3px 9px";
+    b.style.border = "none";
+    if (i < STANCE_ORDER.length - 1) {
+      b.style.borderRight =
+        "0.5px solid var(--material-border-quarternary, rgba(0,0,0,.15))";
+    }
+    b.style.background = active ? stanceCssValue(value) : "transparent";
+    b.style.color = active ? STANCE_FG : "var(--fill-secondary, #888)";
     b.style.fontWeight = active ? "bold" : "normal";
-    b.style.opacity = active ? "1" : "0.4";
-    if (active) b.style.boxShadow = `inset 0 0 0 2px ${STANCE_FG}`;
+    b.style.cursor = editable ? "pointer" : "default";
     b.addEventListener(
       "click",
       catching(() => onPick(value)),
     );
     wrap.appendChild(b);
+  });
+  return wrap;
+}
+
+/** A round, stance-coloured pill (shared by the compact control + its menu). */
+function stancePillButton(doc: Document, value: Stance): HTMLButtonElement {
+  const b = doc.createElement("button");
+  b.style.appearance = "none";
+  b.style.border = "none";
+  b.style.borderRadius = "999px";
+  b.style.padding = "3px 10px";
+  b.style.fontSize = "0.85em";
+  b.style.background = stanceCssValue(value);
+  b.style.color = STANCE_FG;
+  return b;
+}
+
+/**
+ * Compact control (opt-in via `stanceControlCompact`): show only the current
+ * stance as a single pill (matching the read-only stanceBadge); clicking opens
+ * a small menu of the five stances with their plain-language labels.
+ */
+function stanceCompact(
+  doc: Document,
+  current: Stance,
+  editable: boolean,
+  onPick: (value: Stance) => void,
+): HTMLElement {
+  const wrap = doc.createElement("div");
+  wrap.style.position = "relative";
+  wrap.style.display = "inline-block";
+  wrap.style.margin = "4px 0";
+
+  const trigger = stancePillButton(doc, current);
+  trigger.title = getString(STANCE_TIP[current]);
+  trigger.style.fontWeight = "bold";
+  trigger.style.cursor = editable ? "pointer" : "default";
+  trigger.textContent = `${STANCE_GLYPH[current]}  ${getString(STANCE_TIP[current])}`;
+  wrap.appendChild(trigger);
+
+  // Read-only items (e.g. another member's group item): show just the pill.
+  if (!editable) {
+    trigger.disabled = true;
+    return wrap;
   }
+  trigger.append(` ▾`);
+
+  const menu = doc.createElement("div");
+  menu.style.display = "none";
+  menu.style.position = "absolute";
+  menu.style.top = "100%";
+  menu.style.left = "0";
+  menu.style.marginTop = "4px";
+  menu.style.zIndex = "10";
+  menu.style.minWidth = "180px";
+  menu.style.background = "var(--material-menu, Canvas)";
+  menu.style.color = "var(--fill-primary, CanvasText)";
+  menu.style.border =
+    "0.5px solid var(--material-border-quarternary, rgba(0,0,0,.3))";
+  menu.style.borderRadius = "6px";
+  menu.style.overflow = "hidden";
+  menu.style.fontSize = "0.9em";
+
+  const onDocClick = (e: Event): void => {
+    if (!wrap.contains(e.target as Node)) close();
+  };
+  function close(): void {
+    menu.style.display = "none";
+    doc.removeEventListener("click", onDocClick);
+  }
+
+  for (const value of STANCE_ORDER) {
+    const row = doc.createElement("div");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.gap = "8px";
+    row.style.padding = "4px 10px";
+    row.style.cursor = "pointer";
+    if (value === current) row.style.background = "var(--fill-quinary, #0001)";
+
+    const dot = doc.createElement("span");
+    dot.textContent = STANCE_GLYPH[value];
+    dot.style.display = "inline-block";
+    dot.style.minWidth = "20px";
+    dot.style.textAlign = "center";
+    dot.style.borderRadius = "6px";
+    dot.style.padding = "0 4px";
+    dot.style.background = stanceCssValue(value);
+    dot.style.color = STANCE_FG;
+    dot.style.fontWeight = "bold";
+
+    const label = doc.createElement("span");
+    label.textContent = getString(STANCE_TIP[value]);
+
+    row.append(dot, label);
+    row.addEventListener(
+      "click",
+      catching((e: Event) => {
+        e.stopPropagation();
+        close();
+        onPick(value);
+      }),
+    );
+    menu.appendChild(row);
+  }
+
+  trigger.addEventListener(
+    "click",
+    catching((e: Event) => {
+      e.stopPropagation();
+      const open = menu.style.display !== "none";
+      if (open) {
+        close();
+      } else {
+        menu.style.display = "block";
+        doc.addEventListener("click", onDocClick);
+      }
+    }),
+  );
+
+  wrap.appendChild(menu);
   return wrap;
 }
 

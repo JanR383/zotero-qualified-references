@@ -17,6 +17,7 @@ declare namespace _ZoteroTypes {
       "graphColorByType": boolean;
       "graphLinkDistance": number;
       "readerSelectionButton": boolean;
+      "stanceControlCompact": boolean;
       "copyRefsToGroup": boolean;
     };
   }
