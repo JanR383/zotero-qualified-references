@@ -38,6 +38,7 @@ export type FluentMessageId =
   | 'prefs-privacy-title'
   | 'prefs-reader-selection-button'
   | 'prefs-reader-title'
+  | 'prefs-stance-compact'
   | 'prefs-title'
   | 'reader-add-ref'
   | 'reader-groupcopy-stripped'

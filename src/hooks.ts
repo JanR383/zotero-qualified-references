@@ -1,5 +1,7 @@
+import { config } from "../package.json";
 import { getLocaleID, getString, initLocale } from "./utils/locale";
 import {
+  refreshAllSections,
   registerReferenceSection,
   unregisterReferenceSection,
 } from "./modules/referenceSection";
@@ -16,6 +18,7 @@ import {
 } from "./modules/stancePalette";
 
 let palettePrefObserver: symbol | undefined;
+let stancePrefObserver: symbol | undefined;
 
 async function onStartup() {
   await Promise.all([
@@ -66,6 +69,13 @@ async function onStartup() {
         applyStancePalette(win as unknown as Window);
       }
     },
+    true,
+  );
+  // Re-render visible reference sections when the stance-control style changes,
+  // so toggling the compact setting takes effect without reopening the pane.
+  stancePrefObserver = Zotero.Prefs.registerObserver(
+    `${config.prefsPrefix}.stanceControlCompact`,
+    () => refreshAllSections(),
     true,
   );
 
@@ -198,6 +208,10 @@ function onShutdown(): void {
   if (palettePrefObserver !== undefined) {
     Zotero.Prefs.unregisterObserver(palettePrefObserver);
     palettePrefObserver = undefined;
+  }
+  if (stancePrefObserver !== undefined) {
+    Zotero.Prefs.unregisterObserver(stancePrefObserver);
+    stancePrefObserver = undefined;
   }
   // Remove addon object
   addon.data.alive = false;

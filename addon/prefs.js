@@ -23,6 +23,11 @@ pref("graphLinkDistance", 40);
 // popup (anchors a reference to a highlight created on the fly).
 pref("readerSelectionButton", true);
 
+// Item pane: stance setter style. false (default) = segmented spectrum control
+// (all five steps shown as one connected scale); true = compact single pill that
+// opens a menu on click.
+pref("stanceControlCompact", false);
+
 // Privacy: copy qualified references along when an item is added to a group
 // library? Default false — like Zotero's own "Related" links, references
 // (incl. private comments/stance) are dropped so they aren't shared.
