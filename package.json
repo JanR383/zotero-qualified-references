@@ -1,7 +1,7 @@
 {
   "name": "zotero-qualified-references",
   "type": "module",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Directed, qualified references between Zotero items (stance, pages, comment).",
   "config": {
     "addonName": "Qualified References",
