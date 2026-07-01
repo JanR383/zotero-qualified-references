@@ -133,9 +133,8 @@ Requires **Zotero 9** or newer.
 2. In Zotero: **Tools → Plugins → ⚙ (gear) → Install Plugin From File…** and select the `.xpi`.
 3. Restart Zotero.
 
-> **Note:** This repository is currently **private**, so Zotero's automatic
-> update check cannot reach the release assets — update by installing a newer
-> `.xpi` manually. Auto-updates start working once the repository is made public.
+Once installed, Zotero checks the release's `update.json` for new versions and
+updates the plugin automatically.
 
 ## Development
 
@@ -184,6 +183,5 @@ This project reuses the following libraries, code patterns and design sources:
   (`src/modules/itemTypeColors.ts`) are taken from the
   [Open Color](https://yeun.github.io/open-color/) palette (MIT).
 
-This plugin is licensed under **AGPL-3.0-or-later** (see `LICENSE`). While the
-repository is private, the complete corresponding source is available on
-request to anyone who receives the `.xpi`.
+This plugin is licensed under **AGPL-3.0-or-later** (see `LICENSE`). The
+complete corresponding source is available in this repository.
