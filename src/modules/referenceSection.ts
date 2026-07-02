@@ -432,6 +432,8 @@ function stanceSegmented(
     b.title = getString(STANCE_TIP[value]);
     b.disabled = !editable;
     const active = value === current;
+    b.setAttribute("aria-label", getString(STANCE_TIP[value]));
+    b.setAttribute("aria-pressed", String(active));
     b.style.appearance = "none";
     b.style.minWidth = "26px";
     b.style.padding = "3px 9px";
@@ -520,7 +522,16 @@ function stanceCompact(
   }
 
   for (const value of STANCE_ORDER) {
-    const row = doc.createElement("div");
+    // A real <button> per row so the menu is keyboard-operable (Tab/Enter);
+    // styles reset to look like a plain menu row.
+    const row = doc.createElement("button");
+    row.style.appearance = "none";
+    row.style.border = "none";
+    row.style.background = "transparent";
+    row.style.font = "inherit";
+    row.style.color = "inherit";
+    row.style.width = "100%";
+    row.style.textAlign = "left";
     row.style.display = "flex";
     row.style.alignItems = "center";
     row.style.gap = "8px";
@@ -567,6 +578,13 @@ function stanceCompact(
       }
     }),
   );
+  // Escape closes the menu and returns focus to the trigger.
+  wrap.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "Escape" && menu.style.display !== "none") {
+      close();
+      trigger.focus();
+    }
+  });
 
   wrap.appendChild(menu);
   return wrap;
