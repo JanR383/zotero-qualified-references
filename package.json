@@ -30,6 +30,10 @@
     "force-graph": "^1.51.4",
     "zotero-plugin-toolkit": "^5.1.4"
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.5",
+    "diff": "^8.0.3"
+  },
   "devDependencies": {
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
