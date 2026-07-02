@@ -53,7 +53,7 @@ export async function handlePossibleGroupCopy(id: number): Promise<void> {
     if (!isPersonalCopyIntoGroup(item)) return;
 
     const keep =
-      Zotero.Prefs.get(`${config.prefsPrefix}.copyRefsToGroup`, false) === true;
+      Zotero.Prefs.get(`${config.prefsPrefix}.copyRefsToGroup`, true) === true;
     if (keep) return;
 
     await setLinks(item, []);
