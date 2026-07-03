@@ -60,18 +60,31 @@ export function buildScopeSelect(
   };
 
   for (const opt of options) {
-    const row = create("div");
+    // A real <button> per row so the menu is keyboard-operable (Tab/Enter)
+    // without extra key handling; styles reset to look like a plain row.
+    const row = create("button");
     row.textContent = opt.label;
+    row.style.appearance = "none";
+    row.style.display = "block";
+    row.style.width = "100%";
+    row.style.textAlign = "left";
+    row.style.border = "none";
+    row.style.background = "transparent";
+    row.style.font = "inherit";
+    row.style.color = "inherit";
     row.style.whiteSpace = "pre"; // keep collection-tree indentation
     row.style.padding = "2px 8px";
     row.style.cursor = "pointer";
     row.style.borderRadius = "3px";
-    row.addEventListener("mouseenter", () => {
-      row.style.background = "color-mix(in srgb, CanvasText 12%, transparent)";
-    });
-    row.addEventListener("mouseleave", () => {
-      row.style.background = "transparent";
-    });
+    const highlight = (on: boolean): void => {
+      row.style.background = on
+        ? "color-mix(in srgb, CanvasText 12%, transparent)"
+        : "transparent";
+    };
+    row.addEventListener("mouseenter", () => highlight(true));
+    row.addEventListener("mouseleave", () => highlight(false));
+    row.addEventListener("focus", () => highlight(true));
+    row.addEventListener("blur", () => highlight(false));
     row.addEventListener("click", () => {
       labelText.textContent = opt.label;
       close();
@@ -83,6 +96,13 @@ export function buildScopeSelect(
   button.addEventListener("click", (e: Event) => {
     e.stopPropagation();
     menu.style.display = menu.style.display === "none" ? "block" : "none";
+  });
+  // Escape closes the menu and returns focus to the trigger.
+  root.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "Escape" && menu.style.display !== "none") {
+      close();
+      button.focus();
+    }
   });
   // Click anywhere else closes the menu.
   document.addEventListener("click", close);
