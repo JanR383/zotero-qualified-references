@@ -6,15 +6,14 @@ import { config } from "../package.json";
  */
 
 /**
- * Point the `addon`/`ztoolkit` globals of this test bundle at the live plugin
- * instance. Plugin modules imported by a test reach the reverse index, locale
- * and toolkit through these globals, which the plugin only defines on its own
+ * Point the `addon` global of this test bundle at the live plugin
+ * instance. Plugin modules imported by a test reach the reverse index and
+ * locale through this global, which the plugin only defines on its own
  * sandbox — without this they would be undefined here.
  */
 export function wirePluginGlobals(): void {
   const plugin = (Zotero as any)[config.addonInstance];
   (globalThis as any).addon = plugin;
-  (globalThis as any).ztoolkit = plugin.data.ztoolkit;
 }
 
 export async function makeItem(

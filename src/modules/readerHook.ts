@@ -8,6 +8,7 @@ import {
   type ReaderEvent,
   type ReaderSelectionEvent,
 } from "../utils/zoteroApis";
+import { log, showNotice } from "../utils/log";
 
 /**
  * Reader integration (M6): create a qualified reference from inside the PDF
@@ -54,16 +55,13 @@ async function createReference(
   if (added === 0) return;
   refreshSectionIfVisible(source.id);
 
-  const pw = new ztoolkit.ProgressWindow(addon.data.config.addonName);
-  pw.createLine({
-    text:
-      added === 1
-        ? `${getString("reader-ref-created")} → ${lastTitle}` +
+  showNotice(
+    added === 1
+      ? `${getString("reader-ref-created")} → ${lastTitle}` +
           (pageLabel ? ` (${getString("anchor-page")} ${pageLabel})` : "")
-        : `${getString("reader-ref-created")} (${added})`,
-    type: "success",
-  }).show();
-  pw.startCloseTimer(3000);
+      : `${getString("reader-ref-created")} (${added})`,
+    3000,
+  );
 }
 
 /**
@@ -139,7 +137,7 @@ async function createReferenceFromAnnotation(
     const pageLabel = ann ? ann.annotationPageLabel || undefined : undefined;
     await createReference(r.att, r.source, async () => annKey, pageLabel);
   } catch (e) {
-    ztoolkit.log("QRef: failed to create reference from annotation", e);
+    log("QRef: failed to create reference from annotation", e);
   }
 }
 
@@ -172,7 +170,7 @@ async function createReferenceFromSelection(
       annotation.pageLabel || undefined,
     );
   } catch (e) {
-    ztoolkit.log("QRef: failed to create reference from selection", e);
+    log("QRef: failed to create reference from selection", e);
   }
 }
 

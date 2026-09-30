@@ -30,14 +30,13 @@ describe("storage", function () {
   let target: Zotero.Item;
 
   before(function () {
-    // storage.ts reaches the reverse index via the `addon`/`ztoolkit` globals,
+    // storage.ts reaches the reverse index via the `addon` global,
     // which the plugin defines on its own sandbox (`_globalThis` in index.ts) —
     // not in this test bundle's scope. Wire them to the live plugin instance
     // (reachable as Zotero[addonInstance]) so the imported index functions
     // operate on the same Map the plugin maintains.
     const plugin = (Zotero as any)[config.addonInstance];
     (globalThis as any).addon = plugin;
-    (globalThis as any).ztoolkit = plugin.data.ztoolkit;
     lib = Zotero.Libraries.userLibraryID;
   });
 
