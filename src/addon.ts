@@ -1,6 +1,5 @@
 import { config } from "../package.json";
 import hooks from "./hooks";
-import { createZToolkit } from "./utils/ztoolkit";
 import type { IncomingLink } from "./modules/types";
 
 class Addon {
@@ -10,7 +9,6 @@ class Addon {
     // Env type, see build.js
     env: "development" | "production";
     initialized?: boolean;
-    ztoolkit: ZToolkit;
     locale?: {
       current: any;
     };
@@ -32,7 +30,6 @@ class Addon {
       config,
       env: __env__,
       initialized: false,
-      ztoolkit: createZToolkit(),
       incomingIndex: new Map(),
       incomingBySource: new Map(),
     };

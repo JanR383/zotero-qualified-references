@@ -155,8 +155,7 @@ npm run build          # produce .scaffold/build/*.xpi
 ```
 
 Built on the [zotero-plugin-template](https://github.com/windingwind/zotero-plugin-template)
-stack (TypeScript, `zotero-plugin-scaffold`, `zotero-plugin-toolkit`,
-`zotero-types`).
+stack (TypeScript, `zotero-plugin-scaffold`, `zotero-types`).
 
 ## Acknowledgements / Third-party
 
@@ -167,10 +166,7 @@ This project reuses the following libraries, code patterns and design sources:
   dependencies' licence notices are preserved in
   `content/scripts/graph.js.LEGAL.txt`.
 - **[zotero-plugin-template](https://github.com/windingwind/zotero-plugin-template)**
-  (AGPL-3.0-or-later) & **[zotero-plugin-toolkit](https://github.com/windingwind/zotero-plugin-toolkit)**
-  (MIT) by windingwind — project scaffold, build pipeline and UI/menu helpers.
-  The toolkit is bundled into the main script; its full licence text ships in
-  `THIRD-PARTY-LICENSES.md` inside the plugin.
+  (AGPL-3.0-or-later) by windingwind — project scaffold and build pipeline.
 - **Window pattern** — opening the graph via `openDialog` + `window.arguments`
   follows Zotero's own `selectItemsDialog.xhtml` (mirrored in
   `src/modules/picker.ts`).

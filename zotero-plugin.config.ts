@@ -35,8 +35,6 @@ export default defineConfig({
         },
         bundle: true,
         target: "firefox140",
-        // Preserve third-party licence notices (zotero-plugin-toolkit, MIT)
-        // in a sibling .LEGAL.txt file instead of stripping them on minify.
         legalComments: "linked",
         outfile: `.scaffold/build/addon/content/scripts/${pkg.config.addonRef}.js`,
       },

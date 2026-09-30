@@ -2,6 +2,7 @@ import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import { zItems } from "../utils/zoteroApis";
 import { getLinks, setLinks } from "./storage";
+import { log, showNotice } from "../utils/log";
 
 /**
  * Privacy guard for copying items into group libraries (scenario a).
@@ -57,13 +58,8 @@ export async function handlePossibleGroupCopy(id: number): Promise<void> {
     if (keep) return;
 
     await setLinks(item, []);
-    new ztoolkit.ProgressWindow(addon.data.config.addonName)
-      .createLine({
-        text: getString("reader-groupcopy-stripped"),
-        type: "default",
-      })
-      .show();
+    showNotice(getString("reader-groupcopy-stripped"));
   } catch (e) {
-    ztoolkit.log("QRef: group-copy guard failed", e);
+    log("QRef: group-copy guard failed", e);
   }
 }

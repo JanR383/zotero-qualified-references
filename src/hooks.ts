@@ -16,6 +16,7 @@ import {
   PALETTE_PREF,
   paletteOverrideCss,
 } from "./modules/stancePalette";
+import { log } from "./utils/log";
 
 let palettePrefObserver: symbol | undefined;
 let stancePrefObserver: symbol | undefined;
@@ -37,10 +38,7 @@ async function onStartup() {
   // Registers the notifier synchronously and builds the reverse index in the
   // background — startup is not blocked on large databases.
   initIndexAndNotifier().catch((e) =>
-    ztoolkit.log(
-      "QRef: index build failed, continuing without reverse index",
-      e,
-    ),
+    log("QRef: index build failed, continuing without reverse index", e),
   );
   registerReferenceSection();
   registerReaderHook();
@@ -48,10 +46,7 @@ async function onStartup() {
   try {
     await registerLibraryColumns();
   } catch (e) {
-    ztoolkit.log(
-      "QRef: column registration failed, continuing without columns",
-      e,
-    );
+    log("QRef: column registration failed, continuing without columns", e);
   }
 
   // Preferences pane (M7). rootURI is a plugin-scope global (set by bootstrap).
@@ -142,7 +137,7 @@ function injectStylesIntoWindow(win: Window): void {
     `chrome://${addon.data.config.addonRef}/content/qref.css`,
   );
   (doc.head ?? doc.documentElement)?.appendChild(link);
-  ztoolkit.log("QRef: stylesheet injected");
+  log("QRef: stylesheet injected");
 }
 
 /**
@@ -188,19 +183,16 @@ function injectLocaleIntoWindow(win: Window): void {
       MozXULElement: { insertFTLIfNeeded(href: string): void };
     }
   ).MozXULElement.insertFTLIfNeeded(href);
-  ztoolkit.log(`QRef: locale registered → ${href}`);
+  log(`QRef: locale registered → ${href}`);
 }
 
 async function onMainWindowUnload(_win: Window): Promise<void> {
   // Nothing per-window to tear down: menus/sections/reader hooks are global
   // registrations (cleaned up in onShutdown), and the injected <style>/<link>
-  // elements die with the window's document. Deliberately NOT calling
-  // ztoolkit.unregisterAll() here — that would wipe global toolkit state when
-  // a secondary window closes.
+  // elements die with the window's document.
 }
 
 function onShutdown(): void {
-  ztoolkit.unregisterAll();
   unregisterReferenceSection();
   unregisterReaderHook();
   zMenuManager()?.unregisterMenu(`${addon.data.config.addonRef}-tools`);

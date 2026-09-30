@@ -1,5 +1,6 @@
 import { zItems } from "../utils/zoteroApis";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
+import { log } from "../utils/log";
 
 /**
  * Storage layer for qualified references.
@@ -156,7 +157,7 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
     try {
       const parsed = JSON.parse(m[1]);
       if (!Array.isArray(parsed)) {
-        ztoolkit.log(
+        log(
           `QRef: Reference-Graph on item ${item.libraryID}:${item.key} is not an array — ignoring`,
         );
         return [];
@@ -169,7 +170,7 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
       }
       return links;
     } catch (e) {
-      ztoolkit.log(
+      log(
         `QRef: failed to parse Reference-Graph on item ${item.libraryID}:${item.key}`,
         e,
       );
@@ -351,7 +352,7 @@ export async function rebuildIndex(): Promise<void> {
   bySource().clear();
   let total = 0;
   const libs = Zotero.Libraries.getAll();
-  ztoolkit.log(`QRef: rebuildIndex start — ${libs.length} lib(s)`);
+  log(`QRef: rebuildIndex start — ${libs.length} lib(s)`);
   for (const lib of libs) {
     try {
       // Only regular items can carry an Extra field worth parsing; skip
@@ -370,10 +371,10 @@ export async function rebuildIndex(): Promise<void> {
       )) as number[] | false;
 
       if (!ids || ids.length === 0) {
-        ztoolkit.log(`QRef: lib ${lib.libraryID} — 0 rows`);
+        log(`QRef: lib ${lib.libraryID} — 0 rows`);
         continue;
       }
-      ztoolkit.log(`QRef: lib ${lib.libraryID} — ${ids.length} row(s)`);
+      log(`QRef: lib ${lib.libraryID} — ${ids.length} row(s)`);
 
       const items = await zItems().getAsync(ids.map(Number));
 
@@ -396,10 +397,10 @@ export async function rebuildIndex(): Promise<void> {
         }
       }
     } catch (e) {
-      ztoolkit.log(`QRef: rebuildIndex failed for lib ${lib.libraryID}`, e);
+      log(`QRef: rebuildIndex failed for lib ${lib.libraryID}`, e);
     }
   }
-  ztoolkit.log(`QRef: rebuildIndex complete — ${total} source item(s) indexed`);
+  log(`QRef: rebuildIndex complete — ${total} source item(s) indexed`);
 }
 
 /**

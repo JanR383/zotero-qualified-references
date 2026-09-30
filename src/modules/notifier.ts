@@ -1,6 +1,7 @@
 import { handlePossibleGroupCopy } from "./groupCopyGuard";
 import { refreshSectionIfVisible } from "./referenceSection";
 import { itemForIndexKey, onItemChanged, rebuildIndex } from "./storage";
+import { log } from "../utils/log";
 
 let notifierID: string | undefined;
 
@@ -34,7 +35,7 @@ export function initIndexAndNotifier(): Promise<void> {
             affected.add(key);
           }
         } catch (e) {
-          ztoolkit.log(`QRef: notifier error for item ${id}`, e);
+          log(`QRef: notifier error for item ${id}`, e);
         }
       }
       refreshTargets(affected);
@@ -44,7 +45,7 @@ export function initIndexAndNotifier(): Promise<void> {
       if (event === "add") {
         for (const id of ids) {
           void handlePossibleGroupCopy(Number(id)).catch((e) =>
-            ztoolkit.log(`QRef: group-copy guard failed for ${id}`, e),
+            log(`QRef: group-copy guard failed for ${id}`, e),
           );
         }
       }
@@ -72,11 +73,11 @@ function refreshTargets(keys: Set<string>): void {
     try {
       refreshSectionIfVisible(id);
     } catch (e) {
-      ztoolkit.log(`QRef: refreshing pane of item ${id} failed`, e);
+      log(`QRef: refreshing pane of item ${id} failed`, e);
     }
   }
   void Zotero.Notifier.trigger("refresh", "item", ids).catch((e: unknown) =>
-    ztoolkit.log("QRef: item tree refresh failed", e),
+    log("QRef: item tree refresh failed", e),
   );
 }
 

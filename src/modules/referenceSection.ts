@@ -13,6 +13,7 @@ import {
 } from "./storage";
 import { pickItems, referenceTargets } from "./picker";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
+import { log } from "../utils/log";
 
 let registeredID: string | false = false;
 
@@ -36,10 +37,10 @@ function catching<A extends unknown[]>(
     try {
       const result = fn(...args);
       if (result instanceof Promise) {
-        result.catch((e) => ztoolkit.log("QRef: handler failed", e));
+        result.catch((e) => log("QRef: handler failed", e));
       }
     } catch (e) {
-      ztoolkit.log("QRef: handler failed", e);
+      log("QRef: handler failed", e);
     }
   };
 }
@@ -636,7 +637,7 @@ function openAnnotation(lib: number, attKey: string, annKey: string): void {
   try {
     void zReader().open(att.id, { annotationID: annKey });
   } catch (e) {
-    ztoolkit.log("QRef: failed to open annotation", e);
+    log("QRef: failed to open annotation", e);
   }
 }
 

@@ -4,13 +4,19 @@ This plugin bundles or derives from the following third-party software. The
 plugin itself is licensed under AGPL-3.0-or-later (see `LICENSE` in the source
 repository).
 
-## zotero-plugin-toolkit
+## force-graph (and bundled dependencies)
 
-Bundled into `content/scripts/qref.js`.
-<https://github.com/windingwind/zotero-plugin-toolkit>
+Bundled into `content/scripts/graph.js`.
+<https://github.com/vasturiano/force-graph> — MIT, © Vasco Asturiano.
+
+Licence comments present in the sources are additionally extracted at build
+time into `content/scripts/graph.js.LEGAL.txt`. Most bundled packages carry no
+in-source licence comment, so their notices are reproduced here. The bundle
+contains the following packages:
+
+**MIT** (licence text below; the copyright notices follow the list):
 
 > The MIT License (MIT)
-> Copyright © 2022 windingwind
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -29,19 +35,6 @@ Bundled into `content/scripts/qref.js`.
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
-
-## force-graph (and bundled dependencies)
-
-Bundled into `content/scripts/graph.js`.
-<https://github.com/vasturiano/force-graph> — MIT, © Vasco Asturiano.
-
-Licence comments present in the sources are additionally extracted at build
-time into `content/scripts/graph.js.LEGAL.txt`. Most bundled packages carry no
-in-source licence comment, so their notices are reproduced here. The bundle
-contains the following packages:
-
-**MIT** (licence text as reproduced above for zotero-plugin-toolkit, with the
-respective copyright notice):
 
 - force-graph, accessor-fn, canvas-color-tracker, d3-binarytree, d3-force-3d,
   d3-octree, float-tooltip, index-array-by, kapsule —

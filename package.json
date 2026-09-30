@@ -30,8 +30,7 @@
     "update-deps": "npm update --save"
   },
   "dependencies": {
-    "force-graph": "^1.52.0",
-    "zotero-plugin-toolkit": "^5.2.0"
+    "force-graph": "^1.52.0"
   },
   "overrides": {
     "serialize-javascript": "^7.0.5",
