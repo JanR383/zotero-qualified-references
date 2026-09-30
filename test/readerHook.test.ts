@@ -3,6 +3,7 @@ import { config } from "../package.json";
 import {
   addAnchoredLinks,
   annotationMenuHandler,
+  linkPickedTargets,
   resolveSource,
   saveSelectionHighlight,
   selectionPopupHandler,
@@ -101,6 +102,53 @@ describe("readerHook", function () {
     it("leaves sourcePages unset without a page label", async function () {
       await addAnchoredLinks(att, source, "ANNKEY01", undefined, [target.id]);
       assert.isUndefined(getLinks(source)[0].sourcePages);
+    });
+  });
+
+  describe("linkPickedTargets", function () {
+    // Stands in for the highlight creation of the selection-popup flow and
+    // records whether it ran.
+    function anchorSpy() {
+      const calls = { n: 0 };
+      const get = async () => {
+        calls.n++;
+        return "ANNKEY02";
+      };
+      return { calls, get };
+    }
+
+    it("creates no anchor when the picker was cancelled", async function () {
+      const spy = anchorSpy();
+      const res = await linkPickedTargets(att, source, [], spy.get, "5");
+      assert.equal(res.added, 0);
+      assert.equal(spy.calls.n, 0, "no highlight may be created");
+    });
+
+    it("creates no anchor when only unusable items were picked", async function () {
+      const spy = anchorSpy();
+      const res = await linkPickedTargets(
+        att,
+        source,
+        [source.id, 999999999],
+        spy.get,
+        undefined,
+      );
+      assert.equal(res.added, 0);
+      assert.equal(spy.calls.n, 0);
+    });
+
+    it("creates the anchor once and links the picked target", async function () {
+      const spy = anchorSpy();
+      const res = await linkPickedTargets(
+        att,
+        source,
+        [target.id],
+        spy.get,
+        "5",
+      );
+      assert.equal(res.added, 1);
+      assert.equal(spy.calls.n, 1);
+      assert.equal(getLinks(source)[0].sourceAnnotationKey, "ANNKEY02");
     });
   });
 
