@@ -39,27 +39,15 @@ async function createReference(
   pageLabel: string | undefined,
 ): Promise<void> {
   const win = Zotero.getMainWindow();
-  const targetIDs = pickItems(win as unknown as Window).filter(
-    (id) => id !== source.id,
+  const targetIDs = pickItems(win as unknown as Window);
+  const { added, lastTitle } = await addAnchoredLinks(
+    att,
+    source,
+    annKey,
+    pageLabel,
+    targetIDs,
   );
-  if (targetIDs.length === 0) return;
-
-  const links = getLinks(source);
-  let added = 0;
-  let lastTitle = "";
-  for (const id of targetIDs) {
-    const target = Zotero.Items.get(id);
-    if (!target) continue;
-    const link = makeLink(target.key, target.libraryID);
-    if (pageLabel) link.sourcePages = pageLabel;
-    link.sourceAttachmentKey = att.key;
-    link.sourceAnnotationKey = annKey;
-    links.push(link);
-    added++;
-    lastTitle = target.getDisplayTitle();
-  }
   if (added === 0) return;
-  await setLinks(source, links);
   refreshSectionIfVisible(source.id);
 
   const pw = new ztoolkit.ProgressWindow(addon.data.config.addonName);
@@ -74,8 +62,39 @@ async function createReference(
   pw.startCloseTimer(3000);
 }
 
+/**
+ * Append one link per picked target to the source's references, each anchored
+ * to `annKey` in `att`, and persist them. Self-references and unknown ids are
+ * skipped. Exported for tests (the picker around it is modal).
+ */
+export async function addAnchoredLinks(
+  att: Zotero.Item,
+  source: Zotero.Item,
+  annKey: string,
+  pageLabel: string | undefined,
+  targetIDs: number[],
+): Promise<{ added: number; lastTitle: string }> {
+  const links = getLinks(source);
+  let added = 0;
+  let lastTitle = "";
+  for (const id of targetIDs) {
+    if (id === source.id) continue;
+    const target = Zotero.Items.get(id);
+    if (!target) continue;
+    const link = makeLink(target.key, target.libraryID);
+    if (pageLabel) link.sourcePages = pageLabel;
+    link.sourceAttachmentKey = att.key;
+    link.sourceAnnotationKey = annKey;
+    links.push(link);
+    added++;
+    lastTitle = target.getDisplayTitle();
+  }
+  if (added > 0) await setLinks(source, links);
+  return { added, lastTitle };
+}
+
 /** Resolve the PDF attachment and its parent regular item from a reader. */
-function resolveSource(reader: { itemID: number }): {
+export function resolveSource(reader: { itemID: number }): {
   att: Zotero.Item;
   source: Zotero.Item;
 } | null {
@@ -102,6 +121,21 @@ async function createReferenceFromAnnotation(
   }
 }
 
+/**
+ * Persist a highlight as the jump-back anchor for a bare selection. The popup's
+ * annotation JSON is a preview without a key, so generate one (saveFromJSON
+ * throws "'key' not provided in JSON" otherwise).
+ */
+export async function saveSelectionHighlight(
+  att: Zotero.Item,
+  annotation: _ZoteroTypes.Annotations.AnnotationJson,
+): Promise<Zotero.Item> {
+  const key = Zotero.Utilities.generateObjectKey();
+  const json = { ...annotation, key, type: "highlight" as const };
+  if (!json.color) json.color = Zotero.Annotations.DEFAULT_COLOR;
+  return Zotero.Annotations.saveFromJSON(att, json);
+}
+
 async function createReferenceFromSelection(
   reader: { itemID: number },
   annotation: _ZoteroTypes.Annotations.AnnotationJson,
@@ -109,14 +143,7 @@ async function createReferenceFromSelection(
   try {
     const r = resolveSource(reader);
     if (!r) return;
-    // Persist a highlight as the jump-back anchor for the bare selection, then
-    // reuse the normal flow with the new annotation's key. The popup's
-    // annotation JSON is a preview without a key, so generate one (saveFromJSON
-    // throws "'key' not provided in JSON" otherwise).
-    const key = Zotero.Utilities.generateObjectKey();
-    const json = { ...annotation, key, type: "highlight" as const };
-    if (!json.color) json.color = Zotero.Annotations.DEFAULT_COLOR;
-    const saved = await Zotero.Annotations.saveFromJSON(r.att, json);
+    const saved = await saveSelectionHighlight(r.att, annotation);
     await createReference(
       r.att,
       r.source,
@@ -136,7 +163,7 @@ function deferToMainWindow(fn: () => void): void {
   win.setTimeout(fn, 0);
 }
 
-function annotationMenuHandler(event: ReaderEvent): void {
+export function annotationMenuHandler(event: ReaderEvent): void {
   const { reader, params, append } = event;
   // Use the right-clicked annotation (currentID), not the first selected one.
   const annKey: string | undefined = params?.currentID ?? params?.ids?.[0];
@@ -150,7 +177,7 @@ function annotationMenuHandler(event: ReaderEvent): void {
   });
 }
 
-function selectionPopupHandler(event: ReaderSelectionEvent): void {
+export function selectionPopupHandler(event: ReaderSelectionEvent): void {
   // Re-check the pref on every popup so the Settings toggle takes effect at once.
   const enabled =
     Zotero.Prefs.get(`${config.prefsPrefix}.readerSelectionButton`, true) !==

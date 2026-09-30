@@ -88,3 +88,27 @@ export const refsLine = (json: unknown): string =>
   `Reference-Graph: ${JSON.stringify(json)}`;
 
 export const COPY_PREF = `${config.prefsPrefix}.copyRefsToGroup`;
+
+/**
+ * A PDF attachment record under `parent`. No file is written: the tests only
+ * need the item (and annotations under it), never the PDF on disk.
+ */
+export async function makePdfAttachment(
+  parent: Zotero.Item | undefined,
+  libraryID: number,
+): Promise<Zotero.Item> {
+  const att = new Zotero.Item("attachment");
+  att.libraryID = libraryID;
+  if (parent) att.parentID = parent.id;
+  att.attachmentLinkMode = Zotero.Attachments.LINK_MODE_IMPORTED_FILE;
+  att.attachmentContentType = "application/pdf";
+  att.attachmentFilename = "qref-test.pdf";
+  await att.saveTx();
+  return att;
+}
+
+/** An HTML element in the main window's document to render UI into. */
+export function makeBody(): HTMLElement {
+  const doc = Zotero.getMainWindow().document;
+  return doc.createElementNS("http://www.w3.org/1999/xhtml", "div") as any;
+}

@@ -87,8 +87,9 @@ export function unregisterReferenceSection() {
  * Resolve the item that actually carries references: for an attachment, its
  * parent regular item; otherwise the item itself. Returns null for an
  * attachment without a regular parent (no valid reference carrier).
+ * Exported for tests.
  */
-function resolveTargetItem(item: Zotero.Item): Zotero.Item | null {
+export function resolveTargetItem(item: Zotero.Item): Zotero.Item | null {
   if (item.isAttachment()) {
     const parent = item.parentItemID
       ? Zotero.Items.get(item.parentItemID)
@@ -129,7 +130,8 @@ export function refreshAllSections(): void {
 
 // --- Rendering --------------------------------------------------------------
 
-function renderSection(
+/** Render the section for `item` into `body`. Exported for tests. */
+export function renderSection(
   body: HTMLElement,
   item: Zotero.Item,
   editable: boolean,
