@@ -14,7 +14,7 @@ import {
   updateLink,
   updateLinks,
 } from "../src/modules/storage";
-import { createGroup } from "./helpers";
+import { createGroup, refsLine } from "./helpers";
 
 /**
  * Integration tests for the storage layer, run inside Zotero by
@@ -430,7 +430,9 @@ describe("storage", function () {
         await setLinks(source, [makeLink(target.key, lib)]);
         onItemChanged(source.id, false);
 
-        await setLinks(source, [makeLink(other.key, lib)]);
+        // Change Extra without saving: a save would already run the plugin's
+        // own notifier, which re-indexes before this call could see the change.
+        source.setField("extra", refsLine([makeLink(other.key, lib)]));
         const keys = [...onItemChanged(source.id, false)];
         const ids = keys.map((k) => (itemForIndexKey(k) || undefined)?.id);
         assert.sameMembers(ids, [target.id, other.id]);
