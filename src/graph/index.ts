@@ -23,6 +23,8 @@ import {
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
+import { assignTagColors, ringColors } from "../modules/tagHighlight";
+import { buildTagSelect } from "./tagSelect";
 import type { Stance } from "../modules/types";
 import type {
   GraphArg,
@@ -106,6 +108,7 @@ function legendRow(swatchColor: string, label: string): HTMLElement {
 function renderLegend(
   arg: GraphArg,
   typeLegend: GraphArg["typeLegend"],
+  tagLegend: { name: string; color: string }[],
   isDark: boolean,
 ): void {
   const legend = byId("legend");
@@ -141,6 +144,27 @@ function renderLegend(
       legend.appendChild(row);
     }
   }
+  // Ring colours = highlighted tags (G12).
+  if (tagLegend.length > 0) {
+    const sep = create("div");
+    sep.style.height = "6px";
+    legend.appendChild(sep);
+    for (const { name, color } of tagLegend) {
+      const row = legendRow("transparent", name);
+      const swatch = row.firstElementChild as HTMLElement;
+      swatch.style.border = `2.5px solid ${color}`;
+      swatch.style.borderRadius = "50%";
+      swatch.style.boxSizing = "border-box";
+      legend.appendChild(row);
+    }
+  }
+}
+
+/** A link end is an id until force-graph swaps in the node object. */
+function endId(end: unknown): number {
+  return typeof end === "object" && end !== null
+    ? (end as GraphNode).id
+    : (end as number);
 }
 
 function main(): void {
@@ -205,6 +229,17 @@ function main(): void {
   const labelColor = (body && getComputedStyle(body).color) || "#222222";
 
   const R = 8; // node "radius" in graph units (symbol size + hit area)
+  // Tag ring (G12): drawn outside the shape's corners (at most R·√2 ≈ 11.3).
+  const RING_R = R + 4;
+  const RING_W = 2.5;
+  const RING_OUTER = RING_R + RING_W / 2;
+
+  // Tag highlighting state: selected tag keys (persisted), per-node ring
+  // colours and, in focus mode, the ids of the nodes/links left visible.
+  const selectedTags = new Set(arg.highlightTags);
+  let rings = new Map<number, string[]>();
+  let focus = false;
+  let visibleNodes: Set<number> | null = null; // null = show all
   const graph = new ForceGraph<GraphNode, GraphLink>(container)
     .graphData({ nodes: [], links: [] })
     .nodeId("id")
@@ -214,6 +249,16 @@ function main(): void {
     // node border instead of overlapping our custom R=8 shapes. nodeRelSize is
     // the circle radius per unit nodeVal (default 1), so this yields endR = R.
     .nodeRelSize(R)
+    // Ringed nodes are larger: nodeVal scales that radius (r = √val · R), so
+    // arrows stop at the ring instead of running into it.
+    .nodeVal((n) => (rings.has(n.id) ? (RING_OUTER / R) ** 2 : 1))
+    .nodeVisibility((n) => !visibleNodes || visibleNodes.has(n.id))
+    .linkVisibility(
+      (l) =>
+        !visibleNodes ||
+        rings.has(endId(l.source)) ||
+        rings.has(endId(l.target)),
+    )
     .linkColor((l) => colorFor(l.stance))
     .linkWidth(1.5)
     .linkCurvature("curvature")
@@ -232,12 +277,30 @@ function main(): void {
         ? typeColor(n.itemType, isDark)
         : nodeColor;
       ctx.fill();
+      const ring = rings.get(n.id);
+      if (ring) {
+        // One arc segment per highlighted tag, starting at the top.
+        const step = (2 * Math.PI) / ring.length;
+        ctx.lineWidth = RING_W;
+        ring.forEach((color, i) => {
+          ctx.beginPath();
+          ctx.arc(
+            x,
+            y,
+            RING_R,
+            -Math.PI / 2 + i * step,
+            -Math.PI / 2 + (i + 1) * step,
+          );
+          ctx.strokeStyle = color;
+          ctx.stroke();
+        });
+      }
       const fontSize = 12 / scale;
       ctx.font = `${fontSize}px sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
-      const ly = y + R + 2 / scale;
+      const ly = y + (ring ? RING_OUTER : R) + 2 / scale;
       // Contrasting halo behind the label so it stays legible over edges/nodes.
       ctx.lineWidth = 3 / scale;
       ctx.lineJoin = "round";
@@ -263,18 +326,70 @@ function main(): void {
   };
   applyDistance(arg.linkDistance);
 
-  // (Re)load the graph data, edge curvature and type legend for a scope.
+  let current: GraphData = {
+    nodes: [],
+    links: [],
+    typeLegend: [],
+    tagOptions: [],
+  };
+
+  // Recompute rings, focus set and legend from the tag selection; setting the
+  // accessors again makes force-graph redraw even when the layout is at rest.
+  const applyHighlight = (): void => {
+    const assigned = assignTagColors([...selectedTags], current.tagOptions);
+    rings = new Map();
+    for (const n of current.nodes) {
+      const colors = ringColors(n.tags, assigned);
+      if (colors.length > 0) rings.set(n.id, colors);
+    }
+    visibleNodes = null;
+    if (focus && rings.size > 0) {
+      visibleNodes = new Set(rings.keys());
+      for (const l of current.links) {
+        const s = endId(l.source);
+        const t = endId(l.target);
+        if (rings.has(s)) visibleNodes.add(t);
+        if (rings.has(t)) visibleNodes.add(s);
+      }
+    }
+    renderLegend(arg, current.typeLegend, [...assigned.values()], isDark);
+    graph
+      .nodeVal(graph.nodeVal())
+      .nodeVisibility(graph.nodeVisibility())
+      .linkVisibility(graph.linkVisibility());
+  };
+
+  const tagSelect = buildTagSelect(arg.strings, selectedTags, () => {
+    arg.onHighlightTagsChange?.([...selectedTags]);
+    applyHighlight();
+  });
+
+  // (Re)load the graph data, edge curvature and legends for a scope.
   const applyData = (data: GraphData): void => {
+    current = data;
     computeCurvature(data.links);
     graph.graphData({ nodes: data.nodes, links: data.links });
-    renderLegend(arg, data.typeLegend, isDark);
+    tagSelect.setOptions(data.tagOptions);
+    applyHighlight();
     showEmpty(data.nodes.length === 0);
   };
   applyData({
     nodes: arg.nodes,
     links: arg.links,
     typeLegend: arg.typeLegend,
+    tagOptions: arg.tagOptions,
   });
+
+  byId("tags")?.appendChild(tagSelect.root);
+  const focusBox = byId("tag-focus") as HTMLInputElement | null;
+  const focusLabel = byId("tag-focus-label");
+  if (focusBox) {
+    if (focusLabel) focusLabel.textContent = arg.strings.tagFocus;
+    focusBox.addEventListener("change", () => {
+      focus = focusBox.checked;
+      applyHighlight();
+    });
+  }
 
   const slider = byId("link-distance") as HTMLInputElement | null;
   const sliderLabel = byId("link-distance-label");

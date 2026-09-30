@@ -19,6 +19,10 @@ pref("graphColorByType", true);
 // slider; larger values spread dense graphs out for legibility.
 pref("graphLinkDistance", 40);
 
+// Graph: tags selected for highlighting (G12), a JSON array of lower-cased tag
+// names. Chosen in the graph window.
+pref("graphHighlightTags", "[]");
+
 // Reader: show a "create qualified reference" button in the PDF text-selection
 // popup (anchors a reference to a highlight created on the fly).
 pref("readerSelectionButton", true);
