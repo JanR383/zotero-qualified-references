@@ -63,6 +63,7 @@ prefs-copy-refs-to-group =
     .label = Copy qualified references when adding an item to a group library
 prefs-copy-refs-to-group-desc = Off (recommended): like Zotero's own “Related” links, your references — including private comments and stance ratings — are removed from the copy so they are not shared with group members. On: references are kept and become visible to everyone in the group.
 anchor-open = ↗ Open in PDF (A)
+anchor-missing = (highlight deleted)
 anchor-page = p.
 reader-add-ref = Add qualified reference from here…
 reader-ref-created = Reference created

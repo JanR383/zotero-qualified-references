@@ -1,5 +1,6 @@
 import { handlePossibleGroupCopy } from "./groupCopyGuard";
-import { onItemChanged, rebuildIndex } from "./storage";
+import { refreshSectionIfVisible } from "./referenceSection";
+import { itemForIndexKey, onItemChanged, rebuildIndex } from "./storage";
 
 let notifierID: string | undefined;
 
@@ -26,13 +27,17 @@ export function initIndexAndNotifier(): Promise<void> {
       }
       if (type !== "item" || !HANDLED.has(event)) return;
       const removed = event === "delete";
+      const affected = new Set<string>();
       for (const id of ids) {
         try {
-          onItemChanged(Number(id), removed);
+          for (const key of onItemChanged(Number(id), removed)) {
+            affected.add(key);
+          }
         } catch (e) {
           ztoolkit.log(`QRef: notifier error for item ${id}`, e);
         }
       }
+      refreshTargets(affected);
       // Privacy guard: a personal item copied into a group fires `add` with the
       // cloned Extra (incl. references) already present. Drop them unless the
       // user opted in. Fire-and-forget; notify() is sync.
@@ -47,6 +52,32 @@ export function initIndexAndNotifier(): Promise<void> {
   };
   notifierID = Zotero.Notifier.registerObserver(callback, ["item"], "qref");
   return rebuildIndex();
+}
+
+/**
+ * A source change alters what its targets show (the "Referenced by" list and
+ * the Ref. (+)/(−) columns) without modifying the targets, so Zotero redraws
+ * neither. Re-render their open panes, and send the item trees a "refresh",
+ * which drops the cached cell values of those rows. The observer above ignores
+ * "refresh", so this cannot loop.
+ */
+function refreshTargets(keys: Set<string>): void {
+  const ids: number[] = [];
+  for (const key of keys) {
+    const target = itemForIndexKey(key);
+    if (target) ids.push(target.id);
+  }
+  if (ids.length === 0) return;
+  for (const id of ids) {
+    try {
+      refreshSectionIfVisible(id);
+    } catch (e) {
+      ztoolkit.log(`QRef: refreshing pane of item ${id} failed`, e);
+    }
+  }
+  void Zotero.Notifier.trigger("refresh", "item", ids).catch((e: unknown) =>
+    ztoolkit.log("QRef: item tree refresh failed", e),
+  );
 }
 
 export function unregisterNotifier(): void {

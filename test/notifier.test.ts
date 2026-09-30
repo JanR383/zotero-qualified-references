@@ -95,6 +95,34 @@ describe("notifier", function () {
     assert.isFalse((addon as any).data.incomingBySource.has(id));
   });
 
+  it("asks the item trees to refresh the target's row when a source changes (F5)", async function () {
+    const refreshed: number[] = [];
+    const observer = Zotero.Notifier.registerObserver(
+      {
+        notify: (event: string, _type: string, ids: Array<string | number>) => {
+          if (event === "refresh") refreshed.push(...ids.map(Number));
+        },
+      },
+      ["item"],
+      "qref-test",
+    );
+    try {
+      const s = await makeSource(1);
+      await waitFor(
+        () => refreshed.includes(target.id),
+        "target refreshed after add",
+      );
+      refreshed.length = 0;
+      await setLinks(s, []);
+      await waitFor(
+        () => refreshed.includes(target.id),
+        "target refreshed after the link was removed",
+      );
+    } finally {
+      Zotero.Notifier.unregisterObserver(observer);
+    }
+  });
+
   describe("group-copy guard wiring", function () {
     let group: any;
     let prefBefore: unknown;

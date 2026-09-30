@@ -1,8 +1,10 @@
 import { assert } from "chai";
 import { config } from "../package.json";
 import {
+  forEachResolvedLink,
   getIncoming,
   getLinks,
+  itemForIndexKey,
   libraryIDFromRef,
   libraryRef,
   makeLink,
@@ -396,6 +398,51 @@ describe("storage", function () {
       await setLinks(source, [makeLink(target.key, lib)]);
       await updateLinks(source, (links) => links.splice(0, 1));
       assert.deepEqual(getLinks(source), []);
+    });
+  });
+
+  describe("targets", function () {
+    const linkedTargets = () => {
+      const ids: number[] = [];
+      forEachResolvedLink((s, t) => {
+        if (s.id === source.id) ids.push(t.id);
+      });
+      return ids;
+    };
+
+    it("skips targets in the trash and shows them again once restored (F4)", async function () {
+      await setLinks(source, [makeLink(target.key, lib)]);
+      onItemChanged(source.id, false);
+      assert.deepEqual(linkedTargets(), [target.id]);
+
+      target.deleted = true;
+      await target.saveTx();
+      assert.deepEqual(linkedTargets(), []);
+
+      target.deleted = false;
+      await target.saveTx();
+      assert.deepEqual(linkedTargets(), [target.id]);
+    });
+
+    it("onItemChanged reports old and new targets (F5)", async function () {
+      const other = await makeItem("QRef test other target");
+      try {
+        await setLinks(source, [makeLink(target.key, lib)]);
+        onItemChanged(source.id, false);
+
+        await setLinks(source, [makeLink(other.key, lib)]);
+        const keys = [...onItemChanged(source.id, false)];
+        const ids = keys.map((k) => (itemForIndexKey(k) || undefined)?.id);
+        assert.sameMembers(ids, [target.id, other.id]);
+
+        const removed = [...onItemChanged(source.id, true)];
+        assert.deepEqual(
+          removed.map((k) => (itemForIndexKey(k) || undefined)?.id),
+          [other.id],
+        );
+      } finally {
+        await other.eraseTx();
+      }
     });
   });
 });

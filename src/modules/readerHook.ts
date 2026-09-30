@@ -1,6 +1,6 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
-import { pickItems } from "./picker";
+import { pickItems, referenceTargets } from "./picker";
 import { getLinks, makeLink, setLinks } from "./storage";
 import { refreshSectionIfVisible } from "./referenceSection";
 import {
@@ -66,11 +66,6 @@ async function createReference(
   pw.startCloseTimer(3000);
 }
 
-/** Picked ids that can be referenced: existing items other than the source. */
-export function validTargets(source: Zotero.Item, ids: number[]): number[] {
-  return ids.filter((id) => id !== source.id && !!Zotero.Items.get(id));
-}
-
 /**
  * The part of createReference after the (modal) picker: resolve the anchor
  * only when at least one usable target was picked, then add the links.
@@ -83,7 +78,7 @@ export async function linkPickedTargets(
   getAnnKey: () => Promise<string>,
   pageLabel: string | undefined,
 ): Promise<{ added: number; lastTitle: string }> {
-  const targetIDs = validTargets(source, picked);
+  const targetIDs = referenceTargets(source, picked);
   if (targetIDs.length === 0) return { added: 0, lastTitle: "" };
   const annKey = await getAnnKey();
   return addAnchoredLinks(att, source, annKey, pageLabel, targetIDs);

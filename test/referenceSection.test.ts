@@ -4,6 +4,7 @@ import {
   renderSection,
   resolveTargetItem,
 } from "../src/modules/referenceSection";
+import { saveSelectionHighlight } from "../src/modules/readerHook";
 import { getLinks, makeLink, setLinks } from "../src/modules/storage";
 import { getString } from "../src/utils/locale";
 import {
@@ -174,13 +175,36 @@ describe("referenceSection", function () {
 
   it("offers the PDF jump link only for a complete anchor", async function () {
     const anchorText = getString("anchor-open");
-    await withOneLink({ sourceAttachmentKey: "AAAAAAAA" });
+    const att = await makePdfAttachment(source, lib);
+    created.unshift(att);
+    const ann = await saveSelectionHighlight(att, {
+      type: "highlight",
+      text: "anchored passage",
+      comment: "",
+      pageLabel: "3",
+      sortIndex: "00000|000100|00100",
+      position: { pageIndex: 0, rects: [[100, 100, 200, 120]] },
+      tags: [],
+    } as any);
+    created.unshift(ann);
+
+    await withOneLink({ sourceAttachmentKey: att.key });
     assert.notInclude((await render()).textContent, anchorText);
+    await withOneLink({
+      sourceAttachmentKey: att.key,
+      sourceAnnotationKey: ann.key,
+    });
+    assert.include((await render()).textContent, anchorText);
+  });
+
+  it("marks an anchor whose highlight was deleted instead of linking it (F7)", async function () {
     await withOneLink({
       sourceAttachmentKey: "AAAAAAAA",
       sourceAnnotationKey: "BBBBBBBB",
     });
-    assert.include((await render()).textContent, anchorText);
+    const text = (await render()).textContent;
+    assert.notInclude(text, getString("anchor-open"));
+    assert.include(text, getString("anchor-missing"));
   });
 
   describe("resolveTargetItem", function () {

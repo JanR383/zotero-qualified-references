@@ -4,6 +4,7 @@
 // @ts-nocheck
 export type FluentMessageId =
   | 'add-button-label'
+  | 'anchor-missing'
   | 'anchor-open'
   | 'anchor-page'
   | 'column-neg-label'
