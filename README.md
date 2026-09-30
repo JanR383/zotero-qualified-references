@@ -40,12 +40,18 @@ coloured by stance. The graph's **Highlight tags** picker marks items carrying
 any of the chosen tags (e.g. `#Quelle` for primary sources) with a ring in the
 tag's colour — Zotero's own colour for coloured tags — and can hide everything
 except those items and their direct neighbours. A **Tools → Reference List** window shows the same data as
-an expandable list. Both windows have a **scope switcher** to narrow the view
-down to a single library or a collection (including its sub-collections).
+an expandable list, with **Expand all / Collapse all**, a **search** over title
+and author, and a **stance filter**. Both windows have a **scope switcher** to
+narrow the view down to a single library or a collection (including its
+sub-collections). Items in the trash are left out of both views.
 
 ![The reference graph window](docs/reference-graph.png)
 
 ![The reference list window](docs/reference-list.png)
+
+Two optional, sortable columns for Zotero's item list, **Ref. (+)** and
+**Ref. (−)**, count an item's incoming supporting and contrasting references.
+Enable them by right-clicking the column header.
 
 ## Data storage
 
@@ -146,6 +152,8 @@ Once installed, Zotero checks the release's `update.json` for new versions and
 updates the plugin automatically.
 
 ## Development
+
+Requires Node.js 22.18 or newer (`.nvmrc` pins 24).
 
 ```bash
 npm install
