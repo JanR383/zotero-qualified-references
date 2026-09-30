@@ -14,6 +14,7 @@ export interface ListEntry {
 export interface ListNode {
   id: number;
   label: string;
+  year: number | null; // parsed from the date field, for sorting (L5)
   outgoing: ListEntry[]; // references this item makes
   incoming: ListEntry[]; // references pointing at this item
 }
@@ -25,6 +26,10 @@ export interface ListStrings extends ViewStringsBase {
   search: string;
   expandAll: string;
   collapseAll: string;
+  sort: string;
+  sortAlpha: string;
+  sortCount: string;
+  sortYear: string;
 }
 
 export interface ListArg extends ViewArgBase {

@@ -15,6 +15,7 @@ import {
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
 import { filterNodes } from "./filter";
+import { sortNodes, stanceCounts, type SortMode } from "./sort";
 import type { Stance } from "../modules/types";
 import type { ListArg, ListEntry, ListNode } from "./types";
 
@@ -61,6 +62,27 @@ function section(
   return wrap;
 }
 
+/** Total count plus one pill per stance present, e.g. "(4) 3 + 1 −" (L6). */
+function stanceBalance(
+  node: ListNode,
+  labels: Record<Stance, string>,
+): HTMLElement {
+  const wrap = create("span");
+  wrap.className = "balance";
+  const counts = stanceCounts(node);
+  const total = create("span");
+  total.textContent = `(${node.outgoing.length + node.incoming.length})`;
+  wrap.appendChild(total);
+  for (const stance of STANCE_ORDER) {
+    if (counts[stance] === 0) continue;
+    const pill = stancePill(stance);
+    pill.textContent = `${counts[stance]} ${STANCE_GLYPH[stance]}`;
+    pill.title = labels[stance];
+    wrap.appendChild(pill);
+  }
+  return wrap;
+}
+
 interface NodeRow {
   el: HTMLElement;
   setOpen: (open: boolean) => void;
@@ -83,11 +105,10 @@ function nodeRow(node: ListNode, arg: ListArg, openIds: Set<number>): NodeRow {
 
   const title = create("span");
   title.className = "node-title";
-  const count = node.outgoing.length + node.incoming.length;
-  title.textContent = `${node.label}  (${count})`;
+  title.textContent = node.label;
   title.addEventListener("click", () => arg.selectItem(node.id));
 
-  header.append(caret, title);
+  header.append(caret, title, stanceBalance(node, arg.strings.stances));
   wrap.appendChild(header);
 
   const body = create("div");
@@ -166,10 +187,11 @@ function main(): void {
   const shown = new Set<Stance>(STANCE_ORDER);
   let nodes = arg.nodes;
   let query = "";
+  let sortMode: SortMode = "alpha";
   let rows: NodeRow[] = [];
 
   const render = (): void => {
-    const visible = filterNodes(nodes, query, shown);
+    const visible = sortNodes(filterNodes(nodes, query, shown), sortMode);
     root.replaceChildren();
     if (empty) {
       empty.textContent =
@@ -197,6 +219,27 @@ function main(): void {
     filterMount.replaceWith(
       buildStanceFilter(arg.strings.stances, shown, render),
     );
+  }
+
+  // Sort order (L5); not persisted, every window starts alphabetical.
+  const sort = byId("sort") as HTMLSelectElement | null;
+  if (sort) {
+    sort.title = arg.strings.sort;
+    const options: [SortMode, string][] = [
+      ["alpha", arg.strings.sortAlpha],
+      ["count", arg.strings.sortCount],
+      ["year", arg.strings.sortYear],
+    ];
+    for (const [value, text] of options) {
+      const option = create("option") as HTMLOptionElement;
+      option.value = value;
+      option.textContent = text;
+      sort.appendChild(option);
+    }
+    sort.addEventListener("change", () => {
+      sortMode = sort.value as SortMode;
+      render();
+    });
   }
 
   // Expand acts on the visible rows only; collapse clears every row (L1).
