@@ -7,6 +7,7 @@
       #toolbar {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 8px;
         padding: 8px 10px;
         border-bottom: 1px solid var(--material-border-quarternary, #ddd);
@@ -15,11 +16,31 @@
       #toolbar #scope {
         max-width: 320px;
       }
+      #search {
+        width: 180px;
+      }
+      .stance-filter {
+        display: inline-flex;
+        gap: 6px;
+      }
+      .stance-filter label {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        cursor: pointer;
+      }
+      .spacer {
+        flex: 1 1 auto;
+      }
       #list {
         padding: 8px 10px 20px;
       }
       .node {
         border-bottom: 1px solid var(--material-border-quarternary, #ddd);
+      }
+      .node-head:focus-visible {
+        outline: 2px solid var(--color-accent, Highlight);
+        outline-offset: -2px;
       }
       .node-head {
         display: flex;
@@ -84,6 +105,11 @@
     <div id="toolbar">
       <label id="scope-label"></label>
       <div id="scope"></div>
+      <input id="search" type="search" />
+      <span id="stance-filter"></span>
+      <span class="spacer"></span>
+      <button id="expand-all"></button>
+      <button id="collapse-all"></button>
     </div>
     <div id="list"></div>
     <div id="empty"></div>

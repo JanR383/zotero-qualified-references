@@ -24,6 +24,12 @@ export interface ListStrings {
   outgoing: string;
   incoming: string;
   scope: string;
+  noMatch: string;
+  search: string;
+  expandAll: string;
+  collapseAll: string;
+  /** Localized stance names, shown as tooltips on the filter checkboxes. */
+  stances: Record<Stance, string>;
 }
 
 export interface ListArg {
