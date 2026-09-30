@@ -71,6 +71,7 @@ prefs-copy-refs-to-group =
     .label = Qualifizierte Referenzen beim Hinzufügen eines Eintrags zu einer Gruppenbibliothek mitkopieren
 prefs-copy-refs-to-group-desc = Aus (empfohlen): wie Zoteros eigene „Verwandt“-Verknüpfungen werden deine Referenzen – inklusive privater Kommentare und Stance-Bewertungen – aus der Kopie entfernt, damit sie nicht mit Gruppenmitgliedern geteilt werden. An: Referenzen bleiben erhalten und werden für alle in der Gruppe sichtbar.
 anchor-open = ↗ Im PDF (A)
+anchor-missing = (Markierung gelöscht)
 anchor-page = S.
 reader-add-ref = Qualifizierte Referenz von hier…
 reader-ref-created = Referenz angelegt

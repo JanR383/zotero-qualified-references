@@ -11,7 +11,7 @@ import {
   updateLink,
   updateLinks,
 } from "./storage";
-import { pickItems } from "./picker";
+import { pickItems, referenceTargets } from "./picker";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
 
 let registeredID: string | false = false;
@@ -161,7 +161,7 @@ export function renderSection(
       "click",
       catching(async () => {
         const win = doc.defaultView as Window;
-        const ids = pickItems(win).filter((id) => id !== item.id);
+        const ids = referenceTargets(item, pickItems(win));
         if (ids.length === 0) return;
         await updateLinks(item, (current) => {
           for (const id of ids) {
@@ -660,18 +660,33 @@ function linkButton(
   return a;
 }
 
-/** "↗ open in A's PDF" link for a stored source anchor (or null if none). */
+/**
+ * "↗ open in A's PDF" link for a stored source anchor (or null if none). When
+ * the highlight or its PDF has been deleted, a muted note replaces the link,
+ * which would otherwise do nothing.
+ */
 function sourceAnchorLink(
   doc: Document,
   link: ReferenceLink,
   sourceLib: number,
 ): HTMLElement | null {
   if (!link.sourceAnnotationKey || !link.sourceAttachmentKey) return null;
+  if (!anchorExists(sourceLib, link)) {
+    return muted(doc, getString("anchor-missing"));
+  }
   return linkButton(doc, getString("anchor-open"), () =>
     openAnnotation(
       sourceLib,
       link.sourceAttachmentKey!,
       link.sourceAnnotationKey!,
     ),
+  );
+}
+
+function anchorExists(lib: number, link: ReferenceLink): boolean {
+  // Deleting an annotation erases it (annotations have no trash), so a
+  // missing key is what a deleted highlight looks like.
+  return [link.sourceAttachmentKey!, link.sourceAnnotationKey!].every(
+    (key) => !!Zotero.Items.getIDFromLibraryAndKey(lib, key),
   );
 }

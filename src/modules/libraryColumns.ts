@@ -10,22 +10,37 @@ import { getIncoming } from "./storage";
  * Columns are opt-in: the user must enable them via right-click on the column header.
  */
 export async function registerLibraryColumns(): Promise<void> {
-  await Zotero.ItemTreeManager.registerColumns({
+  const count = (item: Zotero.Item, match: (stance: number) => boolean) => {
+    const n = getIncoming(item).filter((l) => match(l.link.stance)).length;
+    return n > 0 ? String(n) : "";
+  };
+  await registerColumn({
     pluginID: addon.data.config.addonID,
     dataKey: "qref-pos",
     label: getString("column-pos-label"),
-    dataProvider: (item: Zotero.Item, _dataKey: string) => {
-      const count = getIncoming(item).filter((l) => l.link.stance >= 1).length;
-      return count > 0 ? String(count) : "";
-    },
+    dataProvider: (item: Zotero.Item) => count(item, (s) => s >= 1),
   });
-  await Zotero.ItemTreeManager.registerColumns({
+  await registerColumn({
     pluginID: addon.data.config.addonID,
     dataKey: "qref-neg",
     label: getString("column-neg-label"),
-    dataProvider: (item: Zotero.Item, _dataKey: string) => {
-      const count = getIncoming(item).filter((l) => l.link.stance <= -1).length;
-      return count > 0 ? String(count) : "";
-    },
+    dataProvider: (item: Zotero.Item) => count(item, (s) => s <= -1),
   });
+}
+
+type ColumnOptions = Parameters<
+  typeof Zotero.ItemTreeManager.registerColumn
+>[0];
+
+/**
+ * registerColumn (synchronous) replaces the deprecated registerColumns in
+ * Zotero 10; Zotero 9 may only have the latter.
+ */
+async function registerColumn(options: ColumnOptions): Promise<void> {
+  const manager = Zotero.ItemTreeManager;
+  if (typeof manager.registerColumn === "function") {
+    manager.registerColumn(options);
+  } else {
+    await manager.registerColumns(options);
+  }
 }

@@ -324,7 +324,9 @@ export function forEachResolvedLink(
         inc.link.targetLib,
         inc.link.targetKey,
       );
-      if (!source || !target) continue;
+      // Sources in the trash are dropped from the index; targets stay indexed
+      // (restoring them must bring the link back), so skip them here.
+      if (!source || !target || target.deleted) continue;
       if (accept && (!accept(source) || !accept(target))) continue;
       cb(source, target, inc.link);
     }
@@ -335,11 +337,14 @@ export function forEachResolvedLink(
  * Rebuild the reverse index.
  *
  * Strategy:
- *   1. Query the DB for all item IDs in the library (plain WHERE, no LIKE).
+ *   1. Query the DB for the regular items whose Extra field contains a
+ *      Reference-Graph line. Usually only a small share of the library carries
+ *      references, so this avoids loading the item data of everything else.
  *   2. Batch-load the item shells via getAsync(array), then explicitly load
  *      their "itemData" so getField("extra") works. getAsync alone returns
  *      data-less shells in Zotero 9 — reading Extra throws UnloadedDataException.
- *   3. Filter for regular, non-deleted items and call getLinks().
+ *   3. Filter for regular, non-deleted items and call getLinks(), which does the
+ *      exact parsing (the SQL match is only a prefilter).
  */
 export async function rebuildIndex(): Promise<void> {
   index().clear();
@@ -350,11 +355,18 @@ export async function rebuildIndex(): Promise<void> {
   for (const lib of libs) {
     try {
       // Only regular items can carry an Extra field worth parsing; skip
-      // attachments/notes/annotations up front so loadDataTypes stays cheap.
+      // attachments/notes/annotations up front. instr() is an exact,
+      // case-sensitive substring match (LIKE would treat "_" as a wildcard).
       const ids = (await Zotero.DB.columnQueryAsync(
-        `SELECT itemID FROM items JOIN itemTypes USING (itemTypeID)
-         WHERE libraryID=? AND typeName NOT IN ('attachment','note','annotation')`,
-        [lib.libraryID],
+        `SELECT itemID FROM items
+         JOIN itemTypes USING (itemTypeID)
+         JOIN itemData USING (itemID)
+         JOIN fields USING (fieldID)
+         JOIN itemDataValues USING (valueID)
+         WHERE libraryID=? AND fieldName='extra'
+           AND typeName NOT IN ('attachment','note','annotation')
+           AND instr(value, ?) > 0`,
+        [lib.libraryID, `${EXTRA_KEY}:`],
       )) as number[] | false;
 
       if (!ids || ids.length === 0) {
@@ -393,10 +405,25 @@ export async function rebuildIndex(): Promise<void> {
 /**
  * Keep the index in sync with a single item change.
  * @param removed true for delete events (item no longer available).
+ * @returns index keys ("<libraryID>:<key>") of the targets this source pointed
+ *   at before or after the change: their incoming lists and counts may differ
+ *   although the target items themselves were not modified.
  */
-export function onItemChanged(id: number, removed: boolean): void {
+export function onItemChanged(id: number, removed: boolean): Set<string> {
+  const affected = new Set(bySource().get(id));
   removeSourceFromIndex(id);
-  if (removed) return;
+  if (removed) return affected;
   const item = Zotero.Items.get(id);
   if (item && item.isRegularItem() && !item.deleted) addSourceToIndex(item);
+  for (const key of bySource().get(id) ?? []) affected.add(key);
+  return affected;
+}
+
+/** The live item behind an index key from onItemChanged, if any. */
+export function itemForIndexKey(key: string): Zotero.Item | false {
+  const sep = key.indexOf(":");
+  return Zotero.Items.getByLibraryAndKey(
+    Number(key.slice(0, sep)),
+    key.slice(sep + 1),
+  );
 }
