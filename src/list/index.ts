@@ -7,9 +7,14 @@
  * (+ the palette override) via the --qref-stance-* custom properties, which
  * apply directly here since this is regular DOM (not canvas).
  */
-import { STANCE_GLYPH, stanceCssValue } from "../modules/stanceMeta";
+import {
+  STANCE_GLYPH,
+  STANCE_ORDER,
+  stanceCssValue,
+} from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
+import { filterNodes } from "./filter";
 import type { Stance } from "../modules/types";
 import type { ListArg, ListEntry, ListNode } from "./types";
 
@@ -56,16 +61,25 @@ function section(
   return wrap;
 }
 
-function nodeRow(node: ListNode, arg: ListArg): HTMLElement {
+interface NodeRow {
+  el: HTMLElement;
+  setOpen: (open: boolean) => void;
+}
+
+/**
+ * One expandable row. The open/closed state lives in `openIds` (not in the
+ * DOM), so it survives re-renders from search, filter and scope changes (L1).
+ */
+function nodeRow(node: ListNode, arg: ListArg, openIds: Set<number>): NodeRow {
   const wrap = create("div");
   wrap.className = "node";
 
   const header = create("div");
   header.className = "node-head";
+  header.tabIndex = 0;
 
   const caret = create("span");
   caret.className = "caret";
-  caret.textContent = "▸";
 
   const title = create("span");
   title.className = "node-title";
@@ -78,24 +92,58 @@ function nodeRow(node: ListNode, arg: ListArg): HTMLElement {
 
   const body = create("div");
   body.className = "node-body";
-  body.style.display = "none";
   const out = section(arg.strings.outgoing, "→", node.outgoing, arg.selectItem);
   const inc = section(arg.strings.incoming, "←", node.incoming, arg.selectItem);
   if (out) body.appendChild(out);
   if (inc) body.appendChild(inc);
   wrap.appendChild(body);
 
-  const toggle = (): void => {
-    const open = body.style.display !== "none";
-    body.style.display = open ? "none" : "block";
-    caret.textContent = open ? "▸" : "▾";
+  const setOpen = (open: boolean): void => {
+    if (open) openIds.add(node.id);
+    else openIds.delete(node.id);
+    body.style.display = open ? "block" : "none";
+    caret.textContent = open ? "▾" : "▸";
+    header.setAttribute("aria-expanded", String(open));
   };
+  setOpen(openIds.has(node.id));
+
   // Any header click outside the title toggles (this covers the caret too —
   // a separate caret listener would double-toggle via bubbling and cancel out).
   header.addEventListener("click", (e: Event) => {
-    if (e.target !== title) toggle();
+    if (e.target !== title) setOpen(!openIds.has(node.id));
+  });
+  header.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "ArrowRight") setOpen(true);
+    else if (e.key === "ArrowLeft") setOpen(false);
+    else return;
+    e.preventDefault();
   });
 
+  return { el: wrap, setOpen };
+}
+
+/** One checkbox per stance, all checked initially (L3). */
+function buildStanceFilter(
+  labels: Record<Stance, string>,
+  shown: Set<Stance>,
+  onChange: () => void,
+): HTMLElement {
+  const wrap = create("span");
+  wrap.className = "stance-filter";
+  for (const stance of STANCE_ORDER) {
+    const label = create("label");
+    label.title = labels[stance];
+    const box = create("input") as HTMLInputElement;
+    box.type = "checkbox";
+    box.checked = true;
+    box.addEventListener("change", () => {
+      if (box.checked) shown.add(stance);
+      else shown.delete(stance);
+      onChange();
+    });
+    label.append(box, stancePill(stance));
+    wrap.appendChild(label);
+  }
   return wrap;
 }
 
@@ -114,17 +162,62 @@ function main(): void {
   if (!root) return;
 
   const empty = byId("empty");
-  const renderNodes = (nodes: ListNode[]): void => {
+  const openIds = new Set<number>();
+  const shown = new Set<Stance>(STANCE_ORDER);
+  let nodes = arg.nodes;
+  let query = "";
+  let rows: NodeRow[] = [];
+
+  const render = (): void => {
+    const visible = filterNodes(nodes, query, shown);
     root.replaceChildren();
     if (empty) {
-      empty.textContent = arg.strings.empty;
-      empty.style.display = nodes.length === 0 ? "block" : "none";
+      empty.textContent =
+        nodes.length === 0 ? arg.strings.empty : arg.strings.noMatch;
+      empty.style.display = visible.length === 0 ? "block" : "none";
     }
-    for (const node of nodes) root.appendChild(nodeRow(node, arg));
+    rows = visible.map((node) => nodeRow(node, arg, openIds));
+    for (const row of rows) root.appendChild(row.el);
   };
-  renderNodes(arg.nodes);
+  render();
+
+  // Search (L2): filters by the formatted label; hits open automatically.
+  const search = byId("search") as HTMLInputElement | null;
+  if (search) {
+    search.placeholder = arg.strings.search;
+    search.addEventListener("input", () => {
+      query = search.value;
+      render();
+      if (query.trim()) for (const row of rows) row.setOpen(true);
+    });
+  }
+
+  const filterMount = byId("stance-filter");
+  if (filterMount) {
+    filterMount.replaceWith(
+      buildStanceFilter(arg.strings.stances, shown, render),
+    );
+  }
+
+  // Expand acts on the visible rows only; collapse clears every row (L1).
+  const expandAll = byId("expand-all");
+  if (expandAll) {
+    expandAll.textContent = arg.strings.expandAll;
+    expandAll.addEventListener("click", () => {
+      for (const row of rows) row.setOpen(true);
+    });
+  }
+  const collapseAll = byId("collapse-all");
+  if (collapseAll) {
+    collapseAll.textContent = arg.strings.collapseAll;
+    collapseAll.addEventListener("click", () => {
+      openIds.clear();
+      for (const row of rows) row.setOpen(false);
+    });
+  }
 
   // Scope switcher (N6): rebuild the list for the chosen library/collection.
+  // Open rows stay open where the item still appears in the new scope.
   const scopeMount = byId("scope");
   const scopeLabel = byId("scope-label");
   if (scopeMount) {
@@ -134,7 +227,8 @@ function main(): void {
         const data = JSON.parse(arg.getScopedData(id)) as {
           nodes: ListNode[];
         };
-        renderNodes(data.nodes);
+        nodes = data.nodes;
+        render();
       }),
     );
   }
