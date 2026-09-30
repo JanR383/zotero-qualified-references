@@ -180,6 +180,33 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
 }
 
 /**
+ * Stored shape of a link, with a fixed key order (the order sanitizeLink reads
+ * them in). The JSON must not depend on how the in-memory object was built:
+ * re-saving unchanged links has to reproduce the same line, or every save
+ * would register as a change and be uploaded by sync.
+ *
+ * targetLibRef is refreshed from the resolved local ID; when this device cannot
+ * name the library (a group it has not joined), the ref it was read with is
+ * kept so the link survives the round trip.
+ */
+function serializeLink(l: ReferenceLink): ReferenceLink {
+  return {
+    id: l.id,
+    targetKey: l.targetKey,
+    targetLib: l.targetLib,
+    targetLibRef: libraryRef(l.targetLib) ?? l.targetLibRef,
+    stance: l.stance,
+    sourcePages: l.sourcePages,
+    targetPages: l.targetPages,
+    sourceAttachmentKey: l.sourceAttachmentKey,
+    sourceAnnotationKey: l.sourceAnnotationKey,
+    comment: l.comment,
+    added: l.added,
+    modified: l.modified,
+  };
+}
+
+/**
  * Persist the given links onto the source item (replacing the existing
  * Reference-Graph line) and save. The notifier keeps the reverse index fresh.
  */
@@ -190,14 +217,7 @@ export async function setLinks(
   const extra = item.getField("extra") || "";
   const kept = extra.split(/\r?\n/).filter((line) => !EXTRA_LINE_RE.test(line));
   if (links.length > 0) {
-    // Refresh the stable ref from the resolved local ID. When this device
-    // cannot name the library (a group it has not joined), keep the ref it
-    // was read with so the link survives the round trip.
-    const out = links.map((l) => ({
-      ...l,
-      targetLibRef: libraryRef(l.targetLib) ?? l.targetLibRef,
-    }));
-    kept.push(`${EXTRA_KEY}: ${JSON.stringify(out)}`);
+    kept.push(`${EXTRA_KEY}: ${JSON.stringify(links.map(serializeLink))}`);
   }
   // Drop leading/trailing empties left behind by removing our line.
   item.setField("extra", kept.join("\n").replace(/^\n+|\n+$/g, ""));
