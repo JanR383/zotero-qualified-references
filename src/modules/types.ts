@@ -9,7 +9,18 @@ export type Stance = -2 | -1 | 0 | 1 | 2;
 export interface ReferenceLink {
   id: string;
   targetKey: string;
+  /**
+   * Target library as a LOCAL libraryID. libraryIDs are assigned per device
+   * (groups in join order), so this is only meaningful on the device that
+   * wrote it; it is kept for readers older than targetLibRef. getLinks()
+   * replaces it with the ID resolved on this device.
+   */
   targetLib: number;
+  /**
+   * Device-independent target library: "u" (the user's personal library) or
+   * "g<groupID>". Written by setLinks(); preferred over targetLib on read.
+   */
+  targetLibRef?: string;
   sourcePages?: string;
   targetPages?: string;
   /**

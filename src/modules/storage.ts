@@ -56,6 +56,63 @@ function asCappedString(value: unknown): string | undefined {
     : undefined;
 }
 
+// --- Library references -------------------------------------------------------
+// A libraryID is a local database ID: groups are numbered in the order they
+// were joined on each device, so a raw targetLib written on one device can name
+// another (or no) library on the next. Links therefore also carry a stable
+// targetLibRef ("u" = personal library, "g<groupID>" = group).
+
+const LIB_REF_RE = /^(u|g\d+)$/;
+
+/** Stable reference for a local libraryID; undefined for feeds/unknown ids. */
+export function libraryRef(libraryID: number): string | undefined {
+  if (libraryID === Zotero.Libraries.userLibraryID) return "u";
+  const lib = Zotero.Libraries.get(libraryID);
+  if (!lib || lib.libraryType !== "group") return undefined;
+  try {
+    return `g${Zotero.Groups.getGroupIDFromLibraryID(libraryID)}`;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Local libraryID for a stable reference; undefined if not on this device. */
+export function libraryIDFromRef(ref: string): number | undefined {
+  if (ref === "u") return Zotero.Libraries.userLibraryID;
+  const m = ref.match(/^g(\d+)$/);
+  if (!m) return undefined;
+  const id = Zotero.Groups.getLibraryIDFromGroupID(Number(m[1]));
+  return id === false ? undefined : id;
+}
+
+/**
+ * The local libraryID a link's target lives in. The stable ref wins when this
+ * device has that library. Otherwise (legacy links without a ref, or a ref to a
+ * group this device has not joined) the target key is looked up in the stored
+ * libraryID, the source's library and then every library — item keys are
+ * random, so a hit identifies the library. Falls back to the stored ID.
+ */
+function resolveTargetLib(link: ReferenceLink, sourceLib: number): number {
+  const fromRef = link.targetLibRef
+    ? libraryIDFromRef(link.targetLibRef)
+    : undefined;
+  if (fromRef !== undefined) return fromRef;
+  const candidates = [
+    link.targetLib,
+    sourceLib,
+    ...Zotero.Libraries.getAll().map((l) => l.libraryID),
+  ];
+  for (const lib of candidates) {
+    if (
+      Zotero.Libraries.exists(lib) &&
+      Zotero.Items.getByLibraryAndKey(lib, link.targetKey)
+    ) {
+      return lib;
+    }
+  }
+  return link.targetLib;
+}
+
 /** Validate one parsed entry; returns a clean ReferenceLink or null to drop. */
 function sanitizeLink(raw: unknown): ReferenceLink | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -63,9 +120,13 @@ function sanitizeLink(raw: unknown): ReferenceLink | null {
   // Required identity fields — drop the entry if they are unusable.
   if (typeof o.id !== "string" || o.id.length === 0) return null;
   if (typeof o.targetKey !== "string" || o.targetKey.length === 0) return null;
-  if (typeof o.targetLib !== "number" || !Number.isInteger(o.targetLib)) {
-    return null;
-  }
+  const targetLibRef =
+    typeof o.targetLibRef === "string" && LIB_REF_RE.test(o.targetLibRef)
+      ? o.targetLibRef
+      : undefined;
+  const hasLib =
+    typeof o.targetLib === "number" && Number.isInteger(o.targetLib);
+  if (!hasLib && !targetLibRef) return null;
   // Stance: clamp to the known scale, defaulting to neutral.
   const stance: Stance =
     typeof o.stance === "number" && [-2, -1, 0, 1, 2].includes(o.stance)
@@ -74,7 +135,8 @@ function sanitizeLink(raw: unknown): ReferenceLink | null {
   return {
     id: o.id.slice(0, 100),
     targetKey: o.targetKey.slice(0, 100),
-    targetLib: o.targetLib,
+    targetLib: hasLib ? (o.targetLib as number) : 0,
+    targetLibRef,
     stance,
     sourcePages: asCappedString(o.sourcePages),
     targetPages: asCappedString(o.targetPages),
@@ -99,9 +161,13 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
         );
         return [];
       }
-      return parsed
+      const links = parsed
         .map(sanitizeLink)
         .filter((l): l is ReferenceLink => l !== null);
+      for (const link of links) {
+        link.targetLib = resolveTargetLib(link, item.libraryID);
+      }
+      return links;
     } catch (e) {
       ztoolkit.log(
         `QRef: failed to parse Reference-Graph on item ${item.libraryID}:${item.key}`,
@@ -124,11 +190,46 @@ export async function setLinks(
   const extra = item.getField("extra") || "";
   const kept = extra.split(/\r?\n/).filter((line) => !EXTRA_LINE_RE.test(line));
   if (links.length > 0) {
-    kept.push(`${EXTRA_KEY}: ${JSON.stringify(links)}`);
+    // Refresh the stable ref from the resolved local ID. When this device
+    // cannot name the library (a group it has not joined), keep the ref it
+    // was read with so the link survives the round trip.
+    const out = links.map((l) => ({
+      ...l,
+      targetLibRef: libraryRef(l.targetLib) ?? l.targetLibRef,
+    }));
+    kept.push(`${EXTRA_KEY}: ${JSON.stringify(out)}`);
   }
   // Drop leading/trailing empties left behind by removing our line.
   item.setField("extra", kept.join("\n").replace(/^\n+|\n+$/g, ""));
   await item.saveTx();
+}
+
+/**
+ * Read-modify-write on the item's CURRENT links. UI handlers must go through
+ * this instead of saving an array captured at render time: Extra may have
+ * changed since (sync, the reader hook, a second pane), and writing the stale
+ * array back would silently drop those changes.
+ */
+export async function updateLinks(
+  item: Zotero.Item,
+  mutate: (links: ReferenceLink[]) => void,
+): Promise<void> {
+  const links = getLinks(item);
+  mutate(links);
+  await setLinks(item, links);
+}
+
+/** Patch one link by id (no-op if it no longer exists) and stamp `modified`. */
+export async function updateLink(
+  item: Zotero.Item,
+  id: string,
+  patch: Partial<Omit<ReferenceLink, "id">>,
+): Promise<void> {
+  await updateLinks(item, (links) => {
+    const link = links.find((l) => l.id === id);
+    if (!link) return;
+    Object.assign(link, patch, { modified: new Date().toISOString() });
+  });
 }
 
 // --- Reverse index ----------------------------------------------------------
