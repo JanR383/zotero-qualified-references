@@ -36,7 +36,10 @@ one step. This button can be turned off in Settings if you don't want it.
 
 A **Tools → Reference Graph** window visualises the whole network: items as
 nodes (shaped and coloured by item type), references as directed arrows
-coloured by stance. A **Tools → Reference List** window shows the same data as
+coloured by stance. The graph's **Highlight tags** picker marks items carrying
+any of the chosen tags (e.g. `#Quelle` for primary sources) with a ring in the
+tag's colour — Zotero's own colour for coloured tags — and can hide everything
+except those items and their direct neighbours. A **Tools → Reference List** window shows the same data as
 an expandable list. Both windows have a **scope switcher** to narrow the view
 down to a single library or a collection (including its sub-collections).
 

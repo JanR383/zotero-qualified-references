@@ -9,6 +9,7 @@ import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import { forEachResolvedLink } from "./storage";
 import { buildScopeOptions, makePredicate } from "./scope";
+import { collectTagOptions, loadTagColors } from "./tagHighlight";
 import type { Stance } from "./types";
 import type { GraphArg, GraphData, GraphLink, GraphNode } from "../graph/types";
 
@@ -79,6 +80,7 @@ function buildData(scopeId = "all"): GraphData {
         label: formatItem(item, fields),
         itemType: item.itemType,
         tooltip: "",
+        tags: item.getTags().map((t) => t.tag),
       });
       items.set(item.id, item);
     }
@@ -122,11 +124,29 @@ function buildData(scopeId = "all"): GraphData {
     typeLegend.push({ type: "default", label: getString("graph-type-other") });
   }
 
-  return { nodes: [...nodes.values()], links, typeLegend };
+  // Tags offered for highlighting (G12): all tags present in this scope.
+  const tagOptions = collectTagOptions(
+    [...nodes.values()].map((n) => n.tags),
+    loadTagColors(),
+  );
+
+  return { nodes: [...nodes.values()], links, typeLegend, tagOptions };
+}
+
+const HIGHLIGHT_PREF = `${config.prefsPrefix}.graphHighlightTags`;
+
+/** The tags selected for highlighting last time (lower-cased keys). */
+function loadHighlightTags(): string[] {
+  try {
+    const v = JSON.parse(String(Zotero.Prefs.get(HIGHLIGHT_PREF, true) ?? ""));
+    return Array.isArray(v) ? v.filter((t) => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 export function openGraphView(win: Window): void {
-  const { nodes, links, typeLegend } = buildData();
+  const { nodes, links, typeLegend, tagOptions } = buildData();
   const colorByType =
     Zotero.Prefs.get(`${config.prefsPrefix}.graphColorByType`, true) === true;
   const linkDistance = Number(
@@ -147,14 +167,23 @@ export function openGraphView(win: Window): void {
       },
       linkDistance: getString("graph-link-distance"),
       scope: getString("scope-label"),
+      tags: getString("graph-tags"),
+      tagsFilter: getString("graph-tags-filter"),
+      tagsNone: getString("graph-tags-none"),
+      tagFocus: getString("graph-tag-focus"),
     },
     selectItem: selectItemInPane,
     paletteCss: paletteOverrideCss(getCurrentPaletteId()),
     colorByType,
     typeLegend,
+    tagOptions,
+    highlightTags: loadHighlightTags(),
+    onHighlightTagsChange: (tags: string[]) => {
+      Zotero.Prefs.set(HIGHLIGHT_PREF, JSON.stringify(tags), true);
+    },
     linkDistance: Number.isFinite(linkDistance) ? linkDistance : 40,
     onLinkDistanceChange: (v: number) => {
-      Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v);
+      Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
     },
     scopes: buildScopeOptions(),
     getScopedData: (id: string) => JSON.stringify(buildData(id)),
