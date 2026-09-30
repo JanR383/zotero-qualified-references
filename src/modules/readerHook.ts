@@ -29,23 +29,27 @@ import {
  */
 
 /**
- * Shared flow for both entry points: pick target item(s), append A→B link(s)
- * anchored to `annKey`, persist, refresh the section and confirm.
+ * Shared flow for both entry points: pick target item(s), obtain the anchor,
+ * append A→B link(s) anchored to it, persist, refresh the section and confirm.
+ *
+ * The anchor is resolved only AFTER a usable target was picked: for a bare
+ * selection this creates the highlight, which must not be left behind when the
+ * picker is cancelled.
  */
 async function createReference(
   att: Zotero.Item,
   source: Zotero.Item,
-  annKey: string,
+  getAnnKey: () => Promise<string>,
   pageLabel: string | undefined,
 ): Promise<void> {
   const win = Zotero.getMainWindow();
-  const targetIDs = pickItems(win as unknown as Window);
-  const { added, lastTitle } = await addAnchoredLinks(
+  const picked = pickItems(win as unknown as Window);
+  const { added, lastTitle } = await linkPickedTargets(
     att,
     source,
-    annKey,
+    picked,
+    getAnnKey,
     pageLabel,
-    targetIDs,
   );
   if (added === 0) return;
   refreshSectionIfVisible(source.id);
@@ -60,6 +64,29 @@ async function createReference(
     type: "success",
   }).show();
   pw.startCloseTimer(3000);
+}
+
+/** Picked ids that can be referenced: existing items other than the source. */
+export function validTargets(source: Zotero.Item, ids: number[]): number[] {
+  return ids.filter((id) => id !== source.id && !!Zotero.Items.get(id));
+}
+
+/**
+ * The part of createReference after the (modal) picker: resolve the anchor
+ * only when at least one usable target was picked, then add the links.
+ * Exported for tests.
+ */
+export async function linkPickedTargets(
+  att: Zotero.Item,
+  source: Zotero.Item,
+  picked: number[],
+  getAnnKey: () => Promise<string>,
+  pageLabel: string | undefined,
+): Promise<{ added: number; lastTitle: string }> {
+  const targetIDs = validTargets(source, picked);
+  if (targetIDs.length === 0) return { added: 0, lastTitle: "" };
+  const annKey = await getAnnKey();
+  return addAnchoredLinks(att, source, annKey, pageLabel, targetIDs);
 }
 
 /**
@@ -115,7 +142,7 @@ async function createReferenceFromAnnotation(
     const ann = Zotero.Items.getByLibraryAndKey(r.att.libraryID, annKey) as
       (Zotero.Item & { annotationPageLabel?: string }) | false;
     const pageLabel = ann ? ann.annotationPageLabel || undefined : undefined;
-    await createReference(r.att, r.source, annKey, pageLabel);
+    await createReference(r.att, r.source, async () => annKey, pageLabel);
   } catch (e) {
     ztoolkit.log("QRef: failed to create reference from annotation", e);
   }
@@ -143,11 +170,10 @@ async function createReferenceFromSelection(
   try {
     const r = resolveSource(reader);
     if (!r) return;
-    const saved = await saveSelectionHighlight(r.att, annotation);
     await createReference(
       r.att,
       r.source,
-      saved.key,
+      async () => (await saveSelectionHighlight(r.att, annotation)).key,
       annotation.pageLabel || undefined,
     );
   } catch (e) {

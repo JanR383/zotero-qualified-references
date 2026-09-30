@@ -3,11 +3,16 @@ import { config } from "../package.json";
 import {
   getIncoming,
   getLinks,
+  libraryIDFromRef,
+  libraryRef,
   makeLink,
   onItemChanged,
   rebuildIndex,
   setLinks,
+  updateLink,
+  updateLinks,
 } from "../src/modules/storage";
+import { createGroup } from "./helpers";
 
 /**
  * Integration tests for the storage layer, run inside Zotero by
@@ -230,6 +235,166 @@ describe("storage", function () {
       await writeRaw(
         JSON.stringify({ id: "a", targetKey: target.key, targetLib: lib }),
       );
+      assert.deepEqual(getLinks(source), []);
+    });
+  });
+
+  describe("device-independent target library (F1)", function () {
+    let group: any;
+    let groupTarget: Zotero.Item;
+
+    before(async function () {
+      group = await createGroup("QRef storage test group");
+    });
+
+    after(async function () {
+      if (group) await group.eraseTx();
+    });
+
+    beforeEach(async function () {
+      groupTarget = new Zotero.Item("journalArticle");
+      groupTarget.libraryID = group.libraryID;
+      groupTarget.setField("title", "QRef group target");
+      await groupTarget.saveTx();
+    });
+
+    afterEach(async function () {
+      if (Zotero.Items.get(groupTarget.id)) await groupTarget.eraseTx();
+    });
+
+    async function writeRaw(entries: unknown[]): Promise<void> {
+      source.setField("extra", `Reference-Graph: ${JSON.stringify(entries)}`);
+      await source.saveTx();
+    }
+
+    function storedEntries(): any[] {
+      const line = source
+        .getField("extra")
+        .split("\n")
+        .find((l: string) => l.startsWith("Reference-Graph:"))!;
+      return JSON.parse(line.slice("Reference-Graph:".length));
+    }
+
+    it("maps libraries to stable refs and back", function () {
+      assert.equal(libraryRef(lib), "u");
+      assert.equal(libraryRef(group.libraryID), `g${group.id}`);
+      assert.equal(libraryIDFromRef("u"), lib);
+      assert.equal(libraryIDFromRef(`g${group.id}`), group.libraryID);
+      assert.isUndefined(libraryIDFromRef("g1"), "unknown group");
+      assert.isUndefined(libraryIDFromRef("x"));
+    });
+
+    it("writes the stable ref next to the local ID", async function () {
+      await setLinks(source, [
+        makeLink(target.key, lib),
+        makeLink(groupTarget.key, group.libraryID),
+      ]);
+      const stored = storedEntries();
+      assert.equal(stored[0].targetLibRef, "u");
+      assert.equal(stored[0].targetLib, lib);
+      assert.equal(stored[1].targetLibRef, `g${group.id}`);
+      assert.equal(stored[1].targetLib, group.libraryID);
+    });
+
+    it("prefers the ref over a libraryID written on another device", async function () {
+      // Another device numbered the group differently: its local ID is
+      // meaningless here, the ref is not.
+      await writeRaw([
+        {
+          id: "a",
+          targetKey: groupTarget.key,
+          targetLib: 987654,
+          targetLibRef: `g${group.id}`,
+        },
+      ]);
+      const [link] = getLinks(source);
+      assert.equal(link.targetLib, group.libraryID);
+    });
+
+    it("locates legacy links (no ref) by their target key", async function () {
+      await writeRaw([
+        { id: "a", targetKey: groupTarget.key, targetLib: 987654 },
+      ]);
+      const [link] = getLinks(source);
+      assert.equal(link.targetLib, group.libraryID);
+      // Rewritten with a ref on the next save.
+      await setLinks(source, getLinks(source));
+      assert.equal(storedEntries()[0].targetLibRef, `g${group.id}`);
+    });
+
+    it("keeps a ref to a group this device has not joined", async function () {
+      await writeRaw([
+        {
+          id: "a",
+          targetKey: "ABCD2345",
+          targetLib: 987654,
+          targetLibRef: "g1",
+        },
+      ]);
+      await setLinks(source, getLinks(source));
+      const [stored] = storedEntries();
+      assert.equal(stored.targetLibRef, "g1");
+      assert.equal(stored.targetLib, 987654);
+    });
+
+    it("accepts an entry that only has a ref", async function () {
+      await writeRaw([{ id: "a", targetKey: target.key, targetLibRef: "u" }]);
+      const [link] = getLinks(source);
+      assert.equal(link.targetLib, lib);
+    });
+
+    it("indexes group targets under their local library", async function () {
+      await writeRaw([
+        {
+          id: "a",
+          targetKey: groupTarget.key,
+          targetLib: 987654,
+          targetLibRef: `g${group.id}`,
+        },
+      ]);
+      onItemChanged(source.id, false);
+      assert.isOk(
+        getIncoming(groupTarget).find((i) => i.sourceID === source.id),
+      );
+      onItemChanged(source.id, true);
+    });
+  });
+
+  describe("updateLink / updateLinks (F3)", function () {
+    it("patches the stored link, not a stale copy", async function () {
+      const a = makeLink(target.key, lib);
+      await setLinks(source, [a]);
+      const stale = getLinks(source); // captured "at render time"
+      // A concurrent change (sync, reader hook) adds a second link.
+      await setLinks(source, [...getLinks(source), makeLink(target.key, lib)]);
+
+      await updateLink(source, stale[0].id, { comment: "edited", stance: -1 });
+
+      const links = getLinks(source);
+      assert.lengthOf(links, 2, "the concurrent link survives");
+      assert.equal(links[0].comment, "edited");
+      assert.equal(links[0].stance, -1);
+      assert.notEqual(links[0].modified, a.modified);
+    });
+
+    it("clears a field patched with undefined", async function () {
+      const a = makeLink(target.key, lib);
+      a.sourcePages = "12";
+      await setLinks(source, [a]);
+      await updateLink(source, a.id, { sourcePages: undefined });
+      assert.isUndefined(getLinks(source)[0].sourcePages);
+    });
+
+    it("is a no-op for a link that is gone", async function () {
+      await setLinks(source, [makeLink(target.key, lib)]);
+      const before = source.getField("extra");
+      await updateLink(source, "missing", { comment: "x" });
+      assert.equal(source.getField("extra"), before);
+    });
+
+    it("updateLinks mutates the current links", async function () {
+      await setLinks(source, [makeLink(target.key, lib)]);
+      await updateLinks(source, (links) => links.splice(0, 1));
       assert.deepEqual(getLinks(source), []);
     });
   });

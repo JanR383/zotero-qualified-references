@@ -59,7 +59,7 @@ async function onStartup() {
     pluginID: addon.data.config.addonID,
     src: rootURI + "content/preferences.xhtml",
     label: getString("prefs-title"),
-    image: `chrome://${addon.data.config.addonRef}/content/icons/book-open.svg`,
+    image: `chrome://${addon.data.config.addonRef}/content/icons/qref.svg`,
   });
   // Re-apply the stance palette to all main windows when the pref changes.
   palettePrefObserver = Zotero.Prefs.registerObserver(

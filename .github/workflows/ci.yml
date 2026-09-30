@@ -34,11 +34,35 @@ jobs:
           name: build-result
           path: .scaffold/build
 
-  test:
+  test-zotero:
     runs-on: ubuntu-latest
     needs:
       - build
+    strategy:
+      fail-fast: false
+      matrix:
+        # The scaffold would download the beta channel only; test the released
+        # Zotero users actually run as well.
+        channel: [release, beta]
+    name: test (${{ matrix.channel }})
     steps:
       - name: Setup JS
         uses: zotero-plugin-dev/workflows/setup-js@main
+      - name: Install Zotero (${{ matrix.channel }})
+        run: |
+          wget -q -O "$RUNNER_TEMP/zotero.tar.bz2" \
+            "https://www.zotero.org/download/client/dl?platform=linux-x86_64&channel=${{ matrix.channel }}"
+          tar -xf "$RUNNER_TEMP/zotero.tar.bz2" -C "$RUNNER_TEMP"
+          echo "ZOTERO_PLUGIN_ZOTERO_BIN_PATH=$RUNNER_TEMP/Zotero_linux-x86_64/zotero" >> "$GITHUB_ENV"
       - run: npm run test
+
+  # Aggregate result under the name branch protection requires ("test"), so
+  # the channel matrix above can change without touching repository settings.
+  test:
+    runs-on: ubuntu-latest
+    needs:
+      - test-zotero
+    if: always()
+    steps:
+      - name: All Zotero channels passed
+        run: test "${{ needs.test-zotero.result }}" = "success"

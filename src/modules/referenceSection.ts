@@ -4,7 +4,13 @@ import { selectItemInPane } from "./navigation";
 import { zReader } from "../utils/zoteroApis";
 import { STANCE_GLYPH, STANCE_ORDER, stanceCssValue } from "./stanceMeta";
 import { formatItem, paneFields } from "./itemFormat";
-import { getIncoming, getLinks, makeLink, setLinks } from "./storage";
+import {
+  getIncoming,
+  getLinks,
+  makeLink,
+  updateLink,
+  updateLinks,
+} from "./storage";
 import { pickItems } from "./picker";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
 
@@ -52,11 +58,11 @@ export function registerReferenceSection() {
     pluginID: addon.data.config.addonID,
     header: {
       l10nID: getLocaleID("section-head-text"),
-      icon: `chrome://${addon.data.config.addonRef}/content/icons/book-open.svg`,
+      icon: `chrome://${addon.data.config.addonRef}/content/icons/qref.svg`,
     },
     sidenav: {
       l10nID: getLocaleID("section-sidenav-tooltip"),
-      icon: `chrome://${addon.data.config.addonRef}/content/icons/book-open.svg`,
+      icon: `chrome://${addon.data.config.addonRef}/content/icons/qref.svg`,
     },
     onRender: ({ body, item, editable }) => {
       if (!item) return;
@@ -147,7 +153,7 @@ export function renderSection(
     body.appendChild(muted(doc, getString("no-outgoing")));
   }
   for (const link of links) {
-    body.appendChild(outgoingRow(doc, item, link, links, editable, rerender));
+    body.appendChild(outgoingRow(doc, item, link, editable, rerender));
   }
   if (editable) {
     const add = button(doc, getString("add-button-label"));
@@ -157,11 +163,12 @@ export function renderSection(
         const win = doc.defaultView as Window;
         const ids = pickItems(win).filter((id) => id !== item.id);
         if (ids.length === 0) return;
-        for (const id of ids) {
-          const target = Zotero.Items.get(id);
-          if (target) links.push(makeLink(target.key, target.libraryID));
-        }
-        await setLinks(item, links);
+        await updateLinks(item, (current) => {
+          for (const id of ids) {
+            const target = Zotero.Items.get(id);
+            if (target) current.push(makeLink(target.key, target.libraryID));
+          }
+        });
         rerender();
       }),
     );
@@ -183,7 +190,6 @@ function outgoingRow(
   doc: Document,
   source: Zotero.Item,
   link: ReferenceLink,
-  links: ReferenceLink[],
   editable: boolean,
   rerender: () => void,
 ): HTMLElement {
@@ -207,15 +213,14 @@ function outgoingRow(
     ),
   );
 
-  const save = async () => {
-    link.modified = new Date().toISOString();
-    await setLinks(source, links);
-  };
+  // Every edit patches this link by id on the item's current links (not the
+  // array captured at render time), so concurrent changes are not lost.
+  const save = (patch: Partial<Omit<ReferenceLink, "id">>) =>
+    updateLink(source, link.id, patch);
 
   row.appendChild(
     stanceControl(doc, link.stance, editable, async (value) => {
-      link.stance = value;
-      await save();
+      await save({ stance: value });
       rerender();
     }),
   );
@@ -231,8 +236,7 @@ function outgoingRow(
       link.sourcePages,
       editable,
       async (v) => {
-        link.sourcePages = v || undefined;
-        await save();
+        await save({ sourcePages: v || undefined });
       },
     ),
   );
@@ -243,8 +247,7 @@ function outgoingRow(
       link.targetPages,
       editable,
       async (v) => {
-        link.targetPages = v || undefined;
-        await save();
+        await save({ targetPages: v || undefined });
       },
     ),
   );
@@ -259,8 +262,7 @@ function outgoingRow(
   comment.addEventListener(
     "change",
     catching(async () => {
-      link.comment = comment.value || undefined;
-      await save();
+      await save({ comment: comment.value || undefined });
     }),
   );
   row.appendChild(comment);
@@ -277,9 +279,10 @@ function outgoingRow(
     del.addEventListener(
       "click",
       catching(async () => {
-        const idx = links.findIndex((l) => l.id === link.id);
-        if (idx >= 0) links.splice(idx, 1);
-        await setLinks(source, links);
+        await updateLinks(source, (current) => {
+          const idx = current.findIndex((l) => l.id === link.id);
+          if (idx >= 0) current.splice(idx, 1);
+        });
         rerender();
       }),
     );
