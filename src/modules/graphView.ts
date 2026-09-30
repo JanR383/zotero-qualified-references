@@ -183,7 +183,7 @@ export function openGraphView(win: Window): void {
     },
     linkDistance: Number.isFinite(linkDistance) ? linkDistance : 40,
     onLinkDistanceChange: (v: number) => {
-      Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v);
+      Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
     },
     scopes: buildScopeOptions(),
     getScopedData: (id: string) => JSON.stringify(buildData(id)),
