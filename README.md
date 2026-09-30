@@ -1,4 +1,4 @@
-# Qualified References (Zotero 9 plugin)
+# Qualified References (Zotero plugin)
 
 > ⚠️ **Note:** This plugin was largely "vibe-coded" with **Claude Opus 4.8**. It
 > may contain bugs or rough edges — use at your own discretion, and please
@@ -51,6 +51,12 @@ Links are stored as a single line in the **source item's `Extra` field**:
 ```
 Reference-Graph: [ { "id": ..., "targetKey": ..., "stance": -1, ... } ]
 ```
+
+Each entry names its target by item key plus `targetLibRef` — `"u"` for your
+personal library or `"g<groupID>"` for a group — because Zotero's numeric
+library IDs differ between devices. The numeric `targetLib` is still written for
+older plugin versions; entries without `targetLibRef` are located by their item
+key and upgraded on the next save.
 
 This syncs natively via Zotero's sync server. The reverse ("referenced by")
 view is served by an in-memory index rebuilt at startup and kept fresh through
@@ -127,7 +133,7 @@ libraries (off by default).
 
 ## Installation
 
-Requires **Zotero 9** or newer.
+Requires **Zotero 9 or 10**.
 
 1. Download the latest `.xpi` from the [Releases](https://github.com/JanR383/zotero-qualified-references/releases) page.
 2. In Zotero: **Tools → Plugins → ⚙ (gear) → Install Plugin From File…** and select the `.xpi`.

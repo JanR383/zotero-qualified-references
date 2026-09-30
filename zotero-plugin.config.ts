@@ -33,7 +33,7 @@ export default defineConfig({
           __env__: `"${process.env.NODE_ENV}"`,
         },
         bundle: true,
-        target: "firefox115",
+        target: "firefox140",
         // Preserve third-party licence notices (zotero-plugin-toolkit, MIT)
         // in a sibling .LEGAL.txt file instead of stripping them on minify.
         legalComments: "linked",
@@ -49,7 +49,7 @@ export default defineConfig({
           __env__: `"${process.env.NODE_ENV}"`,
         },
         bundle: true,
-        target: "firefox115",
+        target: "firefox140",
         platform: "browser",
         format: "iife",
         legalComments: "linked",
@@ -63,7 +63,7 @@ export default defineConfig({
           __env__: `"${process.env.NODE_ENV}"`,
         },
         bundle: true,
-        target: "firefox115",
+        target: "firefox140",
         platform: "browser",
         format: "iife",
         legalComments: "linked",
