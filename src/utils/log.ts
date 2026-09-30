@@ -8,7 +8,8 @@ import { config } from "../../package.json";
 export function log(...data: unknown[]): void {
   const text = data.map(format).join(" ");
   Zotero.debug(`[${config.addonName}] ${text}`);
-  if (__env__ === "development") {
+  // The test bundle does not define __env__; typeof keeps it from throwing.
+  if (typeof __env__ !== "undefined" && __env__ === "development") {
     Zotero.getMainWindow()?.console?.log(`[${config.addonName}]`, ...data);
   }
 }
