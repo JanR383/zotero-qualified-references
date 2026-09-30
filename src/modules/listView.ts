@@ -1,9 +1,8 @@
 import { getString } from "../utils/locale";
-import { openViewWindow, selectItemInPane } from "./navigation";
+import { openViewWindow, viewArgBase, viewStringsBase } from "./navigation";
 import { formatItem, paneFields } from "./itemFormat";
-import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import { forEachResolvedLink } from "./storage";
-import { buildScopeOptions, makePredicate } from "./scope";
+import { makePredicate } from "./scope";
 import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 /**
@@ -61,36 +60,18 @@ function buildNodes(scopeId = "all"): ListNode[] {
 
 export function openListView(win: Window): void {
   const arg: ListArg = {
+    ...viewArgBase((id) => ({ nodes: buildNodes(id) })),
     nodes: buildNodes(),
     strings: {
-      title: getString("list-window-title"),
-      empty: getString("graph-empty"),
+      ...viewStringsBase("list-window-title"),
       outgoing: getString("graph-out"),
       incoming: getString("graph-in"),
-      scope: getString("scope-label"),
       noMatch: getString("list-no-match"),
       search: getString("list-search"),
       expandAll: getString("list-expand-all"),
       collapseAll: getString("list-collapse-all"),
-      stances: {
-        2: getString("stance-pp"),
-        1: getString("stance-p"),
-        0: getString("stance-0"),
-        [-1]: getString("stance-m"),
-        [-2]: getString("stance-mm"),
-      },
     },
-    selectItem: selectItemInPane,
-    paletteCss: paletteOverrideCss(getCurrentPaletteId()),
-    scopes: buildScopeOptions(),
-    getScopedData: (id: string) => JSON.stringify({ nodes: buildNodes(id) }),
   };
 
-  openViewWindow(
-    win,
-    "chrome://qref/content/list.xhtml",
-    "qref-list",
-    "chrome,resizable,centerscreen,width=700,height=720",
-    arg,
-  );
+  openViewWindow(win, "list", { width: 700, height: 720 }, arg);
 }

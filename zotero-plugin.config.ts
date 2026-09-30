@@ -38,36 +38,22 @@ export default defineConfig({
         legalComments: "linked",
         outfile: `.scaffold/build/addon/content/scripts/${pkg.config.addonRef}.js`,
       },
-      {
-        // Separate bundle for the standalone graph window (M5). force-graph
-        // (MIT) is bundled in here so the main plugin bundle stays lean.
-        // legalComments: "linked" preserves third-party MIT notices in a
-        // sibling .LEGAL.txt file, satisfying the licence's attribution clause.
-        entryPoints: ["src/graph/index.ts"],
+      // Standalone windows, each its own bundle: graph (M5; force-graph, MIT,
+      // stays out of the main script) and the reference list (N3).
+      // legalComments: "linked" keeps third-party licence notices in a
+      // sibling .LEGAL.txt file, as the MIT licence's attribution clause needs.
+      ...["graph", "list"].map((name) => ({
+        entryPoints: [`src/${name}/index.ts`],
         define: {
           __env__: `"${process.env.NODE_ENV}"`,
         },
         bundle: true,
         target: "firefox140",
-        platform: "browser",
-        format: "iife",
-        legalComments: "linked",
-        outfile: `.scaffold/build/addon/content/scripts/graph.js`,
-      },
-      {
-        // Separate bundle for the standalone reference-list window (N3).
-        // Plain HTML/CSS, no third-party lib.
-        entryPoints: ["src/list/index.ts"],
-        define: {
-          __env__: `"${process.env.NODE_ENV}"`,
-        },
-        bundle: true,
-        target: "firefox140",
-        platform: "browser",
-        format: "iife",
-        legalComments: "linked",
-        outfile: `.scaffold/build/addon/content/scripts/list.js`,
-      },
+        platform: "browser" as const,
+        format: "iife" as const,
+        legalComments: "linked" as const,
+        outfile: `.scaffold/build/addon/content/scripts/${name}.js`,
+      })),
     ],
   },
 

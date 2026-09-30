@@ -1,5 +1,5 @@
 import type { Stance } from "../modules/types";
-import type { ScopeOption } from "../modules/scope";
+import type { ViewArgBase, ViewStringsBase } from "../shared/viewArg";
 import type { TagOption } from "../modules/tagHighlight";
 
 /**
@@ -25,12 +25,8 @@ export interface GraphLink {
   curvature?: number; // arc bow, set by the renderer to separate parallel edges
 }
 
-export interface GraphStrings {
-  title: string;
-  empty: string;
-  legend: Record<"pp" | "p" | "o" | "m" | "mm", string>;
+export interface GraphStrings extends ViewStringsBase {
   linkDistance: string;
-  scope: string;
   tags: string;
   tagsFilter: string;
   tagsNone: string;
@@ -45,13 +41,10 @@ export interface GraphData {
   tagOptions: TagOption[];
 }
 
-export interface GraphArg {
+export interface GraphArg extends ViewArgBase {
   nodes: GraphNode[];
   links: GraphLink[];
   strings: GraphStrings;
-  selectItem: (id: number) => void;
-  /** Optional stance-palette override CSS (M7); injected before reading vars. */
-  paletteCss?: string;
   /** Colour nodes by item type (N5). */
   colorByType: boolean;
   /** Localized labels for the item types present (legend, N5). */
@@ -66,13 +59,4 @@ export interface GraphArg {
   linkDistance: number;
   /** Persist a changed link distance back to prefs. */
   onLinkDistanceChange?: (v: number) => void;
-  /** Scope dropdown options (N6); first is "all", matching the initial nodes. */
-  scopes: ScopeOption[];
-  /**
-   * Rebuild nodes/links/legend for a scope id, returned as a JSON string of
-   * GraphData. The graph runs in a separate window: a plain object returned by
-   * this parent-side function would cross as an Xray wrapper and read as empty,
-   * so we serialize and JSON.parse it back into native objects in the window.
-   */
-  getScopedData: (id: string) => string;
 }

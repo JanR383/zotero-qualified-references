@@ -1,14 +1,13 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
-import { openViewWindow, selectItemInPane } from "./navigation";
+import { openViewWindow, viewArgBase, viewStringsBase } from "./navigation";
 import { zItemTypes } from "../utils/zoteroApis";
 import { escapeHtml, truncate } from "../shared/text";
 import { formatItem, graphFields } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
-import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import { forEachResolvedLink } from "./storage";
-import { buildScopeOptions, makePredicate } from "./scope";
+import { makePredicate } from "./scope";
 import { collectTagOptions, loadTagColors } from "./tagHighlight";
 import type { Stance } from "./types";
 import type { GraphArg, GraphData, GraphLink, GraphNode } from "../graph/types";
@@ -153,27 +152,17 @@ export function openGraphView(win: Window): void {
     Zotero.Prefs.get(`${config.prefsPrefix}.graphLinkDistance`, true) ?? 40,
   );
   const arg: GraphArg = {
+    ...viewArgBase(buildData),
     nodes,
     links,
     strings: {
-      title: getString("graph-window-title"),
-      empty: getString("graph-empty"),
-      legend: {
-        pp: getString("stance-pp"),
-        p: getString("stance-p"),
-        o: getString("stance-0"),
-        m: getString("stance-m"),
-        mm: getString("stance-mm"),
-      },
+      ...viewStringsBase("graph-window-title"),
       linkDistance: getString("graph-link-distance"),
-      scope: getString("scope-label"),
       tags: getString("graph-tags"),
       tagsFilter: getString("graph-tags-filter"),
       tagsNone: getString("graph-tags-none"),
       tagFocus: getString("graph-tag-focus"),
     },
-    selectItem: selectItemInPane,
-    paletteCss: paletteOverrideCss(getCurrentPaletteId()),
     colorByType,
     typeLegend,
     tagOptions,
@@ -185,15 +174,7 @@ export function openGraphView(win: Window): void {
     onLinkDistanceChange: (v: number) => {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
     },
-    scopes: buildScopeOptions(),
-    getScopedData: (id: string) => JSON.stringify(buildData(id)),
   };
 
-  openViewWindow(
-    win,
-    "chrome://qref/content/graph.xhtml",
-    "qref-graph",
-    "chrome,resizable,centerscreen,width=900,height=700",
-    arg,
-  );
+  openViewWindow(win, "graph", { width: 900, height: 700 }, arg);
 }
