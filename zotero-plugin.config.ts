@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { defineConfig } from "zotero-plugin-scaffold";
 import pkg from "./package.json";
 
@@ -70,6 +71,19 @@ export default defineConfig({
         outfile: `.scaffold/build/addon/content/scripts/list.js`,
       },
     ],
+  },
+
+  release: {
+    github: {
+      // Hand-written notes in docs/releases/v<version>.md replace the
+      // changelog generated from commit messages, when present.
+      releaseNote: (ctx) => {
+        const notes = `docs/releases/v${ctx.version}.md`;
+        return existsSync(notes)
+          ? readFileSync(notes, "utf8")
+          : ctx.release.changelog;
+      },
+    },
   },
 
   test: {
