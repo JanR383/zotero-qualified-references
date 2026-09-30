@@ -19,14 +19,30 @@ export interface GraphNode {
 }
 
 export interface GraphLink {
+  id: string; // the reference's id within its source item
   source: number; // source item id
   target: number; // target item id
   stance: Stance;
+  // Edge details (G3), shown on hover.
+  comment?: string;
+  sourcePages?: string;
+  targetPages?: string;
+  hasAnchor: boolean; // a PDF anchor exists (click opens it)
   curvature?: number; // arc bow, set by the renderer to separate parallel edges
 }
 
 export interface GraphStrings extends ViewStringsBase {
   linkDistance: string;
+  search: string;
+  searchDepth2: string;
+  filterStances: string;
+  filterTypes: string;
+  minLinks: string;
+  sizeByIncoming: string;
+  sourcePages: string;
+  targetPages: string;
+  linkOpenPdf: string;
+  linkSelect: string;
   tags: string;
   tagsFilter: string;
   tagsNone: string;
@@ -38,6 +54,8 @@ export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
   typeLegend: { type: string; label: string }[];
+  /** Every item type present, localized, for the type filter (G2). */
+  itemTypes: { type: string; label: string }[];
   tagOptions: TagOption[];
 }
 
@@ -59,4 +77,8 @@ export interface GraphArg extends ViewArgBase {
   linkDistance: number;
   /** Persist a changed link distance back to prefs. */
   onLinkDistanceChange?: (v: number) => void;
+  /** Open the source PDF at the reference's anchor (G3). */
+  openAnchor: (sourceId: number, linkId: string) => void;
+  /** Item types present in the initial data (G2). */
+  itemTypes: { type: string; label: string }[];
 }

@@ -11,7 +11,7 @@ import { getString } from "../utils/locale";
  */
 
 export interface ScopeOption {
-  id: string; // "all" | `lib:<libraryID>` | `col:<collectionID>`
+  id: string; // "all" | "sel" | `lib:<libraryID>` | `col:<collectionID>`
   label: string; // indented for the collection tree
 }
 
@@ -32,12 +32,35 @@ function pushCollectionTree(
   }
 }
 
+/** A row of Zotero's collection tree (only what the selection scope reads). */
+interface CollectionTreeRow {
+  ref: { id: number; libraryID: number };
+  isLibrary(includeGlobal?: boolean): boolean;
+  isCollection(): boolean;
+}
+
 /**
- * Build the dropdown options: "All", then each library with its full collection
- * tree indented underneath.
+ * The selected rows of Zotero's collection tree. Zotero 10 allows selecting
+ * several libraries/collections at once; Zotero 9 lacks this getter, so the
+ * "current selection" scope (G7) is not offered there.
+ */
+function selectedTreeRows(): CollectionTreeRow[] | undefined {
+  const pane = Zotero.getActiveZoteroPane() as unknown as {
+    getCollectionTreeRows?: () => CollectionTreeRow[];
+  } | null;
+  if (typeof pane?.getCollectionTreeRows !== "function") return undefined;
+  return pane.getCollectionTreeRows();
+}
+
+/**
+ * Build the dropdown options: "All", "Current selection" (Zotero 10), then each
+ * library with its full collection tree indented underneath.
  */
 export function buildScopeOptions(): ScopeOption[] {
   const options: ScopeOption[] = [{ id: "all", label: getString("scope-all") }];
+  if (selectedTreeRows()) {
+    options.push({ id: "sel", label: getString("scope-selection") });
+  }
   for (const lib of Zotero.Libraries.getAll()) {
     options.push({ id: `lib:${lib.libraryID}`, label: lib.name });
     for (const top of Zotero.Collections.getByLibrary(lib.libraryID)) {
@@ -57,6 +80,7 @@ export function buildScopeOptions(): ScopeOption[] {
 export function makePredicate(
   id: string,
 ): ((item: Zotero.Item) => boolean) | undefined {
+  if (id === "sel") return selectionPredicate();
   if (id.startsWith("lib:")) {
     const libraryID = Number(id.slice(4));
     return (item) => item.libraryID === libraryID;
@@ -70,4 +94,29 @@ export function makePredicate(
     return (item) => item.getCollections().some((c) => ids.has(c));
   }
   return undefined; // "all" or unknown → no filter
+}
+
+/**
+ * Items in the libraries and collections selected in Zotero right now (a
+ * snapshot taken when the scope is chosen). Collections include their
+ * sub-collections, as in the collection scope. Rows of other kinds (saved
+ * searches, trash, …) are ignored; with none left, nothing matches.
+ */
+function selectionPredicate(): (item: Zotero.Item) => boolean {
+  const libraries = new Set<number>();
+  const collections = new Set<number>();
+  for (const row of selectedTreeRows() ?? []) {
+    if (row.isLibrary(true)) {
+      libraries.add(row.ref.libraryID);
+    } else if (row.isCollection()) {
+      collections.add(row.ref.id);
+      for (const d of Zotero.Collections.getByParent(row.ref.id, true)) {
+        collections.add(d.id);
+      }
+    }
+  }
+  return (item) =>
+    libraries.has(item.libraryID) ||
+    (collections.size > 0 &&
+      item.getCollections().some((c) => collections.has(c)));
 }

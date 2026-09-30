@@ -28,7 +28,9 @@ import {
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
 import { assignTagColors, ringColors } from "../modules/tagHighlight";
+import { escapeHtml, truncate } from "../shared/text";
 import { buildTagSelect } from "./tagSelect";
+import { computeView, linkShown, sizeFactor, type ViewState } from "./view";
 import type { Stance } from "../modules/types";
 import type {
   GraphArg,
@@ -163,11 +165,78 @@ function endId(end: unknown): number {
     : (end as number);
 }
 
+/**
+ * `#rgb`/`#rrggbb` as rgba() with the given opacity. The stance colours are
+ * hex values (qref.css and the palettes); anything else is returned as is.
+ */
+function hexWithAlpha(color: string, alpha: number): string {
+  let hex = color.trim().replace(/^#/, "");
+  if (/^[0-9a-f]{3}$/i.test(hex)) hex = hex.replace(/./g, "$&$&");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return color;
+  const n = parseInt(hex, 16);
+  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+/** One checkbox with a label, for the filter rows. */
+function checkbox(
+  label: HTMLElement | string,
+  checked: boolean,
+  onChange: (checked: boolean) => void,
+  title?: string,
+): HTMLElement {
+  const wrap = create("label");
+  wrap.className = "check";
+  if (title) wrap.title = title;
+  const box = create("input") as HTMLInputElement;
+  box.type = "checkbox";
+  box.checked = checked;
+  box.addEventListener("change", () => onChange(box.checked));
+  wrap.append(box, label);
+  return wrap;
+}
+
+/** Hover text for an edge (G3). Every value from item data is escaped. */
+function linkTooltip(
+  l: GraphLink,
+  labels: Map<number, string>,
+  strings: GraphStrings,
+): string {
+  const name = (id: number) => escapeHtml(truncate(labels.get(id) ?? "", 60));
+  const rows = [
+    `<div><b>${STANCE_GLYPH[l.stance]}</b> ${escapeHtml(strings.stances[l.stance])}</div>`,
+    `<div>${name(endId(l.source))} → ${name(endId(l.target))}</div>`,
+  ];
+  const pages: string[] = [];
+  if (l.sourcePages) {
+    pages.push(
+      `${escapeHtml(strings.sourcePages)} ${escapeHtml(l.sourcePages)}`,
+    );
+  }
+  if (l.targetPages) {
+    pages.push(
+      `${escapeHtml(strings.targetPages)} ${escapeHtml(l.targetPages)}`,
+    );
+  }
+  if (pages.length > 0) rows.push(`<div>${pages.join(" · ")}</div>`);
+  if (l.comment) {
+    rows.push(
+      `<div style="white-space:pre-wrap;margin-top:4px">${escapeHtml(truncate(l.comment, 300))}</div>`,
+    );
+  }
+  rows.push(
+    `<div style="opacity:.65;font-size:.85em;margin-top:4px">${escapeHtml(
+      l.hasAnchor ? strings.linkOpenPdf : strings.linkSelect,
+    )}</div>`,
+  );
+  return `<div style="max-width:380px">${rows.join("")}</div>`;
+}
+
 function main(): void {
   const arg = window.arguments?.[0] as GraphArg | undefined;
   if (!arg) return;
+  const strings = arg.strings;
 
-  document.title = arg.strings.title;
+  document.title = strings.title;
 
   // Apply the stance-palette override (M7) before reading any --qref-stance-*
   // values, so legend swatches and edge colours pick up the chosen palette.
@@ -185,7 +254,7 @@ function main(): void {
   const empty = byId("empty");
   const showEmpty = (show: boolean): void => {
     if (!empty) return;
-    empty.textContent = arg.strings.empty;
+    empty.textContent = strings.empty;
     empty.style.display = show ? "block" : "none";
   };
 
@@ -224,55 +293,109 @@ function main(): void {
   const body = document.body;
   const labelColor = (body && getComputedStyle(body).color) || "#222222";
 
-  const R = 8; // node "radius" in graph units (symbol size + hit area)
-  // Tag ring (G12): drawn outside the shape's corners (at most R·√2 ≈ 11.3).
-  const RING_R = R + 4;
+  const R = 8; // base node "radius" in graph units (symbol size + hit area)
+  // Tag ring (G12): drawn outside the shape's corners (at most r·√2).
+  const RING_GAP = 4;
   const RING_W = 2.5;
-  const RING_OUTER = RING_R + RING_W / 2;
+  // Labels of all nodes are drawn from this zoom on, or for small graphs (G1).
+  const LABEL_ZOOM = 1.5;
+  const LABEL_ALL_MAX_NODES = 40;
+  const DIMMED = 0.15; // opacity of nodes/links outside the search focus (G5)
 
-  // Tag highlighting state: selected tag keys (persisted), per-node ring
-  // colours and, in focus mode, the ids of the nodes/links left visible.
+  // Filter and highlight state. Types start with every type present.
+  const shownStances = new Set<Stance>(STANCE_ORDER);
+  const shownTypes = new Set<string>();
+  let knownTypes = new Set<string>();
+  let minLinks = 1;
+  let sizeByIncoming = true;
+  let query = "";
+  let depth: 1 | 2 = 1;
   const selectedTags = new Set(arg.highlightTags);
   let rings = new Map<number, string[]>();
-  let focus = false;
-  let visibleNodes: Set<number> | null = null; // null = show all
+  let tagFocus = false;
+  let hovered: number | null = null;
+  let labels = new Map<number, string>();
+  let view: ViewState = {
+    visible: new Set(),
+    degree: new Map(),
+    incoming: new Map(),
+    hubs: new Set(),
+    hits: null,
+    focus: null,
+  };
+
+  const radius = (n: GraphNode): number =>
+    sizeByIncoming ? R * sizeFactor(view.incoming.get(n.id) ?? 0) : R;
+  const ringRadius = (n: GraphNode): number => radius(n) * 1.42 + RING_GAP / 2;
+  const outer = (n: GraphNode): number =>
+    rings.has(n.id) ? ringRadius(n) + RING_W / 2 : radius(n);
+  const dimmed = (id: number): boolean => !!view.focus && !view.focus.has(id);
+  const withAlpha = (color: string, alpha: number): string =>
+    alpha >= 1 ? color : hexWithAlpha(color, alpha);
+
   const graph = new ForceGraph<GraphNode, GraphLink>(container)
     .graphData({ nodes: [], links: [] })
     .nodeId("id")
     .nodeLabel((n) => n.tooltip)
-    // Tell force-graph the real node radius so its built-in arrow placement
-    // (which insets the tip by the target's radius) stops the arrowhead at the
-    // node border instead of overlapping our custom R=8 shapes. nodeRelSize is
-    // the circle radius per unit nodeVal (default 1), so this yields endR = R.
+    // nodeRelSize is the circle radius per unit nodeVal; force-graph insets the
+    // arrow tip by √val · R, so nodeVal = (outer/R)² stops arrows at the drawn
+    // border (or ring) of each node, whatever its size.
     .nodeRelSize(R)
-    // Ringed nodes are larger: nodeVal scales that radius (r = √val · R), so
-    // arrows stop at the ring instead of running into it.
-    .nodeVal((n) => (rings.has(n.id) ? (RING_OUTER / R) ** 2 : 1))
-    .nodeVisibility((n) => !visibleNodes || visibleNodes.has(n.id))
-    .linkVisibility(
-      (l) =>
-        !visibleNodes ||
-        rings.has(endId(l.source)) ||
-        rings.has(endId(l.target)),
+    .nodeVal((n) => (outer(n) / R) ** 2)
+    .nodeVisibility((n) => view.visible.has(n.id))
+    .linkVisibility((l) =>
+      linkShown(
+        { source: endId(l.source), target: endId(l.target), stance: l.stance },
+        view,
+        shownStances,
+      ),
     )
-    .linkColor((l) => colorFor(l.stance))
+    .linkColor((l) =>
+      withAlpha(
+        colorFor(l.stance),
+        dimmed(endId(l.source)) || dimmed(endId(l.target)) ? DIMMED : 1,
+      ),
+    )
     .linkWidth(1.5)
     .linkCurvature("curvature")
     .linkDirectionalArrowLength(7)
-    .linkDirectionalArrowColor((l) => colorFor(l.stance))
+    .linkDirectionalArrowColor((l) =>
+      withAlpha(
+        colorFor(l.stance),
+        dimmed(endId(l.source)) || dimmed(endId(l.target)) ? DIMMED : 1,
+      ),
+    )
     .linkDirectionalArrowRelPos(1)
+    .linkLabel((l) => linkTooltip(l, labels, strings))
+    .linkHoverPrecision(6)
+    .onLinkClick((l) => {
+      const source = endId(l.source);
+      if (l.hasAnchor) arg.openAnchor(source, l.id);
+      else arg.selectItem(source);
+    })
     .onNodeClick((n) => arg.selectItem(n.id))
+    .onNodeHover((n) => {
+      hovered = n ? n.id : null;
+    })
     // Custom node rendering: shape by item type (N5b), filled with the type
     // colour (or a uniform colour when colour-by-type is off), plus the label.
     .nodeCanvasObjectMode(() => "replace")
     .nodeCanvasObject((n, ctx, scale) => {
       const x = n.x ?? 0;
       const y = n.y ?? 0;
-      pathShape(ctx, typeShape(n.itemType), x, y, R);
+      const r = radius(n);
+      ctx.globalAlpha = dimmed(n.id) ? DIMMED : 1;
+      pathShape(ctx, typeShape(n.itemType), x, y, r);
       ctx.fillStyle = arg.colorByType
         ? typeColor(n.itemType, isDark)
         : nodeColor;
       ctx.fill();
+      if (view.hits?.has(n.id)) {
+        // Search hit: outline the shape in the label colour.
+        ctx.lineWidth = 2 / scale;
+        ctx.strokeStyle = labelColor;
+        ctx.stroke();
+      }
       const ring = rings.get(n.id);
       if (ring) {
         // One arc segment per highlighted tag, starting at the top.
@@ -283,7 +406,7 @@ function main(): void {
           ctx.arc(
             x,
             y,
-            RING_R,
+            ringRadius(n),
             -Math.PI / 2 + i * step,
             -Math.PI / 2 + (i + 1) * step,
           );
@@ -291,23 +414,35 @@ function main(): void {
           ctx.stroke();
         });
       }
-      const fontSize = 12 / scale;
-      ctx.font = `${fontSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
-      const ly = y + (ring ? RING_OUTER : R) + 2 / scale;
-      // Contrasting halo behind the label so it stays legible over edges/nodes.
-      ctx.lineWidth = 3 / scale;
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = haloColor;
-      ctx.strokeText(text, x, ly);
-      ctx.fillStyle = labelColor;
-      ctx.fillText(text, x, ly);
+      // Label detail (G1): small graphs, zoomed in, hubs, hovered node,
+      // search focus and tag-highlighted nodes.
+      const showLabel =
+        view.visible.size <= LABEL_ALL_MAX_NODES ||
+        scale >= LABEL_ZOOM ||
+        hovered === n.id ||
+        view.hubs.has(n.id) ||
+        rings.has(n.id) ||
+        (view.focus?.has(n.id) ?? false);
+      if (showLabel) {
+        const fontSize = 12 / scale;
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
+        const ly = y + outer(n) + 2 / scale;
+        // Contrasting halo behind the label so it stays legible over edges.
+        ctx.lineWidth = 3 / scale;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = haloColor;
+        ctx.strokeText(text, x, ly);
+        ctx.fillStyle = labelColor;
+        ctx.fillText(text, x, ly);
+      }
+      ctx.globalAlpha = 1;
     })
     // Paint the clickable hit area to match the drawn shape.
     .nodePointerAreaPaint((n, color, ctx) => {
-      pathShape(ctx, typeShape(n.itemType), n.x ?? 0, n.y ?? 0, R);
+      pathShape(ctx, typeShape(n.itemType), n.x ?? 0, n.y ?? 0, radius(n));
       ctx.fillStyle = color;
       ctx.fill();
     });
@@ -326,71 +461,188 @@ function main(): void {
     nodes: [],
     links: [],
     typeLegend: [],
+    itemTypes: [],
     tagOptions: [],
   };
 
-  // Recompute rings, focus set and legend from the tag selection; setting the
-  // accessors again makes force-graph redraw even when the layout is at rest.
-  const applyHighlight = (): void => {
+  // Recompute rings, filters, search focus and legend; setting the accessors
+  // again makes force-graph redraw even when the layout is at rest.
+  const refresh = (): void => {
     const assigned = assignTagColors([...selectedTags], current.tagOptions);
     rings = new Map();
     for (const n of current.nodes) {
       const colors = ringColors(n.tags, assigned);
       if (colors.length > 0) rings.set(n.id, colors);
     }
-    visibleNodes = null;
-    if (focus && rings.size > 0) {
-      visibleNodes = new Set(rings.keys());
-      for (const l of current.links) {
-        const s = endId(l.source);
-        const t = endId(l.target);
-        if (rings.has(s)) visibleNodes.add(t);
-        if (rings.has(t)) visibleNodes.add(s);
-      }
-    }
+    view = computeView(
+      current.nodes,
+      current.links.map((l) => ({
+        source: endId(l.source),
+        target: endId(l.target),
+        stance: l.stance,
+      })),
+      {
+        stances: shownStances,
+        types: shownTypes,
+        minLinks,
+        focusOn: tagFocus && rings.size > 0 ? new Set(rings.keys()) : null,
+        query,
+        depth,
+      },
+    );
     renderLegend(arg, current.typeLegend, [...assigned.values()], isDark);
+    showEmpty(view.visible.size === 0);
     graph
       .nodeVal(graph.nodeVal())
       .nodeVisibility(graph.nodeVisibility())
-      .linkVisibility(graph.linkVisibility());
+      .linkVisibility(graph.linkVisibility())
+      .linkColor(graph.linkColor());
   };
 
-  const tagSelect = buildTagSelect(arg.strings, selectedTags, () => {
+  const tagSelect = buildTagSelect(strings, selectedTags, () => {
     arg.onHighlightTagsChange?.([...selectedTags]);
-    applyHighlight();
+    refresh();
   });
+
+  // Type filter checkboxes (G2), rebuilt per scope. Types new to this scope
+  // start checked; types unchecked before stay unchecked.
+  const typeMount = byId("type-filter");
+  const renderTypeFilter = (): void => {
+    if (!typeMount) return;
+    typeMount.replaceChildren();
+    for (const { type, label } of current.itemTypes) {
+      const glyph = create("span");
+      glyph.className = "type-glyph";
+      glyph.textContent = SHAPE_GLYPH[typeShape(type)];
+      const text = create("span");
+      text.textContent = label;
+      const content = create("span");
+      content.append(glyph, text);
+      typeMount.appendChild(
+        checkbox(content, shownTypes.has(type), (on) => {
+          if (on) shownTypes.add(type);
+          else shownTypes.delete(type);
+          refresh();
+        }),
+      );
+    }
+  };
 
   // (Re)load the graph data, edge curvature and legends for a scope.
   const applyData = (data: GraphData): void => {
     current = data;
+    labels = new Map(data.nodes.map((n) => [n.id, n.label]));
+    for (const { type } of data.itemTypes) {
+      if (!knownTypes.has(type)) shownTypes.add(type);
+    }
+    knownTypes = new Set([...knownTypes, ...data.itemTypes.map((t) => t.type)]);
     computeCurvature(data.links);
     graph.graphData({ nodes: data.nodes, links: data.links });
     tagSelect.setOptions(data.tagOptions);
-    applyHighlight();
-    showEmpty(data.nodes.length === 0);
+    renderTypeFilter();
+    refresh();
   };
   applyData({
     nodes: arg.nodes,
     links: arg.links,
     typeLegend: arg.typeLegend,
+    itemTypes: arg.itemTypes,
     tagOptions: arg.tagOptions,
   });
+
+  // --- Controls -------------------------------------------------------------
+
+  // Search (G5): hits are outlined, their neighbourhood stays opaque, the
+  // rest is dimmed; Enter centres the view on the first hit.
+  const search = byId("search") as HTMLInputElement | null;
+  if (search) {
+    search.placeholder = strings.search;
+    search.addEventListener("input", () => {
+      query = search.value;
+      refresh();
+    });
+    search.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        search.value = "";
+        query = "";
+        refresh();
+        return;
+      }
+      if (e.key !== "Enter" || !view.hits || view.hits.size === 0) return;
+      const first = current.nodes.find((n) => view.hits!.has(n.id));
+      if (first?.x !== undefined && first.y !== undefined) {
+        graph.centerAt(first.x, first.y, 600);
+        graph.zoom(Math.max(graph.zoom(), 2), 600);
+      }
+    });
+  }
+  const depthMount = byId("search-depth");
+  depthMount?.appendChild(
+    checkbox(strings.searchDepth2, false, (on) => {
+      depth = on ? 2 : 1;
+      refresh();
+    }),
+  );
+
+  // Stance filter (G2).
+  const stanceMount = byId("stance-filter");
+  const stanceTitle = byId("stance-filter-label");
+  if (stanceTitle) stanceTitle.textContent = strings.filterStances;
+  for (const stance of STANCE_ORDER) {
+    const pill = create("span");
+    pill.className = "pill";
+    pill.style.background = stanceColor(stance);
+    pill.textContent = STANCE_GLYPH[stance];
+    stanceMount?.appendChild(
+      checkbox(
+        pill,
+        true,
+        (on) => {
+          if (on) shownStances.add(stance);
+          else shownStances.delete(stance);
+          refresh();
+        },
+        strings.stances[stance],
+      ),
+    );
+  }
+  const typeTitle = byId("type-filter-label");
+  if (typeTitle) typeTitle.textContent = strings.filterTypes;
+
+  const minInput = byId("min-links") as HTMLInputElement | null;
+  const minLabel = byId("min-links-label");
+  if (minInput) {
+    if (minLabel) minLabel.textContent = strings.minLinks;
+    minInput.value = "1";
+    minInput.addEventListener("input", () => {
+      const v = Math.floor(Number(minInput.value));
+      minLinks = Number.isFinite(v) && v > 0 ? v : 1;
+      refresh();
+    });
+  }
+
+  byId("size-incoming")?.appendChild(
+    checkbox(strings.sizeByIncoming, sizeByIncoming, (on) => {
+      sizeByIncoming = on;
+      refresh();
+    }),
+  );
 
   byId("tags")?.appendChild(tagSelect.root);
   const focusBox = byId("tag-focus") as HTMLInputElement | null;
   const focusLabel = byId("tag-focus-label");
   if (focusBox) {
-    if (focusLabel) focusLabel.textContent = arg.strings.tagFocus;
+    if (focusLabel) focusLabel.textContent = strings.tagFocus;
     focusBox.addEventListener("change", () => {
-      focus = focusBox.checked;
-      applyHighlight();
+      tagFocus = focusBox.checked;
+      refresh();
     });
   }
 
   const slider = byId("link-distance") as HTMLInputElement | null;
   const sliderLabel = byId("link-distance-label");
   if (slider) {
-    if (sliderLabel) sliderLabel.textContent = arg.strings.linkDistance;
+    if (sliderLabel) sliderLabel.textContent = strings.linkDistance;
     slider.value = String(arg.linkDistance);
     slider.addEventListener("input", () => {
       const v = Number(slider.value);
@@ -403,7 +655,7 @@ function main(): void {
   const scopeMount = byId("scope");
   const scopeLabel = byId("scope-label");
   if (scopeMount) {
-    if (scopeLabel) scopeLabel.textContent = arg.strings.scope;
+    if (scopeLabel) scopeLabel.textContent = strings.scope;
     scopeMount.appendChild(
       buildScopeSelect(arg.scopes, (id) => {
         applyData(JSON.parse(arg.getScopedData(id)) as GraphData);
