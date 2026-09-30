@@ -14,3 +14,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # TypeScript 7 (native compiler) ships no JS compiler API; typescript-eslint
+      # (via @zotero-plugin/eslint-config) requires typescript <6.1 and crashes.
+      # Remove once typescript-eslint supports TypeScript 7.
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
