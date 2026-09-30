@@ -249,7 +249,13 @@ export async function rebuildIndex(): Promise<void> {
       await zItems().loadDataTypes(items, ["itemData"]);
 
       for (const item of items) {
-        if (!item || !item.isRegularItem() || item.deleted) continue;
+        if (!item) continue;
+        // The item may have been erased while the awaits above were pending.
+        // Its delete event has then already run (and found nothing to remove),
+        // so indexing the stale shell here would resurrect a ghost entry.
+        // Erased items are unloaded from the registry; check that first.
+        if (!Zotero.Items.get(item.id)) continue;
+        if (!item.isRegularItem() || item.deleted) continue;
         const links = getLinks(item);
         if (links.length > 0) {
           addSourceToIndex(item);
