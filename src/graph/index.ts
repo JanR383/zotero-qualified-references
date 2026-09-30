@@ -20,7 +20,11 @@ import {
   typeShape,
   type NodeShape,
 } from "../modules/itemTypeColors";
-import { STANCE_CSS_VAR, STANCE_GLYPH } from "../modules/stanceMeta";
+import {
+  STANCE_CSS_VAR,
+  STANCE_GLYPH,
+  STANCE_ORDER,
+} from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
 import { assignTagColors, ringColors } from "../modules/tagHighlight";
@@ -47,14 +51,6 @@ declare function getComputedStyle(
   elt: Element,
   pseudoElt?: string | null,
 ): CSSStyleDeclaration;
-
-const LEGEND_ORDER: { key: keyof GraphStrings["legend"]; stance: Stance }[] = [
-  { key: "pp", stance: 2 },
-  { key: "p", stance: 1 },
-  { key: "o", stance: 0 },
-  { key: "m", stance: -1 },
-  { key: "mm", stance: -2 },
-];
 
 function cssVar(name: string): string {
   const root = document.documentElement;
@@ -115,11 +111,11 @@ function renderLegend(
   if (!legend) return;
   legend.replaceChildren(); // re-rendered on scope change
   // Edge colours = stance.
-  for (const { key, stance } of LEGEND_ORDER) {
+  for (const stance of STANCE_ORDER) {
     legend.appendChild(
       legendRow(
         stanceColor(stance),
-        `${STANCE_GLYPH[stance]}  ${arg.strings.legend[key]}`,
+        `${STANCE_GLYPH[stance]}  ${arg.strings.stances[stance]}`,
       ),
     );
   }

@@ -1,5 +1,5 @@
 import type { Stance } from "../modules/types";
-import type { ScopeOption } from "../modules/scope";
+import type { ViewArgBase, ViewStringsBase } from "../shared/viewArg";
 
 /**
  * Data contract between the plugin (listView.ts) and the standalone list window
@@ -18,31 +18,16 @@ export interface ListNode {
   incoming: ListEntry[]; // references pointing at this item
 }
 
-export interface ListStrings {
-  title: string;
-  empty: string;
+export interface ListStrings extends ViewStringsBase {
   outgoing: string;
   incoming: string;
-  scope: string;
   noMatch: string;
   search: string;
   expandAll: string;
   collapseAll: string;
-  /** Localized stance names, shown as tooltips on the filter checkboxes. */
-  stances: Record<Stance, string>;
 }
 
-export interface ListArg {
+export interface ListArg extends ViewArgBase {
   nodes: ListNode[];
   strings: ListStrings;
-  selectItem: (id: number) => void;
-  paletteCss?: string;
-  /** Scope dropdown options (N6); first is "all", matching the initial nodes. */
-  scopes: ScopeOption[];
-  /**
-   * Rebuild nodes for a scope id, returned as a JSON string of `{ nodes }`. The
-   * list runs in a separate window, so a returned object would cross as an Xray
-   * wrapper and read as empty; we serialize and JSON.parse it back in the window.
-   */
-  getScopedData: (id: string) => string;
 }

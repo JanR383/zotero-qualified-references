@@ -2,6 +2,7 @@ import { assert } from "chai";
 import {
   STANCE_CSS_VAR,
   STANCE_GLYPH,
+  STANCE_LABEL_KEY,
   STANCE_ORDER,
   stanceCssValue,
 } from "../src/modules/stanceMeta";
@@ -37,5 +38,11 @@ describe("stanceMeta", function () {
   it("wraps the stance variable in a CSS var() reference", function () {
     assert.equal(stanceCssValue(0), "var(--qref-stance-neutral)");
     assert.equal(stanceCssValue(-2), "var(--qref-stance-strong-neg)");
+  });
+
+  it("names every stance with a distinct locale key", function () {
+    const keys = STANCES.map((s) => STANCE_LABEL_KEY[s]);
+    for (const k of keys) assert.match(k, /^stance-/);
+    assert.lengthOf(new Set(keys), STANCES.length);
   });
 });

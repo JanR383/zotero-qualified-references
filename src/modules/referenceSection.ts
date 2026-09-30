@@ -2,7 +2,12 @@ import { config } from "../../package.json";
 import { getLocaleID, getString } from "../utils/locale";
 import { selectItemInPane } from "./navigation";
 import { zReader } from "../utils/zoteroApis";
-import { STANCE_GLYPH, STANCE_ORDER, stanceCssValue } from "./stanceMeta";
+import {
+  STANCE_GLYPH,
+  STANCE_LABEL_KEY,
+  STANCE_ORDER,
+  stanceCssValue,
+} from "./stanceMeta";
 import { formatItem, paneFields } from "./itemFormat";
 import {
   getIncoming,
@@ -44,14 +49,6 @@ function catching<A extends unknown[]>(
     }
   };
 }
-
-const STANCE_TIP: Record<Stance, Parameters<typeof getString>[0]> = {
-  2: "stance-pp",
-  1: "stance-p",
-  0: "stance-0",
-  [-1]: "stance-m",
-  [-2]: "stance-mm",
-};
 
 export function registerReferenceSection() {
   registeredID = Zotero.ItemPaneManager.registerSection({
@@ -194,13 +191,9 @@ function outgoingRow(
   editable: boolean,
   rerender: () => void,
 ): HTMLElement {
-  const row = box(doc);
-  // Stack the parts vertically so the stance sits on its own line directly under
-  // the referenced title, instead of flowing inline next to it.
-  row.style.display = "flex";
-  row.style.flexDirection = "column";
-  row.style.alignItems = "flex-start";
-  row.style.gap = "4px";
+  // The parts stack vertically so the stance sits on its own line directly
+  // under the referenced title, instead of flowing inline next to it.
+  const row = box(doc, "qref-outgoing");
 
   const target = Zotero.Items.getByLibraryAndKey(
     link.targetLib,
@@ -226,10 +219,7 @@ function outgoingRow(
     }),
   );
 
-  const fieldsRow = doc.createElement("div");
-  fieldsRow.style.display = "flex";
-  fieldsRow.style.flexWrap = "wrap";
-  fieldsRow.style.gap = "12px";
+  const fieldsRow = el(doc, "div", "qref-fields");
   fieldsRow.appendChild(
     pageField(
       doc,
@@ -258,7 +248,7 @@ function outgoingRow(
   comment.value = link.comment || "";
   comment.rows = 2;
   comment.placeholder = getString("field-comment");
-  comment.style.width = "100%";
+  comment.className = "qref-comment";
   comment.disabled = !editable;
   comment.addEventListener(
     "change",
@@ -304,11 +294,7 @@ function incomingRow(doc: Document, inc: IncomingLink): HTMLElement {
     ),
   );
 
-  const metaWrap = doc.createElement("div");
-  metaWrap.style.display = "flex";
-  metaWrap.style.alignItems = "center";
-  metaWrap.style.gap = "8px";
-  metaWrap.style.margin = "4px 0";
+  const metaWrap = el(doc, "div", "qref-meta");
   metaWrap.appendChild(stanceBadge(doc, inc.link.stance));
   const pages: string[] = [];
   if (inc.link.sourcePages)
@@ -321,9 +307,8 @@ function incomingRow(doc: Document, inc: IncomingLink): HTMLElement {
   row.appendChild(metaWrap);
 
   if (inc.link.comment) {
-    const c = doc.createElement("div");
+    const c = el(doc, "div", "qref-comment-text");
     c.textContent = inc.link.comment;
-    c.style.whiteSpace = "pre-wrap";
     row.appendChild(c);
   }
   return row;
@@ -331,34 +316,39 @@ function incomingRow(doc: Document, inc: IncomingLink): HTMLElement {
 
 // --- Small DOM helpers ------------------------------------------------------
 
-function box(doc: Document): HTMLElement {
-  const el = doc.createElement("div");
-  el.style.padding = "6px 0";
-  el.style.borderBottom = "1px solid var(--material-border-quarternary, #ddd)";
-  return el;
+// Styling lives in addon/content/qref.css (the `qref-*` classes), which
+// hooks.ts links into the main window, where the item pane is rendered.
+
+function el<K extends keyof HTMLElementTagNameMap>(
+  doc: Document,
+  tag: K,
+  className: string,
+): HTMLElementTagNameMap[K] {
+  const e = doc.createElement(tag);
+  e.className = className;
+  return e;
+}
+
+function box(doc: Document, extraClass?: string): HTMLElement {
+  return el(doc, "div", extraClass ? `qref-row ${extraClass}` : "qref-row");
 }
 
 function heading(doc: Document, text: string): HTMLElement {
-  const el = doc.createElement("h2");
-  el.textContent = text;
-  el.style.margin = "8px 0 4px";
-  el.style.fontSize = "1em";
-  return el;
+  const h = el(doc, "h2", "qref-heading");
+  h.textContent = text;
+  return h;
 }
 
 function muted(doc: Document, text: string): HTMLElement {
-  const el = doc.createElement("div");
-  el.textContent = text;
-  el.style.color = "var(--fill-secondary, #888)";
-  el.style.fontSize = "0.9em";
-  return el;
+  const m = el(doc, "div", "qref-muted");
+  m.textContent = text;
+  return m;
 }
 
 function button(doc: Document, label: string): HTMLButtonElement {
-  const el = doc.createElement("button");
-  el.textContent = label;
-  el.style.marginTop = "6px";
-  return el;
+  const b = el(doc, "button", "qref-button");
+  b.textContent = label;
+  return b;
 }
 
 function titleLink(
@@ -366,36 +356,25 @@ function titleLink(
   text: string,
   item?: Zotero.Item,
 ): HTMLElement {
-  const el = doc.createElement(item ? "a" : "span");
-  el.textContent = text;
-  el.style.fontWeight = "bold";
+  const t = el(doc, item ? "a" : "span", "qref-title");
+  t.textContent = text;
   if (item) {
-    (el as HTMLElement).style.cursor = "pointer";
-    el.setAttribute("href", "#");
-    el.addEventListener("click", (e: Event) => {
+    t.setAttribute("href", "#");
+    t.addEventListener("click", (e: Event) => {
       e.preventDefault();
       selectItemInPane(item.id);
     });
   }
-  return el;
+  return t;
 }
-
-/** Foreground (text) colour for stance badges/buttons; flips per theme. */
-const STANCE_FG = "var(--qref-stance-fg)";
 
 /** Read-only coloured badge showing the active stance (used in incoming rows). */
 function stanceBadge(doc: Document, value: Stance): HTMLElement {
-  const el = doc.createElement("span");
-  el.textContent = STANCE_GLYPH[value];
-  el.title = getString(STANCE_TIP[value]);
-  el.style.display = "inline-block";
-  el.style.padding = "1px 7px";
-  el.style.borderRadius = "10px";
-  el.style.fontSize = "0.85em";
-  el.style.fontWeight = "bold";
-  el.style.background = stanceCssValue(value);
-  el.style.color = STANCE_FG;
-  return el;
+  const badge = el(doc, "span", "qref-stance-badge");
+  badge.textContent = STANCE_GLYPH[value];
+  badge.title = getString(STANCE_LABEL_KEY[value]);
+  badge.style.background = stanceCssValue(value);
+  return badge;
 }
 
 /** Stance setter. Style follows the `stanceControlCompact` preference. */
@@ -425,52 +404,32 @@ function stanceSegmented(
   editable: boolean,
   onPick: (value: Stance) => void,
 ): HTMLElement {
-  const wrap = doc.createElement("div");
-  wrap.style.display = "inline-flex";
-  wrap.style.borderRadius = "999px";
-  wrap.style.overflow = "hidden";
-  wrap.style.border =
-    "0.5px solid var(--material-border-quarternary, rgba(0,0,0,.25))";
-  wrap.style.fontSize = "0.85em";
-  STANCE_ORDER.forEach((value, i) => {
-    const b = doc.createElement("button");
+  const wrap = el(doc, "div", "qref-stance-scale");
+  for (const value of STANCE_ORDER) {
+    const b = el(doc, "button", "qref-stance-cell");
     b.textContent = STANCE_GLYPH[value];
-    b.title = getString(STANCE_TIP[value]);
+    b.title = getString(STANCE_LABEL_KEY[value]);
     b.disabled = !editable;
     const active = value === current;
-    b.setAttribute("aria-label", getString(STANCE_TIP[value]));
+    b.setAttribute("aria-label", getString(STANCE_LABEL_KEY[value]));
     b.setAttribute("aria-pressed", String(active));
-    b.style.appearance = "none";
-    b.style.minWidth = "26px";
-    b.style.padding = "3px 9px";
-    b.style.border = "none";
-    if (i < STANCE_ORDER.length - 1) {
-      b.style.borderRight =
-        "0.5px solid var(--material-border-quarternary, rgba(0,0,0,.15))";
+    if (active) {
+      b.classList.add("qref-active");
+      b.style.background = stanceCssValue(value);
     }
-    b.style.background = active ? stanceCssValue(value) : "transparent";
-    b.style.color = active ? STANCE_FG : "var(--fill-secondary, #888)";
-    b.style.fontWeight = active ? "bold" : "normal";
-    b.style.cursor = editable ? "pointer" : "default";
     b.addEventListener(
       "click",
       catching(() => onPick(value)),
     );
     wrap.appendChild(b);
-  });
+  }
   return wrap;
 }
 
 /** A round, stance-coloured pill (shared by the compact control + its menu). */
 function stancePillButton(doc: Document, value: Stance): HTMLButtonElement {
-  const b = doc.createElement("button");
-  b.style.appearance = "none";
-  b.style.border = "none";
-  b.style.borderRadius = "999px";
-  b.style.padding = "3px 10px";
-  b.style.fontSize = "0.85em";
+  const b = el(doc, "button", "qref-stance-pill");
   b.style.background = stanceCssValue(value);
-  b.style.color = STANCE_FG;
   return b;
 }
 
@@ -485,15 +444,11 @@ function stanceCompact(
   editable: boolean,
   onPick: (value: Stance) => void,
 ): HTMLElement {
-  const wrap = doc.createElement("div");
-  wrap.style.position = "relative";
-  wrap.style.display = "inline-block";
+  const wrap = el(doc, "div", "qref-stance-compact");
 
   const trigger = stancePillButton(doc, current);
-  trigger.title = getString(STANCE_TIP[current]);
-  trigger.style.fontWeight = "bold";
-  trigger.style.cursor = editable ? "pointer" : "default";
-  trigger.textContent = `${STANCE_GLYPH[current]}  ${getString(STANCE_TIP[current])}`;
+  trigger.title = getString(STANCE_LABEL_KEY[current]);
+  trigger.textContent = `${STANCE_GLYPH[current]}  ${getString(STANCE_LABEL_KEY[current])}`;
   wrap.appendChild(trigger);
 
   // Read-only items (e.g. another member's group item): show just the pill.
@@ -503,61 +458,29 @@ function stanceCompact(
   }
   trigger.append(` ▾`);
 
-  const menu = doc.createElement("div");
-  menu.style.display = "none";
-  menu.style.position = "absolute";
-  menu.style.top = "100%";
-  menu.style.left = "0";
-  menu.style.marginTop = "4px";
-  menu.style.zIndex = "10";
-  menu.style.minWidth = "180px";
-  menu.style.background = "var(--material-menu, Canvas)";
-  menu.style.color = "var(--fill-primary, CanvasText)";
-  menu.style.border =
-    "0.5px solid var(--material-border-quarternary, rgba(0,0,0,.3))";
-  menu.style.borderRadius = "6px";
-  menu.style.overflow = "hidden";
-  menu.style.fontSize = "0.9em";
+  const menu = el(doc, "div", "qref-stance-menu");
+  const isOpen = () => menu.classList.contains("qref-open");
 
   const onDocClick = (e: Event): void => {
     if (!wrap.contains(e.target as Node)) close();
   };
   function close(): void {
-    menu.style.display = "none";
+    menu.classList.remove("qref-open");
     doc.removeEventListener("click", onDocClick);
   }
 
   for (const value of STANCE_ORDER) {
     // A real <button> per row so the menu is keyboard-operable (Tab/Enter);
     // styles reset to look like a plain menu row.
-    const row = doc.createElement("button");
-    row.style.appearance = "none";
-    row.style.border = "none";
-    row.style.background = "transparent";
-    row.style.font = "inherit";
-    row.style.color = "inherit";
-    row.style.width = "100%";
-    row.style.textAlign = "left";
-    row.style.display = "flex";
-    row.style.alignItems = "center";
-    row.style.gap = "8px";
-    row.style.padding = "4px 10px";
-    row.style.cursor = "pointer";
-    if (value === current) row.style.background = "var(--fill-quinary, #0001)";
+    const row = el(doc, "button", "qref-stance-option");
+    if (value === current) row.classList.add("qref-current");
 
-    const dot = doc.createElement("span");
+    const dot = el(doc, "span", "qref-stance-dot");
     dot.textContent = STANCE_GLYPH[value];
-    dot.style.display = "inline-block";
-    dot.style.minWidth = "20px";
-    dot.style.textAlign = "center";
-    dot.style.borderRadius = "6px";
-    dot.style.padding = "0 4px";
     dot.style.background = stanceCssValue(value);
-    dot.style.color = STANCE_FG;
-    dot.style.fontWeight = "bold";
 
     const label = doc.createElement("span");
-    label.textContent = getString(STANCE_TIP[value]);
+    label.textContent = getString(STANCE_LABEL_KEY[value]);
 
     row.append(dot, label);
     row.addEventListener(
@@ -575,18 +498,17 @@ function stanceCompact(
     "click",
     catching((e: Event) => {
       e.stopPropagation();
-      const open = menu.style.display !== "none";
-      if (open) {
+      if (isOpen()) {
         close();
       } else {
-        menu.style.display = "block";
+        menu.classList.add("qref-open");
         doc.addEventListener("click", onDocClick);
       }
     }),
   );
   // Escape closes the menu and returns focus to the trigger.
   wrap.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key === "Escape" && menu.style.display !== "none") {
+    if (e.key === "Escape" && isOpen()) {
       close();
       trigger.focus();
     }
@@ -603,13 +525,9 @@ function pageField(
   editable: boolean,
   onChange: (value: string) => void,
 ): HTMLElement {
-  const wrap = doc.createElement("label");
-  wrap.style.display = "inline-flex";
-  wrap.style.alignItems = "center";
-  wrap.style.gap = "4px";
+  const wrap = el(doc, "label", "qref-page-field");
   const span = doc.createElement("span");
   span.textContent = getString(labelKey);
-  span.style.fontSize = "0.9em";
   const input = doc.createElement("input");
   input.type = "text";
   input.value = value || "";
@@ -646,11 +564,9 @@ function linkButton(
   text: string,
   onClick: () => void,
 ): HTMLElement {
-  const a = doc.createElement("a");
+  const a = el(doc, "a", "qref-link");
   a.textContent = text;
   a.setAttribute("href", "#");
-  a.style.cursor = "pointer";
-  a.style.fontSize = "0.9em";
   a.addEventListener(
     "click",
     catching((e: Event) => {

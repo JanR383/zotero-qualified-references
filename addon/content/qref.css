@@ -49,3 +49,184 @@ html.qref-window body {
     color: #e8e8e8;
   }
 }
+
+/* Item-pane section (src/modules/referenceSection.ts). Stance colours are set
+ * inline from the --qref-stance-* variables above; everything else is here. */
+.qref-row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--material-border-quarternary, #ddd);
+}
+
+.qref-outgoing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.qref-heading {
+  margin: 8px 0 4px;
+  font-size: 1em;
+}
+
+.qref-muted {
+  color: var(--fill-secondary, #888);
+  font-size: 0.9em;
+}
+
+.qref-button {
+  margin-top: 6px;
+}
+
+.qref-title {
+  font-weight: bold;
+}
+
+a.qref-title,
+.qref-link {
+  cursor: pointer;
+}
+
+.qref-link {
+  font-size: 0.9em;
+}
+
+.qref-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.qref-page-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.qref-page-field > span {
+  font-size: 0.9em;
+}
+
+.qref-comment {
+  width: 100%;
+}
+
+.qref-comment-text {
+  white-space: pre-wrap;
+}
+
+.qref-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.qref-stance-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  font-weight: bold;
+  color: var(--qref-stance-fg);
+}
+
+/* Segmented stance scale (default setter). */
+.qref-stance-scale {
+  display: inline-flex;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 0.5px solid var(--material-border-quarternary, rgba(0, 0, 0, 0.25));
+  font-size: 0.85em;
+}
+
+.qref-stance-cell {
+  appearance: none;
+  min-width: 26px;
+  padding: 3px 9px;
+  border: none;
+  background: transparent;
+  color: var(--fill-secondary, #888);
+  cursor: pointer;
+}
+
+.qref-stance-cell:not(:last-child) {
+  border-right: 0.5px solid
+    var(--material-border-quarternary, rgba(0, 0, 0, 0.15));
+}
+
+.qref-stance-cell.qref-active {
+  color: var(--qref-stance-fg);
+  font-weight: bold;
+}
+
+.qref-stance-cell:disabled,
+.qref-stance-pill:disabled {
+  cursor: default;
+}
+
+/* Compact stance setter (opt-in): one pill plus a menu. */
+.qref-stance-compact {
+  position: relative;
+  display: inline-block;
+}
+
+.qref-stance-pill {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.85em;
+  font-weight: bold;
+  color: var(--qref-stance-fg);
+  cursor: pointer;
+}
+
+.qref-stance-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  z-index: 10;
+  min-width: 180px;
+  background: var(--material-menu, Canvas);
+  color: var(--fill-primary, CanvasText);
+  border: 0.5px solid var(--material-border-quarternary, rgba(0, 0, 0, 0.3));
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.9em;
+}
+
+.qref-stance-menu.qref-open {
+  display: block;
+}
+
+.qref-stance-option {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.qref-stance-option.qref-current {
+  background: var(--fill-quinary, #0001);
+}
+
+.qref-stance-dot {
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+  border-radius: 6px;
+  padding: 0 4px;
+  font-weight: bold;
+  color: var(--qref-stance-fg);
+}
