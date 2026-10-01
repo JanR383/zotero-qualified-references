@@ -221,25 +221,23 @@ function main(): void {
     );
   }
 
-  // Sort order (L5); not persisted, every window starts alphabetical.
-  const sort = byId("sort") as HTMLSelectElement | null;
-  if (sort) {
+  // Sort order (L5); not persisted, every window starts alphabetical. Uses the
+  // custom dropdown because native <select> popups break in this window.
+  const sortMount = byId("sort");
+  if (sortMount) {
+    const sort = buildScopeSelect(
+      [
+        { id: "alpha", label: arg.strings.sortAlpha },
+        { id: "count", label: arg.strings.sortCount },
+        { id: "year", label: arg.strings.sortYear },
+      ],
+      (id) => {
+        sortMode = id as SortMode;
+        render();
+      },
+    );
     sort.title = arg.strings.sort;
-    const options: [SortMode, string][] = [
-      ["alpha", arg.strings.sortAlpha],
-      ["count", arg.strings.sortCount],
-      ["year", arg.strings.sortYear],
-    ];
-    for (const [value, text] of options) {
-      const option = create("option") as HTMLOptionElement;
-      option.value = value;
-      option.textContent = text;
-      sort.appendChild(option);
-    }
-    sort.addEventListener("change", () => {
-      sortMode = sort.value as SortMode;
-      render();
-    });
+    sortMount.replaceWith(sort);
   }
 
   // Expand acts on the visible rows only; collapse clears every row (L1).
