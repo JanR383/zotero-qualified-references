@@ -108,7 +108,8 @@ Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
   large batch sync) cannot abort the reverse-index update for the rest of the
   batch.
 - **Copying into a group library.** When you copy an item that carries
-  references into a group library, the references — including your private
+  references into a group library (from your personal library or another
+  group), the references — including your private
   comments and stance ratings — are **not** copied by default, mirroring how
   Zotero itself drops "Related" links across libraries. This is controlled by
   **Settings → Privacy** (see below) and can be turned on if you do want to
