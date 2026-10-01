@@ -36,14 +36,23 @@ one step. This button can be turned off in Settings if you don't want it.
 
 A **Tools → Reference Graph** window visualises the whole network: items as
 nodes (shaped and coloured by item type), references as directed arrows
-coloured by stance. The graph's **Highlight tags** picker marks items carrying
+coloured by stance. Node size grows with incoming references; labels appear
+for small graphs, when zoomed in, on hover and for the most connected items.
+A **search** outlines matching items and dims everything outside their
+neighbourhood; a collapsible **Filters** group limits the view by stance, item
+type and a minimum number of references. Hovering an arrow shows its stance,
+comment and pages; clicking it opens the passage in the PDF or selects the
+citing item. The graph's **Highlight tags** picker marks items carrying
 any of the chosen tags (e.g. `#Quelle` for primary sources) with a ring in the
 tag's colour — Zotero's own colour for coloured tags — and can hide everything
-except those items and their direct neighbours. A **Tools → Reference List** window shows the same data as
-an expandable list, with **Expand all / Collapse all**, a **search** over title
-and author, and a **stance filter**. Both windows have a **scope switcher** to
-narrow the view down to a single library or a collection (including its
-sub-collections). Items in the trash are left out of both views.
+except those items and their direct neighbours. A **Tools → Reference List**
+window shows the same data as an expandable list, with **Expand all / Collapse
+all**, a **search** over title and author, a **stance filter**, a **sort
+order** (alphabetical, number of references, year) and the stance balance per
+row. Both windows have a **scope switcher** to narrow the view down to a single
+library, a collection (including its sub-collections) or, on Zotero 10, the
+**current selection** in Zotero's collection tree. Items in the trash are left
+out of both views.
 
 ![The reference graph window](docs/reference-graph.png)
 
@@ -124,15 +133,16 @@ The plugin is built around an in-memory reverse index, sized to the number of
   number of references per item is not otherwise bounded.
 - **Practical ceiling.** Tens of thousands of references are fine. The graph and
   list windows render every reference at once, so a graph with thousands of
-  edges becomes visually dense — use the graph's **edge-length slider** to
-  spread it out.
+  edges becomes visually dense — use the graph's filters and search, or the
+  **edge-length slider** (switched on in the settings) to spread it out.
 
 ## Settings
 
 Open **Zotero → Settings → Qualified References**. You can choose the stance
 colour palette (default or colour-blind safe), which fields (author / year /
 title) appear in the references list and in the graph, whether graph nodes are
-coloured by item type, whether the PDF reader shows a "create qualified
+coloured by item type, which controls the graph window shows (search, filters,
+tag highlighting, node-size switch, edge-length slider), whether the PDF reader shows a "create qualified
 reference" button in the text-selection popup (on by default), whether the
 stance setter uses the compact single-pill style instead of the default
 segmented scale, and the **Privacy** option for copying references into group
