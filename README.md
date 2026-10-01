@@ -58,6 +58,8 @@ out of both views.
 
 ![The reference graph window with a search, open filters and highlighted tags](docs/reference-graph.png)
 
+![The graph in the timeline layout, items placed by publication year](docs/graph-timeline.png)
+
 ![The reference list window with stance balance per item](docs/reference-list.png)
 
 Two optional, sortable columns for Zotero's item list, **Ref. (+)** and
