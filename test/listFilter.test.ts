@@ -12,18 +12,21 @@ describe("list filter", function () {
     {
       id: 1,
       label: "Smith (2020): Climate models",
+      year: 2020,
       outgoing: [{ stance: 2, id: 2, label: "Jones (2019): Ocean heat" }],
       incoming: [{ stance: -1, id: 3, label: "Brown (2021): A critique" }],
     },
     {
       id: 2,
       label: "Jones (2019): Ocean heat",
+      year: 2019,
       outgoing: [],
       incoming: [{ stance: 2, id: 1, label: "Smith (2020): Climate models" }],
     },
     {
       id: 3,
       label: "Brown (2021): A critique",
+      year: 2021,
       outgoing: [{ stance: -1, id: 1, label: "Smith (2020): Climate models" }],
       incoming: [],
     },

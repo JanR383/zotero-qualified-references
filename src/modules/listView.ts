@@ -3,6 +3,7 @@ import { openViewWindow, viewArgBase, viewStringsBase } from "./navigation";
 import { formatItem, paneFields } from "./itemFormat";
 import { forEachResolvedLink } from "./storage";
 import { makePredicate } from "./scope";
+import { zDate } from "../utils/zoteroApis";
 import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 /**
@@ -16,6 +17,12 @@ function byStance(a: ListEntry, b: ListEntry): number {
   return b.stance - a.stance || a.label.localeCompare(b.label);
 }
 
+function itemYear(item: Zotero.Item): number | null {
+  const date = (item.getField("date") as string) || "";
+  const year = date ? Number(zDate().strToDate(date)?.year) : NaN;
+  return Number.isFinite(year) ? year : null;
+}
+
 function buildNodes(scopeId = "all"): ListNode[] {
   const fields = paneFields();
   const nodes = new Map<number, ListNode>();
@@ -26,6 +33,7 @@ function buildNodes(scopeId = "all"): ListNode[] {
       node = {
         id: item.id,
         label: formatItem(item, fields),
+        year: itemYear(item),
         outgoing: [],
         incoming: [],
       };
@@ -70,6 +78,10 @@ export function openListView(win: Window): void {
       search: getString("list-search"),
       expandAll: getString("list-expand-all"),
       collapseAll: getString("list-collapse-all"),
+      sort: getString("list-sort"),
+      sortAlpha: getString("list-sort-alpha"),
+      sortCount: getString("list-sort-count"),
+      sortYear: getString("list-sort-year"),
     },
   };
 
