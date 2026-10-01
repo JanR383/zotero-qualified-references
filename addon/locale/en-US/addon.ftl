@@ -110,3 +110,11 @@ anchor-page = p.
 reader-add-ref = Add qualified reference from here…
 reader-ref-created = Reference created
 reader-groupcopy-stripped = Qualified references were not copied to the group (see Preferences → Privacy)
+
+# Edit > Undo/Redo labels (Zotero 10); Zotero shows them as "Undo …"
+undo-add-reference = { $count ->
+    [one] Add Reference
+   *[other] Add { $count } References
+}
+undo-edit-reference = Edit Reference
+undo-delete-reference = Delete Reference

@@ -153,6 +153,61 @@ describe("storage", function () {
     });
   });
 
+  describe("undo (Zotero 10, G9)", function () {
+    interface UndoHistory {
+      clear(): void;
+      undo(): Promise<boolean>;
+      getUndoAction(): {
+        action: string;
+        actionArgs: Record<string, unknown> | null;
+      } | null;
+    }
+    let history: UndoHistory;
+
+    beforeEach(function () {
+      const h = (Zotero as any).UndoHistory as UndoHistory | undefined;
+      if (!h) this.skip(); // Zotero 9: no undo history
+      history = h;
+      history.clear();
+    });
+
+    it("labels a user save so Edit > Undo shows it", async function () {
+      await setLinks(source, [makeLink(target.key, lib)], {
+        action: "add",
+        count: 1,
+      });
+      const top = history.getUndoAction();
+      assert.equal(top?.action, `${config.addonRef}-undo-add-reference`);
+      assert.deepEqual(top?.actionArgs, { count: 1 });
+      // Zotero formats the label with its own Localization (Zotero.ftl).
+      const label = (Zotero as any).ftl.formatValueSync(
+        top!.action,
+        top!.actionArgs,
+      );
+      assert.isString(label);
+      assert.isNotEmpty(label);
+    });
+
+    it("undo restores the previous links", async function () {
+      const first = makeLink(target.key, lib);
+      await setLinks(source, [first]);
+      await updateLink(source, first.id, { stance: 2 });
+      assert.equal(
+        history.getUndoAction()?.action,
+        `${config.addonRef}-undo-edit-reference`,
+      );
+      assert.isTrue(await history.undo());
+      const links = getLinks(source);
+      assert.lengthOf(links, 1);
+      assert.equal(links[0].stance, 0);
+    });
+
+    it("keeps unlabelled saves out of the history", async function () {
+      await setLinks(source, [makeLink(target.key, lib)]);
+      assert.isNull(history.getUndoAction());
+    });
+  });
+
   describe("sanitizing untrusted Reference-Graph data (S1)", function () {
     async function writeRaw(json: string): Promise<void> {
       source.setField("extra", `Reference-Graph: ${json}`);

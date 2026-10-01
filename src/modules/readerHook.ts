@@ -109,7 +109,7 @@ export async function addAnchoredLinks(
     added++;
     lastTitle = target.getDisplayTitle();
   }
-  if (added > 0) await setLinks(source, links);
+  if (added > 0) await setLinks(source, links, { action: "add", count: added });
   return { added, lastTitle };
 }
 

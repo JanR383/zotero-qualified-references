@@ -1,4 +1,5 @@
-import { zItems } from "../utils/zoteroApis";
+import { zFtl, zItems, type UndoSaveOptions } from "../utils/zoteroApis";
+import { getLocaleID } from "../utils/locale";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
 import { log } from "../utils/log";
 
@@ -207,13 +208,55 @@ function serializeLink(l: ReferenceLink): ReferenceLink {
   };
 }
 
+// --- Undo (Zotero 10) ------------------------------------------------------
+// A save labelled with an undo action becomes one Edit > Undo step that
+// restores the previous Extra field; the notifier then updates the index and
+// the panes like after any other change. Unlabelled saves (e.g. the group-copy
+// guard) stay out of the history. Zotero 9 has no undo and ignores the label.
+
+/** What a user-initiated save did, shown as "Undo <label>". */
+export interface UndoLabel {
+  action: "add" | "edit" | "delete";
+  count?: number;
+}
+
+const UNDO_MESSAGE = {
+  add: "undo-add-reference",
+  edit: "undo-edit-reference",
+  delete: "undo-delete-reference",
+} as const;
+
+function undoOptions(undo?: UndoLabel): UndoSaveOptions {
+  if (!undo) return {};
+  return {
+    undoAction: getLocaleID(UNDO_MESSAGE[undo.action]),
+    undoActionArgs: { count: undo.count ?? 1 },
+  };
+}
+
+// Zotero formats undo labels with its own Localization (Zotero.ftl), which
+// does not include plugin FTL files; add ours for the plugin's lifetime.
+function ftlResourceID(): string {
+  return `${addon.data.config.addonRef}-addon.ftl`;
+}
+
+export function registerUndoLabels(): void {
+  zFtl().addResourceIds([ftlResourceID()]);
+}
+
+export function unregisterUndoLabels(): void {
+  zFtl().removeResourceIds([ftlResourceID()]);
+}
+
 /**
  * Persist the given links onto the source item (replacing the existing
  * Reference-Graph line) and save. The notifier keeps the reverse index fresh.
+ * Pass `undo` for user actions so Zotero 10 offers them in Edit > Undo.
  */
 export async function setLinks(
   item: Zotero.Item,
   links: ReferenceLink[],
+  undo?: UndoLabel,
 ): Promise<void> {
   const extra = item.getField("extra") || "";
   const kept = extra.split(/\r?\n/).filter((line) => !EXTRA_LINE_RE.test(line));
@@ -222,7 +265,7 @@ export async function setLinks(
   }
   // Drop leading/trailing empties left behind by removing our line.
   item.setField("extra", kept.join("\n").replace(/^\n+|\n+$/g, ""));
-  await item.saveTx();
+  await item.saveTx(undoOptions(undo));
 }
 
 /**
@@ -234,23 +277,31 @@ export async function setLinks(
 export async function updateLinks(
   item: Zotero.Item,
   mutate: (links: ReferenceLink[]) => void,
+  undo?: UndoLabel,
 ): Promise<void> {
   const links = getLinks(item);
   mutate(links);
-  await setLinks(item, links);
+  await setLinks(item, links, undo);
 }
 
-/** Patch one link by id (no-op if it no longer exists) and stamp `modified`. */
+/**
+ * Patch one link by id (no-op if it no longer exists) and stamp `modified`.
+ * Always a user edit, so it is labelled for undo.
+ */
 export async function updateLink(
   item: Zotero.Item,
   id: string,
   patch: Partial<Omit<ReferenceLink, "id">>,
 ): Promise<void> {
-  await updateLinks(item, (links) => {
-    const link = links.find((l) => l.id === id);
-    if (!link) return;
-    Object.assign(link, patch, { modified: new Date().toISOString() });
-  });
+  await updateLinks(
+    item,
+    (links) => {
+      const link = links.find((l) => l.id === id);
+      if (!link) return;
+      Object.assign(link, patch, { modified: new Date().toISOString() });
+    },
+    { action: "edit" },
+  );
 }
 
 // --- Reverse index ----------------------------------------------------------
