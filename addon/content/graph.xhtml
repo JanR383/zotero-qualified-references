@@ -103,6 +103,16 @@
       #controls input[type="range"] {
         width: 120px;
       }
+      #filters > summary {
+        cursor: pointer;
+        user-select: none;
+      }
+      #filters[open] > summary {
+        margin-bottom: 6px;
+      }
+      #filters > :not(summary) {
+        margin-bottom: 6px;
+      }
       #empty {
         display: none;
         position: fixed;
@@ -126,16 +136,19 @@
         <input id="search" type="search" />
       </div>
       <div class="control-row" id="search-depth"></div>
-      <div class="control-row wrap">
-        <span id="stance-filter-label"></span>
-        <span id="stance-filter" class="control-row wrap"></span>
-      </div>
-      <div id="type-filter-label"></div>
-      <div id="type-filter" class="control-row wrap"></div>
-      <div class="control-row">
-        <label id="min-links-label" for="min-links"></label>
-        <input id="min-links" type="number" min="1" max="50" step="1" />
-      </div>
+      <details id="filters">
+        <summary id="filters-summary"></summary>
+        <div class="control-row wrap">
+          <span id="stance-filter-label"></span>
+          <span id="stance-filter" class="control-row wrap"></span>
+        </div>
+        <div id="type-filter-label"></div>
+        <div id="type-filter" class="control-row wrap"></div>
+        <div class="control-row">
+          <label id="min-links-label" for="min-links"></label>
+          <input id="min-links" type="number" min="1" max="50" step="1" />
+        </div>
+      </details>
       <div class="control-row" id="size-incoming"></div>
       <div class="control-row">
         <label id="link-distance-label" for="link-distance"></label>

@@ -35,6 +35,7 @@ export interface GraphStrings extends ViewStringsBase {
   linkDistance: string;
   search: string;
   searchDepth2: string;
+  filters: string;
   filterStances: string;
   filterTypes: string;
   minLinks: string;

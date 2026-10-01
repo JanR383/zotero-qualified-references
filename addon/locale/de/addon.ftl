@@ -49,6 +49,7 @@ graph-tags-none = Keine Tags in diesem Bereich.
 graph-tag-focus = Nur hervorgehobene Einträge und ihre Nachbarn
 graph-search = Einträge suchen …
 graph-search-depth2 = Auch Nachbarn der Nachbarn
+graph-filters = Filter
 graph-filter-stances = Stances
 graph-filter-types = Eintragsarten
 graph-min-links = Mind. Bezüge je Eintrag

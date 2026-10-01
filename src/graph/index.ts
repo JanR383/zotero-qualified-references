@@ -467,6 +467,19 @@ function main(): void {
 
   // Recompute rings, filters, search focus and legend; setting the accessors
   // again makes force-graph redraw even when the layout is at rest.
+  // Filters sit in a collapsible group; its summary counts the active ones so
+  // a collapsed group still shows that something is hidden.
+  const filterSummary = byId("filters-summary");
+  const updateFilterSummary = (): void => {
+    if (!filterSummary) return;
+    const active =
+      Number(shownStances.size < STANCE_ORDER.length) +
+      Number([...knownTypes].some((t) => !shownTypes.has(t))) +
+      Number(minLinks > 1);
+    filterSummary.textContent =
+      active > 0 ? `${strings.filters} (${active})` : strings.filters;
+  };
+
   const refresh = (): void => {
     const assigned = assignTagColors([...selectedTags], current.tagOptions);
     rings = new Map();
@@ -490,6 +503,7 @@ function main(): void {
         depth,
       },
     );
+    updateFilterSummary();
     renderLegend(arg, current.typeLegend, [...assigned.values()], isDark);
     showEmpty(view.visible.size === 0);
     graph

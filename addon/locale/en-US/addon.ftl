@@ -49,6 +49,7 @@ graph-tags-none = No tags in this scope.
 graph-tag-focus = Only highlighted items and their neighbours
 graph-search = Search items…
 graph-search-depth2 = Include neighbours of neighbours
+graph-filters = Filters
 graph-filter-stances = Stances
 graph-filter-types = Item types
 graph-min-links = Min. references per item

@@ -198,6 +198,7 @@ export function openGraphView(win: Window): void {
       linkDistance: getString("graph-link-distance"),
       search: getString("graph-search"),
       searchDepth2: getString("graph-search-depth2"),
+      filters: getString("graph-filters"),
       filterStances: getString("graph-filter-stances"),
       filterTypes: getString("graph-filter-types"),
       minLinks: getString("graph-min-links"),

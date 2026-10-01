@@ -16,6 +16,7 @@ export type FluentMessageId =
   | 'graph-empty'
   | 'graph-filter-stances'
   | 'graph-filter-types'
+  | 'graph-filters'
   | 'graph-in'
   | 'graph-link-distance'
   | 'graph-link-open-pdf'
