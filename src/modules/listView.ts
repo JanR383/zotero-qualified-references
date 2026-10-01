@@ -1,8 +1,12 @@
 import { getString } from "../utils/locale";
-import { openViewWindow, viewArgBase, viewStringsBase } from "./navigation";
+import {
+  openViewWindow,
+  viewArgBase,
+  viewStringsBase,
+  type ItemFilter,
+} from "./navigation";
 import { formatItem, itemYear, paneFields } from "./itemFormat";
 import { forEachResolvedLink } from "./storage";
-import { makePredicate } from "./scope";
 import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 /**
@@ -16,7 +20,7 @@ function byStance(a: ListEntry, b: ListEntry): number {
   return b.stance - a.stance || a.label.localeCompare(b.label);
 }
 
-function buildNodes(scopeId = "all"): ListNode[] {
+function buildNodes(filter?: ItemFilter): ListNode[] {
   const fields = paneFields();
   const nodes = new Map<number, ListNode>();
 
@@ -48,7 +52,7 @@ function buildNodes(scopeId = "all"): ListNode[] {
       id: source.id,
       label: sNode.label,
     });
-  }, makePredicate(scopeId));
+  }, filter);
 
   const result = [...nodes.values()];
   for (const node of result) {
@@ -61,7 +65,7 @@ function buildNodes(scopeId = "all"): ListNode[] {
 
 export function openListView(win: Window): void {
   const arg: ListArg = {
-    ...viewArgBase((id) => ({ nodes: buildNodes(id) })),
+    ...viewArgBase((filter) => ({ nodes: buildNodes(filter) })),
     nodes: buildNodes(),
     strings: {
       ...viewStringsBase("list-window-title"),

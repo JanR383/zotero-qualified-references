@@ -1,4 +1,5 @@
 import { handlePossibleGroupCopy } from "./groupCopyGuard";
+import { notifyViews } from "./navigation";
 import { refreshSectionIfVisible } from "./referenceSection";
 import { itemForIndexKey, onItemChanged, rebuildIndex } from "./storage";
 import { log } from "../utils/log";
@@ -26,6 +27,12 @@ export function initIndexAndNotifier(): Promise<void> {
         unregisterNotifier();
         return;
       }
+      // Collection membership decides what a collection scope shows, so the
+      // open graph and list windows refresh on it too (G6/L8).
+      if (type === "collection-item") {
+        notifyViews();
+        return;
+      }
       if (type !== "item" || !HANDLED.has(event)) return;
       const removed = event === "delete";
       const affected = new Set<string>();
@@ -39,6 +46,7 @@ export function initIndexAndNotifier(): Promise<void> {
         }
       }
       refreshTargets(affected);
+      notifyViews();
       // Privacy guard: a personal item copied into a group fires `add` with the
       // cloned Extra (incl. references) already present. Drop them unless the
       // user opted in. Fire-and-forget; notify() is sync.
@@ -51,7 +59,11 @@ export function initIndexAndNotifier(): Promise<void> {
       }
     },
   };
-  notifierID = Zotero.Notifier.registerObserver(callback, ["item"], "qref");
+  notifierID = Zotero.Notifier.registerObserver(
+    callback,
+    ["item", "collection-item"],
+    "qref",
+  );
   return rebuildIndex();
 }
 

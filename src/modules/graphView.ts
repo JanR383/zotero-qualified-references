@@ -4,6 +4,7 @@ import {
   openAnnotation,
   openViewWindow,
   viewArgBase,
+  type ItemFilter,
   viewStringsBase,
 } from "./navigation";
 import { zItemTypes } from "../utils/zoteroApis";
@@ -12,7 +13,6 @@ import { formatItem, graphFields, itemYear } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
 import { forEachResolvedLink, getLinks } from "./storage";
-import { makePredicate } from "./scope";
 import { collectTagOptions, loadTagColors } from "./tagHighlight";
 import type { Stance } from "./types";
 import type {
@@ -83,7 +83,7 @@ function section(
   );
 }
 
-function buildData(scopeId = "all"): GraphData {
+function buildData(filter?: ItemFilter): GraphData {
   const nodes = new Map<number, GraphNode>();
   const items = new Map<number, Zotero.Item>();
   const links: GraphLink[] = [];
@@ -126,7 +126,7 @@ function buildData(scopeId = "all"): GraphData {
     });
     push(outEdges, source.id, { stance: link.stance, id: target.id });
     push(inEdges, target.id, { stance: link.stance, id: source.id });
-  }, makePredicate(scopeId));
+  }, filter);
 
   for (const node of nodes.values()) {
     const item = items.get(node.id)!;
