@@ -271,6 +271,9 @@ export function openGraphView(win: Window): void {
     },
     openAnchor,
     controls: loadControls(),
+    exportTransparent: () =>
+      Zotero.Prefs.get(`${config.prefsPrefix}.graphExportTransparent`, true) ===
+      true,
   };
 
   openViewWindow(win, "graph", { width: 900, height: 700 }, arg);

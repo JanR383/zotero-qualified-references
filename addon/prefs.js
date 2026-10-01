@@ -15,6 +15,10 @@ pref("displayGraphTitle", true);
 // Graph: colour nodes by item type (N5).
 pref("graphColorByType", true);
 
+// Graph: export the PNG image with a transparent background instead of the
+// window background (G8).
+pref("graphExportTransparent", false);
+
 // Graph: force-link distance (edge length) — adjustable via the in-window
 // slider; larger values spread dense graphs out for legibility.
 pref("graphLinkDistance", 40);

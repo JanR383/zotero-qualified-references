@@ -64,6 +64,7 @@ export type FluentMessageId =
   | 'prefs-graph-colorbytype'
   | 'prefs-graph-controls'
   | 'prefs-graph-controls-desc'
+  | 'prefs-graph-export-transparent'
   | 'prefs-graph-fields'
   | 'prefs-graph-show-distance'
   | 'prefs-graph-show-filters'

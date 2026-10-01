@@ -877,20 +877,23 @@ function main(): void {
     const png = (): string | null => {
       const canvas = container.querySelector("canvas");
       if (!canvas) return null;
-      // The graph canvas is transparent; give the image the window background.
       const out = create("canvas") as unknown as HTMLCanvasElement;
       out.width = canvas.width;
       out.height = canvas.height;
       const ctx = out.getContext("2d") as CanvasRenderingContext2D | null;
       if (!ctx) return null;
-      const bg = body ? getComputedStyle(body).backgroundColor : "";
-      ctx.fillStyle =
-        bg && bg !== "transparent" && !bg.endsWith(", 0)")
-          ? bg
-          : isDark
-            ? "#1c1c1e"
-            : "#ffffff";
-      ctx.fillRect(0, 0, out.width, out.height);
+      // The graph canvas is transparent; unless that is wanted (setting), give
+      // the image the window background.
+      if (!arg.exportTransparent()) {
+        const bg = body ? getComputedStyle(body).backgroundColor : "";
+        ctx.fillStyle =
+          bg && bg !== "transparent" && !bg.endsWith(", 0)")
+            ? bg
+            : isDark
+              ? "#1c1c1e"
+              : "#ffffff";
+        ctx.fillRect(0, 0, out.width, out.height);
+      }
       ctx.drawImage(canvas, 0, 0);
       return out.toDataURL("image/png").split(",")[1] ?? null;
     };

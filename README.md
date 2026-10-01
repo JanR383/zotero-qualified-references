@@ -57,7 +57,7 @@ library, a collection (including its sub-collections) or, on Zotero 10, the
 out of both views. Both windows **update live** while open: new, changed or
 deleted references and items appear without reopening, and the scope, filters,
 search and layout stay as they are. An **Export** menu saves what a window
-currently shows: the graph as an image (PNG), as CSV (one row per reference,
+currently shows: the graph as an image (PNG, optionally with a transparent background), as CSV (one row per reference,
 with stance, pages and comment) or as GraphML for Gephi or Cytoscape; the list
 as Markdown (one section per item, e.g. for a literature chapter) or as CSV.
 Exported items carry a `zotero://select` link back to Zotero.

@@ -91,6 +91,8 @@ export interface GraphArg extends ViewArgBase {
   linkDistance: number;
   /** Persist a changed link distance back to prefs. */
   onLinkDistanceChange?: (v: number) => void;
+  /** Read at export time, so a changed setting applies without reopening. */
+  exportTransparent: () => boolean;
   /** Open the source PDF at the reference's anchor (G3). */
   openAnchor: (sourceId: number, linkId: string) => void;
   /** Optional control groups shown in the window (from prefs). */
