@@ -22,6 +22,18 @@
       preference="stanceControlCompact"
       data-l10n-id="prefs-stance-compact"
     />
+    <hbox align="center">
+      <html:label data-l10n-id="prefs-comment-max" for="qref-comment-max" />
+      <html:input
+        id="qref-comment-max"
+        type="number"
+        min="100"
+        max="10000"
+        step="100"
+        style="width: 6em"
+        preference="commentMaxLength"
+      />
+    </hbox>
   </groupbox>
   <groupbox style="margin-bottom: 20px">
     <html:h2 data-l10n-id="prefs-graph-title"></html:h2>

@@ -76,6 +76,7 @@ prefs-palette-colorblind =
     .label = Colour-blind safe
 prefs-stance-compact =
     .label = Compact stance setter (single pill with a menu)
+prefs-comment-max = Maximum comment length (characters):
 prefs-pane-title = Item pane and list window
 prefs-pane-fields = Show items with:
 prefs-graph-title = Graph window

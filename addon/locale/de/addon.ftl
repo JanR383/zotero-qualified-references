@@ -76,6 +76,7 @@ prefs-palette-colorblind =
     .label = Farbenblind-sicher
 prefs-stance-compact =
     .label = Kompakter Stance-Setzer (eine Pille mit Menü)
+prefs-comment-max = Kommentare höchstens (Zeichen):
 prefs-pane-title = Seitenleiste und Listenfenster
 prefs-pane-fields = Einträge anzeigen mit:
 prefs-graph-title = Graph-Fenster

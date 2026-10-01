@@ -56,6 +56,7 @@ export type FluentMessageId =
   | 'no-incoming'
   | 'no-outgoing'
   | 'prefs-colors-title'
+  | 'prefs-comment-max'
   | 'prefs-copy-refs-to-group'
   | 'prefs-copy-refs-to-group-desc'
   | 'prefs-field-author'

@@ -146,7 +146,7 @@ The plugin is built around an in-memory reverse index, sized to the number of
 - **Sync size limit.** Zotero's sync server rejects fields larger than
   64 KB, so the plugin refuses a save that would grow `Extra` beyond about
   60 000 bytes and says so; comments typed in the item pane are limited to 2 000
-  characters. In practice that is roughly 200–350 references per source item
+  characters (adjustable in the settings, 100–10 000). In practice that is roughly 200–350 references per source item
   without long comments.
 - **Practical ceiling.** Tens of thousands of references are fine. The graph and
   list windows render every reference at once, so a graph with thousands of

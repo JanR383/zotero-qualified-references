@@ -45,6 +45,11 @@ pref("readerSelectionButton", true);
 // opens a menu on click.
 pref("stanceControlCompact", false);
 
+// Item pane: maximum length of a reference comment typed in the pane. Keeps
+// an item's references inside the sync size limit of Extra (clamped to
+// 100–10000 when read).
+pref("commentMaxLength", 2000);
+
 // Privacy: copy qualified references along when an item is added to a group
 // library? Default false — like Zotero's own "Related" links, references
 // (incl. private comments/stance) are dropped so they aren't shared.
