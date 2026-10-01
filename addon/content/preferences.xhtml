@@ -6,8 +6,8 @@
   <!-- Grouped by where a setting takes effect. Pref keys are unchanged. -->
   <groupbox>
     <html:h2 data-l10n-id="prefs-pane-title"></html:h2>
-    <hbox align="center">
-      <html:label data-l10n-id="prefs-pane-fields" />
+    <html:label data-l10n-id="prefs-pane-fields" />
+    <vbox style="margin-inline-start: 16px">
       <checkbox
         preference="displayPaneAuthor"
         data-l10n-id="prefs-field-author"
@@ -17,7 +17,7 @@
         preference="displayPaneTitle"
         data-l10n-id="prefs-field-title"
       />
-    </hbox>
+    </vbox>
     <checkbox
       preference="stanceControlCompact"
       data-l10n-id="prefs-stance-compact"
@@ -25,8 +25,8 @@
   </groupbox>
   <groupbox>
     <html:h2 data-l10n-id="prefs-graph-title"></html:h2>
-    <hbox align="center">
-      <html:label data-l10n-id="prefs-graph-fields" />
+    <html:label data-l10n-id="prefs-graph-fields" />
+    <vbox style="margin-inline-start: 16px">
       <checkbox
         preference="displayGraphAuthor"
         data-l10n-id="prefs-field-author"
@@ -36,13 +36,13 @@
         preference="displayGraphTitle"
         data-l10n-id="prefs-field-title"
       />
-    </hbox>
+    </vbox>
     <checkbox
       preference="graphColorByType"
       data-l10n-id="prefs-graph-colorbytype"
     />
-    <html:label data-l10n-id="prefs-graph-controls" />
-    <hbox align="center" style="margin-inline-start: 16px">
+    <html:label data-l10n-id="prefs-graph-controls" style="margin-top: 8px" />
+    <vbox style="margin-inline-start: 16px">
       <checkbox
         preference="graphShowSearch"
         data-l10n-id="prefs-graph-show-search"
@@ -55,8 +55,6 @@
         preference="graphShowTags"
         data-l10n-id="prefs-graph-show-tags"
       />
-    </hbox>
-    <hbox align="center" style="margin-inline-start: 16px">
       <checkbox
         preference="graphShowSizeToggle"
         data-l10n-id="prefs-graph-show-size"
@@ -69,7 +67,7 @@
         preference="graphShowTimeline"
         data-l10n-id="prefs-graph-show-timeline"
       />
-    </hbox>
+    </vbox>
     <html:p
       class="description"
       data-l10n-id="prefs-graph-controls-desc"
