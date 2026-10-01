@@ -42,7 +42,9 @@ A **search** outlines matching items and dims everything outside their
 neighbourhood; a collapsible **Filters** group limits the view by stance, item
 type and a minimum number of references. Hovering an arrow shows its stance,
 comment and pages; clicking it opens the passage in the PDF or selects the
-citing item. The graph's **Highlight tags** picker marks items carrying
+citing item. An optional **timeline** layout (switched on in the settings)
+places items by publication year, with undated items in a separate lane. The
+graph's **Highlight tags** picker marks items carrying
 any of the chosen tags (e.g. `#Quelle` for primary sources) with a ring in the
 tag's colour — Zotero's own colour for coloured tags — and can hide everything
 except those items and their direct neighbours. A **Tools → Reference List**
@@ -138,15 +140,20 @@ The plugin is built around an in-memory reverse index, sized to the number of
 
 ## Settings
 
-Open **Zotero → Settings → Qualified References**. You can choose the stance
-colour palette (default or colour-blind safe), which fields (author / year /
-title) appear in the references list and in the graph, whether graph nodes are
-coloured by item type, which controls the graph window shows (search, filters,
-tag highlighting, node-size switch, edge-length slider), whether the PDF reader shows a "create qualified
-reference" button in the text-selection popup (on by default), whether the
-stance setter uses the compact single-pill style instead of the default
-segmented scale, and the **Privacy** option for copying references into group
-libraries (off by default).
+Open **Zotero → Settings → Qualified References**. The page is grouped by where
+a setting takes effect:
+
+- **Item pane and list window:** which fields (author / year / title) label
+  items, and the compact single-pill stance setter instead of the default
+  segmented scale.
+- **Graph window:** which fields label nodes, colouring nodes by item type, and
+  which controls the window shows (search, filters and tag highlighting on by
+  default; node-size switch, edge-length slider and the network / timeline
+  switch off by default).
+- **PDF reader:** the "create qualified reference" button in the text-selection
+  popup (on by default).
+- **Colours:** the stance palette (default or colour-blind safe).
+- **Privacy:** copying references into group libraries (off by default).
 
 ![The plugin's settings pane](docs/preferences.png)
 
