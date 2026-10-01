@@ -1,5 +1,7 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
+import { log } from "../utils/log";
+import { zReader } from "../utils/zoteroApis";
 import type { ViewArgBase, ViewStringsBase } from "../shared/viewArg";
 import { buildScopeOptions } from "./scope";
 import { STANCE_LABEL_KEY, STANCE_ORDER } from "./stanceMeta";
@@ -15,6 +17,21 @@ import type { Stance } from "./types";
 /** Select an item in the active Zotero pane (used by every "jump to" link). */
 export function selectItemInPane(id: number): void {
   Zotero.getActiveZoteroPane()?.selectItem(id);
+}
+
+/** Open the source PDF at an anchored annotation (M6). */
+export function openAnnotation(
+  lib: number,
+  attKey: string,
+  annKey: string,
+): void {
+  const att = Zotero.Items.getByLibraryAndKey(lib, attKey);
+  if (!att) return;
+  try {
+    void zReader().open(att.id, { annotationID: annKey });
+  } catch (e) {
+    log("QRef: failed to open annotation", e);
+  }
 }
 
 /** The window arg fields both views share; `build` makes a scope's data. */

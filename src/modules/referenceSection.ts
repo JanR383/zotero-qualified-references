@@ -1,7 +1,6 @@
 import { config } from "../../package.json";
 import { getLocaleID, getString } from "../utils/locale";
-import { selectItemInPane } from "./navigation";
-import { zReader } from "../utils/zoteroApis";
+import { openAnnotation, selectItemInPane } from "./navigation";
 import {
   STANCE_GLYPH,
   STANCE_LABEL_KEY,
@@ -548,16 +547,6 @@ function pageField(
 // opens that PDF at the annotation via
 //   Zotero.Reader.open(attachmentID, { annotationID: key })
 // — the same `location` Zotero's `zotero://open-pdf` handler builds.
-
-function openAnnotation(lib: number, attKey: string, annKey: string): void {
-  const att = Zotero.Items.getByLibraryAndKey(lib, attKey);
-  if (!att) return;
-  try {
-    void zReader().open(att.id, { annotationID: annKey });
-  } catch (e) {
-    log("QRef: failed to open annotation", e);
-  }
-}
 
 function linkButton(
   doc: Document,

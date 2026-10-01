@@ -60,6 +60,40 @@
         flex-direction: column;
         align-items: stretch;
         gap: 6px;
+        max-height: calc(100vh - 40px);
+        max-width: 300px;
+        overflow-y: auto;
+      }
+      #controls .control-row.wrap {
+        flex-wrap: wrap;
+        gap: 4px 8px;
+      }
+      #controls input[type="search"] {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      #controls input[type="number"] {
+        width: 4em;
+      }
+      .check {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        cursor: pointer;
+      }
+      .pill {
+        display: inline-block;
+        min-width: 14px;
+        padding: 0 5px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 11px;
+        color: var(--qref-stance-fg);
+      }
+      .type-glyph {
+        display: inline-block;
+        width: 14px;
+        text-align: center;
       }
       #controls .control-row {
         display: flex;
@@ -68,6 +102,19 @@
       }
       #controls input[type="range"] {
         width: 120px;
+      }
+      #filters > summary {
+        cursor: pointer;
+        user-select: none;
+      }
+      #filters[open] > summary {
+        margin-bottom: 6px;
+      }
+      #filters > :not(summary) {
+        margin-bottom: 6px;
+      }
+      #controls [hidden] {
+        display: none !important;
       }
       #empty {
         display: none;
@@ -88,14 +135,32 @@
         <label id="scope-label"></label>
         <div id="scope"></div>
       </div>
-      <div class="control-row">
+      <div class="control-row" data-group="search">
+        <input id="search" type="search" />
+      </div>
+      <div class="control-row" id="search-depth" hidden="hidden"></div>
+      <details id="filters" data-group="filters">
+        <summary id="filters-summary"></summary>
+        <div class="control-row wrap">
+          <span id="stance-filter-label"></span>
+          <span id="stance-filter" class="control-row wrap"></span>
+        </div>
+        <div id="type-filter-label"></div>
+        <div id="type-filter" class="control-row wrap"></div>
+        <div class="control-row">
+          <label id="min-links-label" for="min-links"></label>
+          <input id="min-links" type="number" min="1" max="50" step="1" />
+        </div>
+      </details>
+      <div class="control-row" id="size-incoming" data-group="size"></div>
+      <div class="control-row" data-group="distance">
         <label id="link-distance-label" for="link-distance"></label>
         <input id="link-distance" type="range" min="10" max="200" step="5" />
       </div>
-      <div class="control-row">
+      <div class="control-row" data-group="tags">
         <div id="tags"></div>
       </div>
-      <div class="control-row">
+      <div class="control-row" data-group="tags">
         <input id="tag-focus" type="checkbox" />
         <label id="tag-focus-label" for="tag-focus"></label>
       </div>

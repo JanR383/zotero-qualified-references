@@ -1,16 +1,27 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
-import { openViewWindow, viewArgBase, viewStringsBase } from "./navigation";
+import {
+  openAnnotation,
+  openViewWindow,
+  viewArgBase,
+  viewStringsBase,
+} from "./navigation";
 import { zItemTypes } from "../utils/zoteroApis";
 import { escapeHtml, truncate } from "../shared/text";
 import { formatItem, graphFields } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
-import { forEachResolvedLink } from "./storage";
+import { forEachResolvedLink, getLinks } from "./storage";
 import { makePredicate } from "./scope";
 import { collectTagOptions, loadTagColors } from "./tagHighlight";
 import type { Stance } from "./types";
-import type { GraphArg, GraphData, GraphLink, GraphNode } from "../graph/types";
+import type {
+  GraphArg,
+  GraphControlGroup,
+  GraphData,
+  GraphLink,
+  GraphNode,
+} from "../graph/types";
 
 /**
  * Builds the reference graph from the in-memory reverse index
@@ -88,7 +99,16 @@ function buildData(scopeId = "all"): GraphData {
   forEachResolvedLink((source, target, link) => {
     ensureNode(source);
     ensureNode(target);
-    links.push({ source: source.id, target: target.id, stance: link.stance });
+    links.push({
+      id: link.id,
+      source: source.id,
+      target: target.id,
+      stance: link.stance,
+      comment: link.comment,
+      sourcePages: link.sourcePages,
+      targetPages: link.targetPages,
+      hasAnchor: !!(link.sourceAttachmentKey && link.sourceAnnotationKey),
+    });
     push(outEdges, source.id, { stance: link.stance, id: target.id });
     push(inEdges, target.id, { stance: link.stance, id: source.id });
   }, makePredicate(scopeId));
@@ -123,13 +143,37 @@ function buildData(scopeId = "all"): GraphData {
     typeLegend.push({ type: "default", label: getString("graph-type-other") });
   }
 
+  // Type filter (G2): every present type, localized, sorted by label.
+  const itemTypes = [...present]
+    .map((type) => ({ type, label: zItemTypes().getLocalizedString(type) }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   // Tags offered for highlighting (G12): all tags present in this scope.
   const tagOptions = collectTagOptions(
     [...nodes.values()].map((n) => n.tags),
     loadTagColors(),
   );
 
-  return { nodes: [...nodes.values()], links, typeLegend, tagOptions };
+  return {
+    nodes: [...nodes.values()],
+    links,
+    typeLegend,
+    itemTypes,
+    tagOptions,
+  };
+}
+
+/** Open the PDF anchor of one reference, looked up fresh on its source. */
+function openAnchor(sourceId: number, linkId: string): void {
+  const source = Zotero.Items.get(sourceId);
+  if (!source) return;
+  const link = getLinks(source).find((l) => l.id === linkId);
+  if (!link?.sourceAttachmentKey || !link.sourceAnnotationKey) return;
+  openAnnotation(
+    source.libraryID,
+    link.sourceAttachmentKey,
+    link.sourceAnnotationKey,
+  );
 }
 
 const HIGHLIGHT_PREF = `${config.prefsPrefix}.graphHighlightTags`;
@@ -144,8 +188,26 @@ function loadHighlightTags(): string[] {
   }
 }
 
+const CONTROL_PREFS: Record<GraphControlGroup, string> = {
+  search: "graphShowSearch",
+  filters: "graphShowFilters",
+  tags: "graphShowTags",
+  size: "graphShowSizeToggle",
+  distance: "graphShowLinkDistance",
+};
+
+/** Which optional control groups the graph window shows (prefs pane). */
+function loadControls(): Record<GraphControlGroup, boolean> {
+  const out = {} as Record<GraphControlGroup, boolean>;
+  for (const [group, key] of Object.entries(CONTROL_PREFS)) {
+    out[group as GraphControlGroup] =
+      Zotero.Prefs.get(`${config.prefsPrefix}.${key}`, true) !== false;
+  }
+  return out;
+}
+
 export function openGraphView(win: Window): void {
-  const { nodes, links, typeLegend, tagOptions } = buildData();
+  const { nodes, links, typeLegend, itemTypes, tagOptions } = buildData();
   const colorByType =
     Zotero.Prefs.get(`${config.prefsPrefix}.graphColorByType`, true) === true;
   const linkDistance = Number(
@@ -158,6 +220,17 @@ export function openGraphView(win: Window): void {
     strings: {
       ...viewStringsBase("graph-window-title"),
       linkDistance: getString("graph-link-distance"),
+      search: getString("graph-search"),
+      searchDepth2: getString("graph-search-depth2"),
+      filters: getString("graph-filters"),
+      filterStances: getString("graph-filter-stances"),
+      filterTypes: getString("graph-filter-types"),
+      minLinks: getString("graph-min-links"),
+      sizeByIncoming: getString("graph-size-incoming"),
+      sourcePages: getString("field-source-pages"),
+      targetPages: getString("field-target-pages"),
+      linkOpenPdf: getString("graph-link-open-pdf"),
+      linkSelect: getString("graph-link-select"),
       tags: getString("graph-tags"),
       tagsFilter: getString("graph-tags-filter"),
       tagsNone: getString("graph-tags-none"),
@@ -165,6 +238,7 @@ export function openGraphView(win: Window): void {
     },
     colorByType,
     typeLegend,
+    itemTypes,
     tagOptions,
     highlightTags: loadHighlightTags(),
     onHighlightTagsChange: (tags: string[]) => {
@@ -174,6 +248,8 @@ export function openGraphView(win: Window): void {
     onLinkDistanceChange: (v: number) => {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
     },
+    openAnchor,
+    controls: loadControls(),
   };
 
   openViewWindow(win, "graph", { width: 900, height: 700 }, arg);
