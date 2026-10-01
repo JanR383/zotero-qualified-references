@@ -22,6 +22,7 @@ declare namespace _ZoteroTypes {
       "graphShowTags": boolean;
       "graphShowSizeToggle": boolean;
       "graphShowLinkDistance": boolean;
+      "graphShowTimeline": boolean;
       "readerSelectionButton": boolean;
       "stanceControlCompact": boolean;
       "copyRefsToGroup": boolean;

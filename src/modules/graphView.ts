@@ -195,6 +195,7 @@ const CONTROL_PREFS: Record<GraphControlGroup, string> = {
   tags: "graphShowTags",
   size: "graphShowSizeToggle",
   distance: "graphShowLinkDistance",
+  timeline: "graphShowTimeline",
 };
 
 /** Which optional control groups the graph window shows (prefs pane). */

@@ -67,7 +67,7 @@ export interface GraphData {
 }
 
 export type GraphControlGroup =
-  "search" | "filters" | "tags" | "size" | "distance";
+  "search" | "filters" | "tags" | "size" | "distance" | "timeline";
 
 export interface GraphArg extends ViewArgBase {
   nodes: GraphNode[];

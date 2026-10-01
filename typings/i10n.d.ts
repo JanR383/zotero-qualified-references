@@ -63,6 +63,7 @@ export type FluentMessageId =
   | 'prefs-graph-show-search'
   | 'prefs-graph-show-size'
   | 'prefs-graph-show-tags'
+  | 'prefs-graph-show-timeline'
   | 'prefs-palette-colorblind'
   | 'prefs-palette-default'
   | 'prefs-palette-label'
