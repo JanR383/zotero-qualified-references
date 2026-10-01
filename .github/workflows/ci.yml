@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+# The jobs only read the repository; keep the token read-only.
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest

@@ -25,6 +25,7 @@ describe("groupCopyGuard", function () {
   let userLib: number;
   let group: any;
   let groupLib: number;
+  let otherGroup: any;
   let prefBefore: unknown;
   let created: Zotero.Item[];
 
@@ -33,10 +34,12 @@ describe("groupCopyGuard", function () {
     userLib = Zotero.Libraries.userLibraryID;
     group = await createGroup("QRef guard test group");
     groupLib = group.libraryID;
+    otherGroup = await createGroup("QRef guard test group 2");
   });
 
   after(async function () {
     if (group) await group.eraseTx();
+    if (otherGroup) await otherGroup.eraseTx();
   });
 
   beforeEach(function () {
@@ -109,10 +112,34 @@ describe("groupCopyGuard", function () {
     assert.lengthOf(getLinks(source), 1);
   });
 
+  it("strips a copy whose personal target was erased", async function () {
+    const personalTarget = await item(userLib, "QRef personal target");
+    const source = await groupItemReferencing([personalTarget]);
+    await personalTarget.eraseTx();
+
+    await handlePossibleGroupCopy(source.id);
+
+    assert.deepEqual(getLinks(source), []);
+  });
+
+  it("strips a copy whose targets live in another group", async function () {
+    const otherTarget = await item(
+      otherGroup.libraryID,
+      "QRef other group target",
+    );
+    const source = await groupItemReferencing([otherTarget]);
+
+    await handlePossibleGroupCopy(source.id);
+
+    assert.deepEqual(getLinks(source), []);
+  });
+
   it("leaves unresolvable targets alone (another member's synced item)", async function () {
     const source = await item(groupLib, "QRef group source");
     // Target key that exists in none of the local libraries.
     await setLinks(source, [makeLink("ZZZZZZZZ", userLib, 1)]);
+    // Downloaded by sync, not created on this device.
+    await source.updateVersion(5);
 
     await handlePossibleGroupCopy(source.id);
 
