@@ -7,15 +7,24 @@ on:
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
 
+# Self-contained on purpose: the release job holds a write token, so every
+# action it runs is pinned to a commit (Dependabot keeps the pins current).
 jobs:
-  create-release:
-    uses: zotero-plugin-dev/workflows/.github/workflows/release-plugin.yml@main
-    # You can customize any of the inputs here.
-    # If you omit an input, its default value will be used.
-    with:
-      build: "npm run build"
-      release: "npm run release"
-    secrets: inherit
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24 # keep in sync with .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Release to GitHub
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
