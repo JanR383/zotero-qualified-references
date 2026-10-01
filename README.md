@@ -51,7 +51,8 @@ except those items and their direct neighbours. A **Tools → Reference List**
 window shows the same data as an expandable list, with **Expand all / Collapse
 all**, a **search** over title and author, a **stance filter**, a **sort
 order** (alphabetical, number of references, year) and the stance balance per
-row. Both windows have a **scope switcher** to narrow the view down to a single
+row. Each expanded entry shows its pages, a **↗ PDF** link to the anchored
+passage and the comment (one line, the whole text on click). Both windows have a **scope switcher** to narrow the view down to a single
 library, a collection (including its sub-collections) or, on Zotero 10, the
 **current selection** in Zotero's collection tree. Items in the trash are left
 out of both views. Both windows **update live** while open: new, changed or

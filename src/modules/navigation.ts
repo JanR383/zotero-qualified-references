@@ -8,6 +8,7 @@ import {
   type ViewStringsBase,
 } from "../shared/viewArg";
 import { buildScopeOptions, makePredicate } from "./scope";
+import { getLinks } from "./storage";
 import { STANCE_LABEL_KEY, STANCE_ORDER } from "./stanceMeta";
 import { getCurrentPaletteId, paletteOverrideCss } from "./stancePalette";
 import type { Stance } from "./types";
@@ -38,6 +39,19 @@ export function openAnnotation(
   }
 }
 
+/** Open the PDF anchor of one reference, looked up fresh on its source. */
+function openAnchor(sourceId: number, linkId: string): void {
+  const source = Zotero.Items.get(sourceId);
+  if (!source) return;
+  const link = getLinks(source).find((l) => l.id === linkId);
+  if (!link?.sourceAttachmentKey || !link.sourceAnnotationKey) return;
+  openAnnotation(
+    source.libraryID,
+    link.sourceAttachmentKey,
+    link.sourceAnnotationKey,
+  );
+}
+
 /** Item filter a view's data is built with; undefined means every item. */
 export type ItemFilter = ((item: Zotero.Item) => boolean) | undefined;
 
@@ -53,6 +67,7 @@ export function viewArgBase(
   let filter: ItemFilter;
   return {
     selectItem: selectItemInPane,
+    openAnchor,
     paletteCss: paletteOverrideCss(getCurrentPaletteId()),
     scopes: buildScopeOptions(),
     getScopedData: (id: string) => {

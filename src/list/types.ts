@@ -13,6 +13,7 @@ export interface ListEntry {
   comment?: string;
   sourcePages?: string;
   targetPages?: string;
+  hasAnchor: boolean; // a PDF anchor exists (L4: link to the passage)
 }
 
 export interface ListNode {
@@ -36,6 +37,9 @@ export interface ListStrings extends ViewStringsBase {
   sortCount: string;
   sortYear: string;
   exportMd: string;
+  openPdf: string;
+  openPdfTitle: string;
+  showComment: string;
 }
 
 export interface ListArg extends ViewArgBase {

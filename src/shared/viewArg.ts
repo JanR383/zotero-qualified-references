@@ -9,6 +9,8 @@ declare const window: Window;
  */
 export interface ViewArgBase {
   selectItem: (id: number) => void;
+  /** Open the PDF passage a reference is anchored to (graph G3, list L4). */
+  openAnchor: (sourceId: number, linkId: string) => void;
   /** Optional stance-palette override CSS (M7); injected before reading vars. */
   paletteCss?: string;
   /** Scope dropdown options (N6); first is "all", matching the initial data. */

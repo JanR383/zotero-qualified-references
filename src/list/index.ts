@@ -20,7 +20,7 @@ import { listExportData } from "./exportData";
 import { filterNodes } from "./filter";
 import { sortNodes, stanceCounts, type SortMode } from "./sort";
 import type { Stance } from "../modules/types";
-import type { ListArg, ListEntry, ListNode } from "./types";
+import type { ListArg, ListEntry, ListNode, ListStrings } from "./types";
 
 declare const window: Window & typeof globalThis & { arguments?: unknown[] };
 declare const document: Document;
@@ -33,18 +33,70 @@ function stancePill(stance: Stance): HTMLElement {
   return pill;
 }
 
+/** "Source p. 12 · Target p. 3", or "" without pages (L4). */
+function pagesText(entry: ListEntry, strings: ListStrings): string {
+  return [
+    entry.sourcePages ? `${strings.sourcePages} ${entry.sourcePages}` : "",
+    entry.targetPages ? `${strings.targetPages} ${entry.targetPages}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/**
+ * One connected item: stance, label (click selects it in Zotero), pages and a
+ * link to the anchored PDF passage; the comment below on one line, the whole
+ * of it on click (L4). `sourceId` is the item that stores the reference.
+ */
 function entryRow(
   entry: ListEntry,
-  selectItem: (id: number) => void,
+  sourceId: number,
+  arg: ListArg,
 ): HTMLElement {
   const row = create("div");
   row.className = "entry";
-  row.appendChild(stancePill(entry.stance));
+  const line = create("div");
+  line.className = "entry-line";
+  line.appendChild(stancePill(entry.stance));
   const label = create("span");
   label.className = "entry-label";
   label.textContent = entry.label;
-  label.addEventListener("click", () => selectItem(entry.id));
-  row.appendChild(label);
+  label.addEventListener("click", () => arg.selectItem(entry.id));
+  line.appendChild(label);
+  const pages = pagesText(entry, arg.strings);
+  if (pages) {
+    const p = create("span");
+    p.className = "entry-pages";
+    p.textContent = pages;
+    line.appendChild(p);
+  }
+  if (entry.hasAnchor) {
+    const pdf = create("span");
+    pdf.className = "entry-pdf";
+    pdf.textContent = arg.strings.openPdf;
+    pdf.title = arg.strings.openPdfTitle;
+    pdf.tabIndex = 0;
+    const open = (): void => arg.openAnchor(sourceId, entry.linkId);
+    pdf.addEventListener("click", open);
+    pdf.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Enter") open();
+    });
+    line.appendChild(pdf);
+  }
+  row.appendChild(line);
+  if (entry.comment) {
+    const comment = create("div");
+    comment.className = "entry-comment";
+    comment.textContent = entry.comment;
+    comment.title = arg.strings.showComment;
+    comment.addEventListener("click", () => {
+      comment.classList.toggle("open");
+      comment.title = comment.classList.contains("open")
+        ? ""
+        : arg.strings.showComment;
+    });
+    row.appendChild(comment);
+  }
   return row;
 }
 
@@ -52,7 +104,7 @@ function section(
   title: string,
   arrow: string,
   entries: ListEntry[],
-  selectItem: (id: number) => void,
+  row: (e: ListEntry) => HTMLElement,
 ): HTMLElement | null {
   if (entries.length === 0) return null;
   const wrap = create("div");
@@ -61,7 +113,7 @@ function section(
   head.className = "section-head";
   head.textContent = `${arrow} ${title}`;
   wrap.appendChild(head);
-  for (const e of entries) wrap.appendChild(entryRow(e, selectItem));
+  for (const e of entries) wrap.appendChild(row(e));
   return wrap;
 }
 
@@ -116,8 +168,13 @@ function nodeRow(node: ListNode, arg: ListArg, openIds: Set<number>): NodeRow {
 
   const body = create("div");
   body.className = "node-body";
-  const out = section(arg.strings.outgoing, "→", node.outgoing, arg.selectItem);
-  const inc = section(arg.strings.incoming, "←", node.incoming, arg.selectItem);
+  // Outgoing references are stored on this item, incoming ones on the other.
+  const out = section(arg.strings.outgoing, "→", node.outgoing, (e) =>
+    entryRow(e, node.id, arg),
+  );
+  const inc = section(arg.strings.incoming, "←", node.incoming, (e) =>
+    entryRow(e, e.id, arg),
+  );
   if (out) body.appendChild(out);
   if (inc) body.appendChild(inc);
   wrap.appendChild(body);

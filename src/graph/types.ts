@@ -94,7 +94,6 @@ export interface GraphArg extends ViewArgBase {
   /** Read at export time, so a changed setting applies without reopening. */
   exportTransparent: () => boolean;
   /** Open the source PDF at the reference's anchor (G3). */
-  openAnchor: (sourceId: number, linkId: string) => void;
   /** Optional control groups shown in the window (from prefs). */
   controls: Record<GraphControlGroup, boolean>;
   /** Item types present in the initial data (G2). */

@@ -79,10 +79,37 @@
         margin-bottom: 2px;
       }
       .entry {
+        padding: 1px 0;
+      }
+      .entry-line {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: 7px;
-        padding: 1px 0;
+      }
+      .entry-pages {
+        font-size: 0.85em;
+        opacity: 0.7;
+      }
+      .entry-pdf {
+        font-size: 0.85em;
+        cursor: pointer;
+        color: var(--color-accent, LinkText);
+      }
+      .entry-pdf:hover {
+        text-decoration: underline;
+      }
+      .entry-comment {
+        margin: 0 0 2px 30px;
+        font-size: 0.9em;
+        opacity: 0.8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+      }
+      .entry-comment.open {
+        white-space: pre-wrap;
       }
       .pill {
         display: inline-block;
