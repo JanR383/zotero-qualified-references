@@ -18,10 +18,14 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GitHub_TOKEN }}
     steps:
-      - name: Setup JS
-        uses: zotero-plugin-dev/workflows/setup-js@main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24 # keep in sync with .nvmrc
+          cache: npm
+      - run: npm ci
       - name: Run Lint
         run: npm run lint:check
 
@@ -30,14 +34,18 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GitHub_TOKEN }}
     steps:
-      - name: Setup JS
-        uses: zotero-plugin-dev/workflows/setup-js@main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24 # keep in sync with .nvmrc
+          cache: npm
+      - run: npm ci
       - name: Run Build
         run: npm run build
       - name: Upload build result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: build-result
           path: .scaffold/build
@@ -54,10 +62,14 @@ jobs:
         channel: [release, beta]
     name: test (${{ matrix.channel }})
     steps:
-      - name: Setup JS
-        uses: zotero-plugin-dev/workflows/setup-js@main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24 # keep in sync with .nvmrc
+          cache: npm
+      - run: npm ci
       - name: Install Zotero (${{ matrix.channel }})
         run: |
           wget -q -O "$RUNNER_TEMP/zotero.tar.bz2" \
