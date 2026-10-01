@@ -3,8 +3,87 @@
   xmlns:html="http://www.w3.org/1999/xhtml"
 >
   <html:link rel="localization" href="qref-addon.ftl" />
+  <!-- Grouped by where a setting takes effect. Pref keys are unchanged. -->
   <groupbox>
-    <html:h2 data-l10n-id="prefs-title"></html:h2>
+    <html:h2 data-l10n-id="prefs-pane-title"></html:h2>
+    <hbox align="center">
+      <html:label data-l10n-id="prefs-pane-fields" />
+      <checkbox
+        preference="displayPaneAuthor"
+        data-l10n-id="prefs-field-author"
+      />
+      <checkbox preference="displayPaneYear" data-l10n-id="prefs-field-year" />
+      <checkbox
+        preference="displayPaneTitle"
+        data-l10n-id="prefs-field-title"
+      />
+    </hbox>
+    <checkbox
+      preference="stanceControlCompact"
+      data-l10n-id="prefs-stance-compact"
+    />
+  </groupbox>
+  <groupbox>
+    <html:h2 data-l10n-id="prefs-graph-title"></html:h2>
+    <hbox align="center">
+      <html:label data-l10n-id="prefs-graph-fields" />
+      <checkbox
+        preference="displayGraphAuthor"
+        data-l10n-id="prefs-field-author"
+      />
+      <checkbox preference="displayGraphYear" data-l10n-id="prefs-field-year" />
+      <checkbox
+        preference="displayGraphTitle"
+        data-l10n-id="prefs-field-title"
+      />
+    </hbox>
+    <checkbox
+      preference="graphColorByType"
+      data-l10n-id="prefs-graph-colorbytype"
+    />
+    <html:label data-l10n-id="prefs-graph-controls" />
+    <hbox align="center" style="margin-inline-start: 16px">
+      <checkbox
+        preference="graphShowSearch"
+        data-l10n-id="prefs-graph-show-search"
+      />
+      <checkbox
+        preference="graphShowFilters"
+        data-l10n-id="prefs-graph-show-filters"
+      />
+      <checkbox
+        preference="graphShowTags"
+        data-l10n-id="prefs-graph-show-tags"
+      />
+    </hbox>
+    <hbox align="center" style="margin-inline-start: 16px">
+      <checkbox
+        preference="graphShowSizeToggle"
+        data-l10n-id="prefs-graph-show-size"
+      />
+      <checkbox
+        preference="graphShowLinkDistance"
+        data-l10n-id="prefs-graph-show-distance"
+      />
+      <checkbox
+        preference="graphShowTimeline"
+        data-l10n-id="prefs-graph-show-timeline"
+      />
+    </hbox>
+    <html:p
+      class="description"
+      data-l10n-id="prefs-graph-controls-desc"
+    ></html:p>
+  </groupbox>
+  <groupbox>
+    <html:h2 data-l10n-id="prefs-reader-title"></html:h2>
+    <checkbox
+      preference="readerSelectionButton"
+      data-l10n-id="prefs-reader-selection-button"
+    />
+  </groupbox>
+  <groupbox>
+    <html:h2 data-l10n-id="prefs-colors-title"></html:h2>
     <hbox align="center">
       <html:label data-l10n-id="prefs-palette-label" for="qref-palette" />
       <menulist id="qref-palette" preference="stancePalette">
@@ -17,63 +96,6 @@
         </menupopup>
       </menulist>
     </hbox>
-    <checkbox
-      preference="stanceControlCompact"
-      data-l10n-id="prefs-stance-compact"
-    />
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="prefs-display-pane-title"></html:h2>
-    <checkbox
-      preference="displayPaneAuthor"
-      data-l10n-id="prefs-field-author"
-    />
-    <checkbox preference="displayPaneYear" data-l10n-id="prefs-field-year" />
-    <checkbox preference="displayPaneTitle" data-l10n-id="prefs-field-title" />
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="prefs-display-graph-title"></html:h2>
-    <checkbox
-      preference="displayGraphAuthor"
-      data-l10n-id="prefs-field-author"
-    />
-    <checkbox preference="displayGraphYear" data-l10n-id="prefs-field-year" />
-    <checkbox preference="displayGraphTitle" data-l10n-id="prefs-field-title" />
-    <checkbox
-      preference="graphColorByType"
-      data-l10n-id="prefs-graph-colorbytype"
-    />
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="prefs-graph-controls-title"></html:h2>
-    <checkbox
-      preference="graphShowSearch"
-      data-l10n-id="prefs-graph-show-search"
-    />
-    <checkbox
-      preference="graphShowFilters"
-      data-l10n-id="prefs-graph-show-filters"
-    />
-    <checkbox preference="graphShowTags" data-l10n-id="prefs-graph-show-tags" />
-    <checkbox
-      preference="graphShowSizeToggle"
-      data-l10n-id="prefs-graph-show-size"
-    />
-    <checkbox
-      preference="graphShowLinkDistance"
-      data-l10n-id="prefs-graph-show-distance"
-    />
-    <checkbox
-      preference="graphShowTimeline"
-      data-l10n-id="prefs-graph-show-timeline"
-    />
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="prefs-reader-title"></html:h2>
-    <checkbox
-      preference="readerSelectionButton"
-      data-l10n-id="prefs-reader-selection-button"
-    />
   </groupbox>
   <groupbox>
     <html:h2 data-l10n-id="prefs-privacy-title"></html:h2>
