@@ -15,6 +15,8 @@ import {
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
 import { onViewDataChanged } from "../shared/viewArg";
+import { referencesCsv, referencesMarkdown } from "../shared/export";
+import { listExportData } from "./exportData";
 import { filterNodes } from "./filter";
 import { sortNodes, stanceCounts, type SortMode } from "./sort";
 import type { Stance } from "../modules/types";
@@ -190,9 +192,10 @@ function main(): void {
   let query = "";
   let sortMode: SortMode = "alpha";
   let rows: NodeRow[] = [];
+  let visible: ListNode[] = [];
 
   const render = (): void => {
-    const visible = sortNodes(filterNodes(nodes, query, shown), sortMode);
+    visible = sortNodes(filterNodes(nodes, query, shown), sortMode);
     root.replaceChildren();
     if (empty) {
       empty.textContent =
@@ -273,6 +276,29 @@ function main(): void {
         render();
       }),
     );
+  }
+
+  // Export (L7): the visible rows in their current order.
+  const exportMount = byId("export");
+  if (exportMount) {
+    const menu = buildScopeSelect(
+      [
+        { id: "md", label: arg.strings.exportMd },
+        { id: "csv", label: arg.strings.exportCsv },
+      ],
+      (id) => {
+        const { items, refs } = listExportData(visible, nodes);
+        arg.saveExport(
+          window,
+          `qualified-references.${id}`,
+          id === "md"
+            ? referencesMarkdown(items, refs, arg.strings)
+            : referencesCsv(refs, arg.strings.stances),
+        );
+      },
+      { label: arg.strings.export, alignRight: true },
+    );
+    exportMount.replaceWith(menu);
   }
 
   // Live refresh (G6/L8): same scope, search, filters and open rows.

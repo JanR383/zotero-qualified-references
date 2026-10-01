@@ -56,7 +56,11 @@ library, a collection (including its sub-collections) or, on Zotero 10, the
 **current selection** in Zotero's collection tree. Items in the trash are left
 out of both views. Both windows **update live** while open: new, changed or
 deleted references and items appear without reopening, and the scope, filters,
-search and layout stay as they are.
+search and layout stay as they are. An **Export** menu saves what a window
+currently shows: the graph as an image (PNG, optionally with a transparent background), as CSV (one row per reference,
+with stance, pages and comment) or as GraphML for Gephi or Cytoscape; the list
+as Markdown (one section per item, e.g. for a literature chapter) or as CSV.
+Exported items carry a `zotero://select` link back to Zotero.
 
 ![The reference graph window with a search, open filters and highlighted tags](docs/reference-graph.png)
 

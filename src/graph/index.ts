@@ -28,6 +28,12 @@ import {
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
 import { onViewDataChanged } from "../shared/viewArg";
+import {
+  referencesCsv,
+  referencesGraphml,
+  type ExportItem,
+  type ExportRef,
+} from "../shared/export";
 import { assignTagColors, ringColors } from "../modules/tagHighlight";
 import { escapeHtml, truncate } from "../shared/text";
 import { buildTagSelect } from "./tagSelect";
@@ -836,6 +842,88 @@ function main(): void {
   onViewDataChanged(() => {
     applyData(JSON.parse(arg.getCurrentData()) as GraphData, true);
   });
+
+  // Export (G8): what the window shows now, after scope, filters and search.
+  const exportMount = byId("export");
+  if (exportMount) {
+    const visibleData = (): { items: ExportItem[]; refs: ExportRef[] } => {
+      const items = new Map<number, ExportItem>();
+      for (const n of current.nodes) {
+        if (!view.visible.has(n.id)) continue;
+        items.set(n.id, {
+          id: n.id,
+          label: n.label,
+          year: n.year,
+          itemType: n.itemType,
+          uri: n.uri,
+        });
+      }
+      const refs: ExportRef[] = [];
+      for (const l of current.links) {
+        const source = items.get(endId(l.source));
+        const target = items.get(endId(l.target));
+        if (!source || !target || !shownStances.has(l.stance)) continue;
+        refs.push({
+          source,
+          target,
+          stance: l.stance,
+          comment: l.comment,
+          sourcePages: l.sourcePages,
+          targetPages: l.targetPages,
+        });
+      }
+      return { items: [...items.values()], refs };
+    };
+    const png = (): string | null => {
+      const canvas = container.querySelector("canvas");
+      if (!canvas) return null;
+      const out = create("canvas") as unknown as HTMLCanvasElement;
+      out.width = canvas.width;
+      out.height = canvas.height;
+      const ctx = out.getContext("2d") as CanvasRenderingContext2D | null;
+      if (!ctx) return null;
+      // The graph canvas is transparent; unless that is wanted (setting), give
+      // the image the window background.
+      if (!arg.exportTransparent()) {
+        const bg = body ? getComputedStyle(body).backgroundColor : "";
+        ctx.fillStyle =
+          bg && bg !== "transparent" && !bg.endsWith(", 0)")
+            ? bg
+            : isDark
+              ? "#1c1c1e"
+              : "#ffffff";
+        ctx.fillRect(0, 0, out.width, out.height);
+      }
+      ctx.drawImage(canvas, 0, 0);
+      return out.toDataURL("image/png").split(",")[1] ?? null;
+    };
+    exportMount.appendChild(
+      buildScopeSelect(
+        [
+          { id: "png", label: strings.exportPng },
+          { id: "csv", label: strings.exportCsv },
+          { id: "graphml", label: strings.exportGraphml },
+        ],
+        (id) => {
+          const name = `qualified-references.${id}`;
+          if (id === "png") {
+            const b64 = png();
+            if (b64) arg.saveExport(window, name, b64, true);
+            return;
+          }
+          const { items, refs } = visibleData();
+          arg.saveExport(
+            window,
+            name,
+            id === "csv"
+              ? referencesCsv(refs, strings.stances)
+              : referencesGraphml(items, refs, strings.stances),
+          );
+        },
+        { label: strings.export, alignRight: true },
+      ),
+    );
+  }
 
   const resize = (): void => {
     graph.width(window.innerWidth).height(window.innerHeight);

@@ -9,12 +9,17 @@ export interface ListEntry {
   stance: Stance;
   id: number; // the connected item's id (click → select in Zotero)
   label: string; // formatItem(otherItem, paneFields())
+  linkId: string; // the reference's id within its source item
+  comment?: string;
+  sourcePages?: string;
+  targetPages?: string;
 }
 
 export interface ListNode {
   id: number;
   label: string;
   year: number | null; // parsed from the date field, for sorting (L5)
+  uri: string; // zotero://select link (export, L7)
   outgoing: ListEntry[]; // references this item makes
   incoming: ListEntry[]; // references pointing at this item
 }
@@ -30,6 +35,7 @@ export interface ListStrings extends ViewStringsBase {
   sortAlpha: string;
   sortCount: string;
   sortYear: string;
+  exportMd: string;
 }
 
 export interface ListArg extends ViewArgBase {

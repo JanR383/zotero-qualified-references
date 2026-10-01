@@ -60,6 +60,11 @@ export function viewArgBase(
       return JSON.stringify(build(filter));
     },
     getCurrentData: () => JSON.stringify(build(filter)),
+    saveExport: (win, fileName, data, base64) => {
+      void saveExport(win, fileName, data, base64).catch((e: unknown) =>
+        log("QRef: export failed", e),
+      );
+    },
   };
 }
 
@@ -74,7 +79,65 @@ export function viewStringsBase(
     empty: getString("graph-empty"),
     scope: getString("scope-label"),
     stances,
+    export: getString("export"),
+    exportTitle: getString("export-title"),
+    exportCsv: getString("export-csv"),
+    sourcePages: getString("field-source-pages"),
+    targetPages: getString("field-target-pages"),
   };
+}
+
+/** A zotero://select link to an item, for exports (G8/L7). */
+export function itemUri(item: Zotero.Item): string {
+  const lib = Zotero.Libraries.get(item.libraryID);
+  const path =
+    lib && lib.libraryType === "group"
+      ? `groups/${(lib as Zotero.Group).groupID}`
+      : "library";
+  return `zotero://select/${path}/items/${item.key}`;
+}
+
+interface FilePickerInstance {
+  init(win: Window, title: string, mode: number): void;
+  appendFilter(title: string, filter: string): void;
+  defaultString: string;
+  show(): Promise<number>;
+  file: string;
+  modeSave: number;
+  returnOK: number;
+  returnReplace: number;
+}
+
+/** Zotero's async file picker (chrome/content/zotero/modules/filePicker.mjs). */
+function filePicker(): FilePickerInstance {
+  const { FilePicker } = ChromeUtils.importESModule(
+    "chrome://zotero/content/modules/filePicker.mjs",
+  ) as { FilePicker: new () => FilePickerInstance };
+  return new FilePicker();
+}
+
+function base64ToBytes(win: Window, b64: string): Uint8Array {
+  const bin = win.atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function saveExport(
+  win: Window,
+  fileName: string,
+  data: string,
+  base64 = false,
+): Promise<void> {
+  const fp = filePicker();
+  fp.init(win, getString("export-title"), fp.modeSave);
+  const ext = fileName.slice(fileName.lastIndexOf(".") + 1);
+  fp.appendFilter(ext.toUpperCase(), `*.${ext}`);
+  fp.defaultString = fileName;
+  const rv = await fp.show();
+  if (rv !== fp.returnOK && rv !== fp.returnReplace) return;
+  if (base64) await IOUtils.write(fp.file, base64ToBytes(win, data));
+  else await IOUtils.writeUTF8(fp.file, data);
 }
 
 /** The open graph and list windows, told when references change (G6/L8). */

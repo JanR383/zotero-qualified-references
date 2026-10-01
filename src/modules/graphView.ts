@@ -2,6 +2,7 @@ import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import {
   openAnnotation,
+  itemUri,
   openViewWindow,
   viewArgBase,
   type ItemFilter,
@@ -104,6 +105,7 @@ function buildData(filter?: ItemFilter): GraphData {
         label: formatItem(item, fields),
         itemType: item.itemType,
         year: itemYear(item),
+        uri: itemUri(item),
         tooltip: "",
         tags: item.getTags().map((t) => t.tag),
       });
@@ -252,6 +254,8 @@ export function openGraphView(win: Window): void {
       layoutNetwork: getString("graph-layout-network"),
       layoutTimeline: getString("graph-layout-timeline"),
       undated: getString("graph-undated"),
+      exportGraphml: getString("export-graphml"),
+      exportPng: getString("export-png"),
     },
     colorByType,
     typeLegend,
@@ -267,6 +271,9 @@ export function openGraphView(win: Window): void {
     },
     openAnchor,
     controls: loadControls(),
+    exportTransparent: () =>
+      Zotero.Prefs.get(`${config.prefsPrefix}.graphExportTransparent`, true) ===
+      true,
   };
 
   openViewWindow(win, "graph", { width: 900, height: 700 }, arg);

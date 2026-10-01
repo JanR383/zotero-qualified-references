@@ -25,6 +25,16 @@ export interface ViewArgBase {
    * "all"), as a JSON string. Used for the live refresh (G6/L8).
    */
   getCurrentData: () => string;
+  /**
+   * Ask where to save an export and write it (G8/L7). `data` is text, or a
+   * base64 string when `base64` is set (PNG). The window has no file access.
+   */
+  saveExport: (
+    win: Window,
+    fileName: string,
+    data: string,
+    base64?: boolean,
+  ) => void;
 }
 
 /** Strings both windows use. */
@@ -34,6 +44,11 @@ export interface ViewStringsBase {
   scope: string;
   /** Localized stance names (legend, filter tooltips). */
   stances: Record<Stance, string>;
+  export: string;
+  exportTitle: string;
+  exportCsv: string;
+  sourcePages: string;
+  targetPages: string;
 }
 
 /** Event a view window receives when its data may be stale (G6/L8). */

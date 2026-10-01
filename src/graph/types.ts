@@ -15,6 +15,7 @@ export interface GraphNode {
   tooltip: string; // HTML shown on hover (header + type + stance pills)
   tags: string[]; // the item's tag names (for tag highlighting, G12)
   year: number | null; // publication year (timeline layout, G11)
+  uri: string; // zotero://select link (export, G8)
   x?: number; // filled by the force engine at runtime
   y?: number;
   fx?: number; // fixed x in the timeline layout
@@ -40,6 +41,8 @@ export interface GraphStrings extends ViewStringsBase {
   layoutNetwork: string;
   layoutTimeline: string;
   undated: string;
+  exportGraphml: string;
+  exportPng: string;
   search: string;
   searchDepth2: string;
   filters: string;
@@ -88,6 +91,8 @@ export interface GraphArg extends ViewArgBase {
   linkDistance: number;
   /** Persist a changed link distance back to prefs. */
   onLinkDistanceChange?: (v: number) => void;
+  /** Read at export time, so a changed setting applies without reopening. */
+  exportTransparent: () => boolean;
   /** Open the source PDF at the reference's anchor (G3). */
   openAnchor: (sourceId: number, linkId: string) => void;
   /** Optional control groups shown in the window (from prefs). */
