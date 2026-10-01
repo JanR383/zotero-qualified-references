@@ -160,12 +160,16 @@ export function renderSection(
         const win = doc.defaultView as Window;
         const ids = referenceTargets(item, pickItems(win));
         if (ids.length === 0) return;
-        await updateLinks(item, (current) => {
-          for (const id of ids) {
-            const target = Zotero.Items.get(id);
-            if (target) current.push(makeLink(target.key, target.libraryID));
-          }
-        });
+        await updateLinks(
+          item,
+          (current) => {
+            for (const id of ids) {
+              const target = Zotero.Items.get(id);
+              if (target) current.push(makeLink(target.key, target.libraryID));
+            }
+          },
+          { action: "add", count: ids.length },
+        );
         rerender();
       }),
     );
@@ -269,10 +273,14 @@ function outgoingRow(
     del.addEventListener(
       "click",
       catching(async () => {
-        await updateLinks(source, (current) => {
-          const idx = current.findIndex((l) => l.id === link.id);
-          if (idx >= 0) current.splice(idx, 1);
-        });
+        await updateLinks(
+          source,
+          (current) => {
+            const idx = current.findIndex((l) => l.id === link.id);
+            if (idx >= 0) current.splice(idx, 1);
+          },
+          { action: "delete" },
+        );
         rerender();
       }),
     );

@@ -64,6 +64,19 @@ interface ZoteroExtras {
     getAsync(ids: number[]): Promise<Zotero.Item[]>;
     loadDataTypes(items: Zotero.Item[], types: string[]): Promise<void>;
   };
+  // Zotero's app-wide Localization (xpcom/intl.js). Zotero 10 resolves the
+  // Edit > Undo/Redo labels through it.
+  ftl: {
+    addResourceIds(ids: string[]): void;
+    removeResourceIds(ids: string[]): number;
+  };
+}
+
+// Zotero 10 (xpcom/undoHistory.js): a save carrying `undoAction` (a Fluent ID
+// resolved via Zotero.ftl) becomes one Edit > Undo step. Zotero 9 ignores both.
+interface UndoSaveOptions extends Zotero.DataObject.SaveOptions {
+  undoAction?: string;
+  undoActionArgs?: Record<string, unknown>;
 }
 
 function z(): ZoteroExtras {
@@ -77,4 +90,5 @@ export const zItemTypes = (): ZoteroExtras["ItemTypes"] => z().ItemTypes;
 export const zDate = (): ZoteroExtras["Date"] => z().Date;
 export const zItems = (): ZoteroExtras["Items"] =>
   Zotero.Items as unknown as ZoteroExtras["Items"];
-export type { ReaderEvent, ReaderSelectionEvent };
+export const zFtl = (): ZoteroExtras["ftl"] => z().ftl;
+export type { ReaderEvent, ReaderSelectionEvent, UndoSaveOptions };

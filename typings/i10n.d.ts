@@ -90,4 +90,7 @@ export type FluentMessageId =
   | 'stance-m'
   | 'stance-mm'
   | 'stance-p'
-  | 'stance-pp';
+  | 'stance-pp'
+  | 'undo-add-reference'
+  | 'undo-delete-reference'
+  | 'undo-edit-reference';

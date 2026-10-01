@@ -110,3 +110,11 @@ anchor-page = S.
 reader-add-ref = Qualifizierte Referenz von hier…
 reader-ref-created = Referenz angelegt
 reader-groupcopy-stripped = Qualifizierte Referenzen wurden nicht in die Gruppe kopiert (siehe Einstellungen → Datenschutz)
+
+# Beschriftungen für Bearbeiten > Rückgängig/Wiederholen (Zotero 10)
+undo-add-reference = { $count ->
+    [one] Bezug hinzufügen
+   *[other] { $count } Bezüge hinzufügen
+}
+undo-edit-reference = Bezug bearbeiten
+undo-delete-reference = Bezug löschen

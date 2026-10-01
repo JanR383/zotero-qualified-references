@@ -10,6 +10,7 @@ import { registerLibraryColumns } from "./modules/libraryColumns";
 import { openGraphView } from "./modules/graphView";
 import { openListView } from "./modules/listView";
 import { registerReaderHook, unregisterReaderHook } from "./modules/readerHook";
+import { registerUndoLabels, unregisterUndoLabels } from "./modules/storage";
 import { zMenuManager } from "./utils/zoteroApis";
 import {
   getCurrentPaletteId,
@@ -29,6 +30,7 @@ async function onStartup() {
   ]);
 
   initLocale();
+  registerUndoLabels();
   // Inject FTL into all currently open windows BEFORE registering the section.
   // Zotero resolves sidenav.l10nID synchronously at registration time; if the
   // FTL is not yet in the bundle the sidenav button is silently omitted.
@@ -195,6 +197,7 @@ async function onMainWindowUnload(_win: Window): Promise<void> {
 function onShutdown(): void {
   unregisterReferenceSection();
   unregisterReaderHook();
+  unregisterUndoLabels();
   zMenuManager()?.unregisterMenu(`${addon.data.config.addonRef}-tools`);
   unregisterNotifier();
   if (palettePrefObserver !== undefined) {
