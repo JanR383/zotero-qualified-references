@@ -1,7 +1,6 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import {
-  openAnnotation,
   itemUri,
   openViewWindow,
   viewArgBase,
@@ -13,7 +12,7 @@ import { escapeHtml, truncate } from "../shared/text";
 import { formatItem, graphFields, itemYear } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
-import { forEachResolvedLink, getLinks } from "./storage";
+import { forEachResolvedLink } from "./storage";
 import { collectTagOptions, loadTagColors } from "./tagHighlight";
 import type { Stance } from "./types";
 import type {
@@ -178,19 +177,6 @@ function buildData(filter?: ItemFilter): GraphData {
   };
 }
 
-/** Open the PDF anchor of one reference, looked up fresh on its source. */
-function openAnchor(sourceId: number, linkId: string): void {
-  const source = Zotero.Items.get(sourceId);
-  if (!source) return;
-  const link = getLinks(source).find((l) => l.id === linkId);
-  if (!link?.sourceAttachmentKey || !link.sourceAnnotationKey) return;
-  openAnnotation(
-    source.libraryID,
-    link.sourceAttachmentKey,
-    link.sourceAnnotationKey,
-  );
-}
-
 const HIGHLIGHT_PREF = `${config.prefsPrefix}.graphHighlightTags`;
 
 /** The tags selected for highlighting last time (lower-cased keys). */
@@ -269,7 +255,6 @@ export function openGraphView(win: Window): void {
     onLinkDistanceChange: (v: number) => {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
     },
-    openAnchor,
     controls: loadControls(),
     exportTransparent: () =>
       Zotero.Prefs.get(`${config.prefsPrefix}.graphExportTransparent`, true) ===

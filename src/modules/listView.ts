@@ -50,6 +50,7 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
       comment: link.comment,
       sourcePages: link.sourcePages,
       targetPages: link.targetPages,
+      hasAnchor: !!(link.sourceAttachmentKey && link.sourceAnnotationKey),
     };
     sNode.outgoing.push({ ...details, id: target.id, label: tNode.label });
     tNode.incoming.push({ ...details, id: source.id, label: sNode.label });
@@ -81,6 +82,9 @@ export function openListView(win: Window): void {
       sortCount: getString("list-sort-count"),
       sortYear: getString("list-sort-year"),
       exportMd: getString("export-md"),
+      openPdf: getString("list-open-pdf"),
+      openPdfTitle: getString("list-open-pdf-title"),
+      showComment: getString("list-show-comment"),
     },
   };
 
