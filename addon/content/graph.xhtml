@@ -116,6 +116,13 @@
       #controls [hidden] {
         display: none !important;
       }
+      #layout button {
+        flex: 1 1 0;
+        cursor: pointer;
+      }
+      #layout button[aria-pressed="true"] {
+        font-weight: bold;
+      }
       #empty {
         display: none;
         position: fixed;
@@ -135,6 +142,12 @@
         <label id="scope-label"></label>
         <div id="scope"></div>
       </div>
+      <div
+        class="control-row"
+        id="layout"
+        role="group"
+        data-group="timeline"
+      ></div>
       <div class="control-row" data-group="search">
         <input id="search" type="search" />
       </div>

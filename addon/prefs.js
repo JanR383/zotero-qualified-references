@@ -30,6 +30,7 @@ pref("graphShowFilters", true);
 pref("graphShowTags", true);
 pref("graphShowSizeToggle", false);
 pref("graphShowLinkDistance", false);
+pref("graphShowTimeline", false);
 
 // Reader: show a "create qualified reference" button in the PDF text-selection
 // popup (anchors a reference to a highlight created on the fly).

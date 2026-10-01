@@ -42,9 +42,8 @@ export function formatItem(item: Zotero.Item, f: FieldSet): string {
     : "";
   let year = "";
   if (f.year) {
-    const date = (item.getField("date") as string) || "";
-    const parsed = date ? zDate().strToDate(date) : null;
-    if (parsed && parsed.year) year = String(parsed.year);
+    const parsed = itemYear(item);
+    if (parsed !== null) year = String(parsed);
   }
   const title = f.title ? item.getDisplayTitle() : "";
 
@@ -53,4 +52,11 @@ export function formatItem(item: Zotero.Item, f: FieldSet): string {
   let out = meta;
   if (title) out = out ? `${out}: ${title}` : title;
   return out.trim() || item.getDisplayTitle();
+}
+
+/** Publication year parsed from the date field, or null when there is none. */
+export function itemYear(item: Zotero.Item): number | null {
+  const date = (item.getField("date") as string) || "";
+  const year = date ? Number(zDate().strToDate(date)?.year) : NaN;
+  return Number.isFinite(year) && year !== 0 ? year : null;
 }
