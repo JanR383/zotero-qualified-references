@@ -31,6 +31,7 @@ import { assignTagColors, ringColors } from "../modules/tagHighlight";
 import { escapeHtml, truncate } from "../shared/text";
 import { buildTagSelect } from "./tagSelect";
 import { computeView, linkShown, sizeFactor, type ViewState } from "./view";
+import { timeScale, type TimeScale } from "./timeline";
 import type { Stance } from "../modules/types";
 import type {
   GraphArg,
@@ -442,6 +443,38 @@ function main(): void {
       }
       ctx.globalAlpha = 1;
     })
+    // Timeline layout (G11): year grid behind the nodes.
+    .onRenderFramePre((ctx, scale) => {
+      if (!timeline) return;
+      const tl = graph.screen2GraphCoords(0, 0);
+      const br = graph.screen2GraphCoords(
+        window.innerWidth,
+        window.innerHeight,
+      );
+      const fontSize = 11 / scale;
+      ctx.save();
+      ctx.font = `${fontSize}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.strokeStyle = labelColor;
+      ctx.fillStyle = labelColor;
+      ctx.lineWidth = 1 / scale;
+      const column = (x: number, text: string, dashed: boolean): void => {
+        ctx.globalAlpha = 0.15;
+        ctx.setLineDash(dashed ? [4 / scale, 4 / scale] : []);
+        ctx.beginPath();
+        ctx.moveTo(x, tl.y);
+        ctx.lineTo(x, br.y);
+        ctx.stroke();
+        ctx.globalAlpha = 0.7;
+        ctx.fillText(text, x, tl.y + 4 / scale);
+      };
+      for (const t of timeline.ticks) column(t.x, String(t.year), false);
+      if (timeline.undatedX !== null) {
+        column(timeline.undatedX, strings.undated, true);
+      }
+      ctx.restore();
+    })
     // Paint the clickable hit area to match the drawn shape.
     .nodePointerAreaPaint((n, color, ctx) => {
       pathShape(ctx, typeShape(n.itemType), n.x ?? 0, n.y ?? 0, radius(n));
@@ -458,6 +491,35 @@ function main(): void {
     graph.d3ReheatSimulation();
   };
   applyDistance(arg.linkDistance);
+
+  // Timeline layout (G11): x is fixed by year, y stays free but is pulled
+  // gently towards the axis so the band does not drift apart.
+  let timeline: TimeScale | null = null;
+  let layoutNodes: GraphNode[] = [];
+  const pullToAxis = Object.assign(
+    (alpha: number): void => {
+      for (const n of layoutNodes)
+        n.vy = (n.vy ?? 0) - (n.y ?? 0) * 0.05 * alpha;
+    },
+    {
+      initialize: (ns: GraphNode[]): void => {
+        layoutNodes = ns;
+      },
+    },
+  );
+  const applyLayout = (useTimeline: boolean): void => {
+    timeline = useTimeline ? timeScale(current.nodes.map((n) => n.year)) : null;
+    for (const n of current.nodes) {
+      if (timeline) n.fx = timeline.x(n.year);
+      else delete n.fx;
+    }
+    graph.d3Force("timelineY", timeline ? pullToAxis : null);
+    graph.d3ReheatSimulation();
+    window.setTimeout(
+      () => graph.zoomToFit(600, 40, (n) => view.visible.has(n.id)),
+      900,
+    );
+  };
 
   let current: GraphData = {
     nodes: [],
@@ -557,6 +619,7 @@ function main(): void {
     tagSelect.setOptions(data.tagOptions);
     renderTypeFilter();
     refresh();
+    if (timeline) applyLayout(true);
   };
   applyData({
     nodes: arg.nodes,
@@ -572,6 +635,28 @@ function main(): void {
   for (const el of document.querySelectorAll<HTMLElement>("[data-group]")) {
     const group = el.dataset.group as keyof GraphArg["controls"];
     if (arg.controls[group] === false) el.hidden = true;
+  }
+
+  // Layout switch (G11): network or timeline.
+  const layoutMount = byId("layout");
+  if (layoutMount) {
+    const buttons = [
+      { label: strings.layoutNetwork, on: false },
+      { label: strings.layoutTimeline, on: true },
+    ].map(({ label, on }) => {
+      const b = create("button");
+      b.textContent = label;
+      b.setAttribute("aria-pressed", String(on === !!timeline));
+      b.addEventListener("click", () => {
+        if (on === !!timeline) return;
+        for (const other of buttons) {
+          other.setAttribute("aria-pressed", String(other === b));
+        }
+        applyLayout(on);
+      });
+      return b;
+    });
+    layoutMount.append(...buttons);
   }
 
   // Search (G5): hits are outlined, their neighbourhood stays opaque, the

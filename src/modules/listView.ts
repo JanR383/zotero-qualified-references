@@ -1,9 +1,8 @@
 import { getString } from "../utils/locale";
 import { openViewWindow, viewArgBase, viewStringsBase } from "./navigation";
-import { formatItem, paneFields } from "./itemFormat";
+import { formatItem, itemYear, paneFields } from "./itemFormat";
 import { forEachResolvedLink } from "./storage";
 import { makePredicate } from "./scope";
-import { zDate } from "../utils/zoteroApis";
 import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 /**
@@ -15,12 +14,6 @@ import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 function byStance(a: ListEntry, b: ListEntry): number {
   return b.stance - a.stance || a.label.localeCompare(b.label);
-}
-
-function itemYear(item: Zotero.Item): number | null {
-  const date = (item.getField("date") as string) || "";
-  const year = date ? Number(zDate().strToDate(date)?.year) : NaN;
-  return Number.isFinite(year) ? year : null;
 }
 
 function buildNodes(scopeId = "all"): ListNode[] {

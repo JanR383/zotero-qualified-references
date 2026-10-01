@@ -8,7 +8,7 @@ import {
 } from "./navigation";
 import { zItemTypes } from "../utils/zoteroApis";
 import { escapeHtml, truncate } from "../shared/text";
-import { formatItem, graphFields } from "./itemFormat";
+import { formatItem, graphFields, itemYear } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
 import { forEachResolvedLink, getLinks } from "./storage";
@@ -89,6 +89,7 @@ function buildData(scopeId = "all"): GraphData {
         id: item.id,
         label: formatItem(item, fields),
         itemType: item.itemType,
+        year: itemYear(item),
         tooltip: "",
         tags: item.getTags().map((t) => t.tag),
       });
@@ -235,6 +236,9 @@ export function openGraphView(win: Window): void {
       tagsFilter: getString("graph-tags-filter"),
       tagsNone: getString("graph-tags-none"),
       tagFocus: getString("graph-tag-focus"),
+      layoutNetwork: getString("graph-layout-network"),
+      layoutTimeline: getString("graph-layout-timeline"),
+      undated: getString("graph-undated"),
     },
     colorByType,
     typeLegend,

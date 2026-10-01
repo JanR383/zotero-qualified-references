@@ -14,8 +14,11 @@ export interface GraphNode {
   itemType: string; // Zotero item type (for colour-by-type, N5)
   tooltip: string; // HTML shown on hover (header + type + stance pills)
   tags: string[]; // the item's tag names (for tag highlighting, G12)
+  year: number | null; // publication year (timeline layout, G11)
   x?: number; // filled by the force engine at runtime
   y?: number;
+  fx?: number; // fixed x in the timeline layout
+  vy?: number;
 }
 
 export interface GraphLink {
@@ -33,6 +36,9 @@ export interface GraphLink {
 
 export interface GraphStrings extends ViewStringsBase {
   linkDistance: string;
+  layoutNetwork: string;
+  layoutTimeline: string;
+  undated: string;
   search: string;
   searchDepth2: string;
   filters: string;
