@@ -1,6 +1,6 @@
 # Qualified References (Zotero plugin)
 
-> ⚠️ **Note:** This plugin was largely "vibe-coded" with **Claude Opus 4.8**. It
+> ⚠️ **Note:** This plugin was largely "vibe-coded" with **Claude Opus 4.8/5.5**. It
 > may contain bugs or rough edges — use at your own discretion, and please
 > report issues.
 
