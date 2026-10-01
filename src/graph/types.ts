@@ -18,6 +18,7 @@ export interface GraphNode {
   x?: number; // filled by the force engine at runtime
   y?: number;
   fx?: number; // fixed x in the timeline layout
+  vx?: number;
   vy?: number;
 }
 

@@ -1,5 +1,6 @@
 import { assert } from "chai";
 import { buildScopeOptions, makePredicate } from "../src/modules/scope";
+import { viewArgBase } from "../src/modules/navigation";
 import { wirePluginGlobals } from "./helpers";
 
 /**
@@ -100,6 +101,21 @@ describe("scope", function () {
       const pred = makePredicate("sel")!;
       assert.isTrue(pred(inChild));
       assert.isTrue(pred(outside));
+    });
+
+    it("keeps its snapshot for the live refresh (G6/L8)", async function () {
+      // `build` reports which of the two test items the filter accepts.
+      const arg = viewArgBase((filter) =>
+        [inChild, outside].filter((i) => !filter || filter(i)).map((i) => i.id),
+      );
+      assert.deepEqual(JSON.parse(arg.getCurrentData()), [
+        inChild.id,
+        outside.id,
+      ]);
+      await tree().selectCollection(parent.id);
+      assert.deepEqual(JSON.parse(arg.getScopedData("sel")), [inChild.id]);
+      await tree().selectLibrary(lib);
+      assert.deepEqual(JSON.parse(arg.getCurrentData()), [inChild.id]);
     });
   });
 });

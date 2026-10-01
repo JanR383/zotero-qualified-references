@@ -27,6 +27,7 @@ import {
 } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
+import { onViewDataChanged } from "../shared/viewArg";
 import { assignTagColors, ringColors } from "../modules/tagHighlight";
 import { escapeHtml, truncate } from "../shared/text";
 import { buildTagSelect } from "./tagSelect";
@@ -540,7 +541,7 @@ function main(): void {
       },
     },
   );
-  const applyLayout = (useTimeline: boolean): void => {
+  const applyLayout = (useTimeline: boolean, fit = true): void => {
     timeline = useTimeline ? timeScale(current.nodes.map((n) => n.year)) : null;
     for (const n of current.nodes) {
       if (timeline) n.fx = timeline.x(n.year);
@@ -548,6 +549,7 @@ function main(): void {
     }
     graph.d3Force("timelineY", timeline ? pullToAxis : null);
     graph.d3ReheatSimulation();
+    if (!fit) return;
     window.setTimeout(
       () => graph.zoomToFit(600, 40, (n) => view.visible.has(n.id)),
       900,
@@ -641,8 +643,21 @@ function main(): void {
     }
   };
 
-  // (Re)load the graph data, edge curvature and legends for a scope.
-  const applyData = (data: GraphData): void => {
+  // (Re)load the graph data, edge curvature and legends for a scope. A live
+  // refresh (G6/L8) keeps the positions of nodes that are still there and
+  // the current view, so the graph does not jump on every edit.
+  const applyData = (data: GraphData, live = false): void => {
+    if (live) {
+      const old = new Map(current.nodes.map((n) => [n.id, n]));
+      for (const n of data.nodes) {
+        const o = old.get(n.id);
+        if (!o) continue;
+        n.x = o.x;
+        n.y = o.y;
+        n.vx = o.vx;
+        n.vy = o.vy;
+      }
+    }
     current = data;
     labels = new Map(data.nodes.map((n) => [n.id, n.label]));
     for (const { type } of data.itemTypes) {
@@ -664,7 +679,7 @@ function main(): void {
     tagSelect.setOptions(data.tagOptions);
     renderTypeFilter();
     refresh();
-    if (timeline) applyLayout(true);
+    if (timeline) applyLayout(true, !live);
   };
   applyData({
     nodes: arg.nodes,
@@ -816,6 +831,11 @@ function main(): void {
       }),
     );
   }
+
+  // Live refresh (G6/L8): references or items changed in Zotero.
+  onViewDataChanged(() => {
+    applyData(JSON.parse(arg.getCurrentData()) as GraphData, true);
+  });
 
   const resize = (): void => {
     graph.width(window.innerWidth).height(window.innerHeight);

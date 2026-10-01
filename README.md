@@ -54,7 +54,9 @@ order** (alphabetical, number of references, year) and the stance balance per
 row. Both windows have a **scope switcher** to narrow the view down to a single
 library, a collection (including its sub-collections) or, on Zotero 10, the
 **current selection** in Zotero's collection tree. Items in the trash are left
-out of both views.
+out of both views. Both windows **update live** while open: new, changed or
+deleted references and items appear without reopening, and the scope, filters,
+search and layout stay as they are.
 
 ![The reference graph window with a search, open filters and highlighted tags](docs/reference-graph.png)
 

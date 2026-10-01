@@ -1,6 +1,8 @@
 import type { ScopeOption } from "../modules/scope";
 import type { Stance } from "../modules/types";
 
+declare const window: Window;
+
 /**
  * The part of the window argument the graph and list windows share. Handed
  * over via `window.arguments[0]` (see openViewWindow in modules/navigation.ts).
@@ -18,6 +20,11 @@ export interface ViewArgBase {
    * serialized here and JSON.parsed back into native objects in the window.
    */
   getScopedData: (id: string) => string;
+  /**
+   * Rebuild the data of the scope last passed to getScopedData (initially
+   * "all"), as a JSON string. Used for the live refresh (G6/L8).
+   */
+  getCurrentData: () => string;
 }
 
 /** Strings both windows use. */
@@ -27,4 +34,22 @@ export interface ViewStringsBase {
   scope: string;
   /** Localized stance names (legend, filter tooltips). */
   stances: Record<Stance, string>;
+}
+
+/** Event a view window receives when its data may be stale (G6/L8). */
+export const VIEW_CHANGED_EVENT = "qref-data-changed";
+
+/**
+ * Run `reload` once the burst of change events has settled. Editing one item
+ * fires several notifier events, and a bulk edit hundreds.
+ */
+export function onViewDataChanged(reload: () => void, delay = 300): void {
+  let timer: number | undefined;
+  window.addEventListener(VIEW_CHANGED_EVENT, () => {
+    if (timer !== undefined) window.clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      timer = undefined;
+      reload();
+    }, delay);
+  });
 }

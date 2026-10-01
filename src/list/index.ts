@@ -14,6 +14,7 @@ import {
 } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
+import { onViewDataChanged } from "../shared/viewArg";
 import { filterNodes } from "./filter";
 import { sortNodes, stanceCounts, type SortMode } from "./sort";
 import type { Stance } from "../modules/types";
@@ -273,6 +274,14 @@ function main(): void {
       }),
     );
   }
+
+  // Live refresh (G6/L8): same scope, search, filters and open rows.
+  onViewDataChanged(() => {
+    nodes = (JSON.parse(arg.getCurrentData()) as { nodes: ListNode[] }).nodes;
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+  });
 }
 
 main();
