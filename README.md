@@ -32,7 +32,7 @@ Alternatively, select text without creating a highlight first and use the
 button in the selection popup — it creates the highlight and the reference in
 one step. This button can be turned off in Settings if you don't want it.
 
-![Creating a reference from a PDF highlight](docs/pdf-annotation-menu.png)
+![Creating a reference from a text selection in the PDF reader](docs/pdf-annotation-menu.png)
 
 A **Tools → Reference Graph** window visualises the whole network: items as
 nodes (shaped and coloured by item type), references as directed arrows
@@ -56,13 +56,15 @@ library, a collection (including its sub-collections) or, on Zotero 10, the
 **current selection** in Zotero's collection tree. Items in the trash are left
 out of both views.
 
-![The reference graph window](docs/reference-graph.png)
+![The reference graph window with a search, open filters and highlighted tags](docs/reference-graph.png)
 
-![The reference list window](docs/reference-list.png)
+![The reference list window with stance balance per item](docs/reference-list.png)
 
 Two optional, sortable columns for Zotero's item list, **Ref. (+)** and
 **Ref. (−)**, count an item's incoming supporting and contrasting references.
 Enable them by right-clicking the column header.
+
+![The Ref. (+) and Ref. (−) columns in Zotero's item list](docs/library-columns.png)
 
 ## Data storage
 
