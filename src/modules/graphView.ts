@@ -52,7 +52,7 @@ function entryRows(
   edges: Edge[] | undefined,
   nodes: Map<number, GraphNode>,
 ): string {
-  if (!edges || edges.length === 0) return `<div style="opacity:.55">–</div>`;
+  if (!edges || edges.length === 0) return "";
   const cap = 8;
   const sorted = edges.slice().sort((a, b) => b.stance - a.stance);
   const rows = sorted
@@ -67,6 +67,20 @@ function entryRows(
       ? `<div style="opacity:.55">… +${sorted.length - cap}</div>`
       : "";
   return rows + more;
+}
+
+/** A titled tooltip section; omitted entirely when there are no edges. */
+function section(
+  title: string,
+  edges: Edge[] | undefined,
+  nodes: Map<number, GraphNode>,
+): string {
+  const rows = entryRows(edges, nodes);
+  if (!rows) return "";
+  return (
+    `<div style="font-size:.85em;opacity:.75;margin:6px 0 2px">${escapeHtml(title)}</div>` +
+    rows
+  );
 }
 
 function buildData(scopeId = "all"): GraphData {
@@ -121,10 +135,8 @@ function buildData(scopeId = "all"): GraphData {
       `<div style="max-width:380px">` +
       `<b>${escapeHtml(node.label)}</b>` +
       `<div style="opacity:.65;font-size:.85em;margin:1px 0 6px">${escapeHtml(typeName)}</div>` +
-      `<div style="font-size:.8em;opacity:.7;margin-bottom:1px">→ ${escapeHtml(getString("graph-out"))}</div>` +
-      entryRows(outEdges.get(node.id), nodes) +
-      `<div style="font-size:.8em;opacity:.7;margin:6px 0 1px">← ${escapeHtml(getString("graph-in"))}</div>` +
-      entryRows(inEdges.get(node.id), nodes) +
+      section(`→ ${getString("graph-out")}`, outEdges.get(node.id), nodes) +
+      section(`← ${getString("graph-in")}`, inEdges.get(node.id), nodes) +
       `</div>`;
   }
 

@@ -123,6 +123,18 @@
       #layout button[aria-pressed="true"] {
         font-weight: bold;
       }
+      /* Hover tooltips (force-graph's float-tooltip): opaque, theme-aware,
+         larger text and a shadow so they stand out over a busy graph. */
+      .float-tooltip-kap {
+        padding: 8px 10px !important;
+        border-radius: 6px !important;
+        font: 13px/1.45 sans-serif !important;
+        color: CanvasText !important;
+        background: Canvas !important;
+        border: 1px solid var(--material-border-quarternary, #bbb);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+        z-index: 20;
+      }
       #empty {
         display: none;
         position: fixed;

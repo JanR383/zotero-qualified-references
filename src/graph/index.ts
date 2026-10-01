@@ -32,6 +32,7 @@ import { escapeHtml, truncate } from "../shared/text";
 import { buildTagSelect } from "./tagSelect";
 import { computeView, linkShown, sizeFactor, type ViewState } from "./view";
 import { timeScale, type TimeScale } from "./timeline";
+import { LabelBoxes, estimateLabelWidth } from "./labels";
 import type { Stance } from "../modules/types";
 import type {
   GraphArg,
@@ -433,6 +434,15 @@ function main(): void {
         ctx.textBaseline = "top";
         const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
         const ly = y + outer(n) + 2 / scale;
+        // Skip a label that would cover one already drawn (nodes are drawn
+        // most-connected first); hovered node and search hits always show.
+        const w = ctx.measureText(text).width;
+        const box = { x: x - w / 2, y: ly, w, h: fontSize * 1.2 };
+        if (hovered === n.id || view.hits?.has(n.id)) labelBoxes.force(box);
+        else if (!labelBoxes.claim(box)) {
+          ctx.globalAlpha = 1;
+          return;
+        }
         // Contrasting halo behind the label so it stays legible over edges.
         ctx.lineWidth = 3 / scale;
         ctx.lineJoin = "round";
@@ -445,6 +455,7 @@ function main(): void {
     })
     // Timeline layout (G11): year grid behind the nodes.
     .onRenderFramePre((ctx, scale) => {
+      labelBoxes.reset();
       if (!timeline) return;
       const tl = graph.screen2GraphCoords(0, 0);
       const br = graph.screen2GraphCoords(
@@ -467,7 +478,8 @@ function main(): void {
         ctx.lineTo(x, br.y);
         ctx.stroke();
         ctx.globalAlpha = 0.7;
-        ctx.fillText(text, x, tl.y + 4 / scale);
+        // Year at the bottom edge: legend and controls cover the top.
+        ctx.fillText(text, x, br.y - fontSize - 6 / scale);
       };
       for (const t of timeline.ticks) column(t.x, String(t.year), false);
       if (timeline.undatedX !== null) {
@@ -496,10 +508,31 @@ function main(): void {
   // gently towards the axis so the band does not drift apart.
   let timeline: TimeScale | null = null;
   let layoutNodes: GraphNode[] = [];
+  // Items whose labels would overlap horizontally (near years) are pushed
+  // apart vertically, so the timeline does not stack labels on one line.
+  const LABEL_GAP = 34; // vertical room per label row, graph units
   const pullToAxis = Object.assign(
     (alpha: number): void => {
       for (const n of layoutNodes)
         n.vy = (n.vy ?? 0) - (n.y ?? 0) * 0.05 * alpha;
+      const shown = layoutNodes
+        .filter((n) => view.visible.has(n.id))
+        .sort((a, b) => (a.fx ?? 0) - (b.fx ?? 0));
+      for (let i = 0; i < shown.length; i++) {
+        const a = shown[i];
+        const wa = estimateLabelWidth(a.label);
+        for (let j = i + 1; j < shown.length; j++) {
+          const b = shown[j];
+          const dx = (b.fx ?? 0) - (a.fx ?? 0);
+          if (dx >= (wa + estimateLabelWidth(b.label)) / 2) break;
+          const dy = (b.y ?? 0) - (a.y ?? 0);
+          if (Math.abs(dy) >= LABEL_GAP) continue;
+          const push = (LABEL_GAP - Math.abs(dy)) * 0.5 * alpha;
+          const dir = dy === 0 ? (j % 2 ? 1 : -1) : Math.sign(dy);
+          a.vy = (a.vy ?? 0) - push * dir;
+          b.vy = (b.vy ?? 0) + push * dir;
+        }
+      }
     },
     {
       initialize: (ns: GraphNode[]): void => {
@@ -520,6 +553,8 @@ function main(): void {
       900,
     );
   };
+
+  const labelBoxes = new LabelBoxes();
 
   let current: GraphData = {
     nodes: [],
@@ -615,6 +650,16 @@ function main(): void {
     }
     knownTypes = new Set([...knownTypes, ...data.itemTypes.map((t) => t.type)]);
     computeCurvature(data.links);
+    // Draw (and so label) the most connected nodes first.
+    const degree = new Map<number, number>();
+    for (const l of data.links) {
+      for (const id of [endId(l.source), endId(l.target)]) {
+        degree.set(id, (degree.get(id) ?? 0) + 1);
+      }
+    }
+    data.nodes.sort(
+      (a, b) => (degree.get(b.id) ?? 0) - (degree.get(a.id) ?? 0),
+    );
     graph.graphData({ nodes: data.nodes, links: data.links });
     tagSelect.setOptions(data.tagOptions);
     renderTypeFilter();
