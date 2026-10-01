@@ -15,9 +15,15 @@ export interface ScopeSelectOption {
   label: string; // may contain leading spaces for collection-tree indentation
 }
 
+/**
+ * With `label`, the button keeps that text and works as an action menu (e.g.
+ * Export); `alignRight` opens the list towards the left, for buttons at the
+ * right edge of the window.
+ */
 export function buildScopeSelect(
   options: ScopeSelectOption[],
   onChange: (id: string) => void,
+  opts: { label?: string; alignRight?: boolean } = {},
 ): HTMLElement {
   const root = create("div");
   root.style.position = "relative";
@@ -33,7 +39,7 @@ export function buildScopeSelect(
   labelText.style.overflow = "hidden";
   labelText.style.textOverflow = "ellipsis";
   labelText.style.whiteSpace = "nowrap";
-  labelText.textContent = options[0]?.label ?? "";
+  labelText.textContent = opts.label ?? options[0]?.label ?? "";
   const caret = create("span");
   caret.textContent = "▾";
   caret.style.flex = "0 0 auto";
@@ -42,7 +48,8 @@ export function buildScopeSelect(
   const menu = create("div");
   menu.style.position = "absolute";
   menu.style.top = "100%";
-  menu.style.left = "0";
+  if (opts.alignRight) menu.style.right = "0";
+  else menu.style.left = "0";
   menu.style.minWidth = "100%";
   menu.style.maxHeight = "320px";
   menu.style.overflowY = "auto";
@@ -86,7 +93,7 @@ export function buildScopeSelect(
     row.addEventListener("focus", () => highlight(true));
     row.addEventListener("blur", () => highlight(false));
     row.addEventListener("click", () => {
-      labelText.textContent = opt.label;
+      if (opts.label === undefined) labelText.textContent = opt.label;
       close();
       onChange(opt.id);
     });

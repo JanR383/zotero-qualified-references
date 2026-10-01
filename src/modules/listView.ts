@@ -1,5 +1,6 @@
 import { getString } from "../utils/locale";
 import {
+  itemUri,
   openViewWindow,
   viewArgBase,
   viewStringsBase,
@@ -31,6 +32,7 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
         id: item.id,
         label: formatItem(item, fields),
         year: itemYear(item),
+        uri: itemUri(item),
         outgoing: [],
         incoming: [],
       };
@@ -42,16 +44,15 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
   forEachResolvedLink((source, target, link) => {
     const sNode = ensure(source);
     const tNode = ensure(target);
-    sNode.outgoing.push({
+    const details = {
       stance: link.stance,
-      id: target.id,
-      label: tNode.label,
-    });
-    tNode.incoming.push({
-      stance: link.stance,
-      id: source.id,
-      label: sNode.label,
-    });
+      linkId: link.id,
+      comment: link.comment,
+      sourcePages: link.sourcePages,
+      targetPages: link.targetPages,
+    };
+    sNode.outgoing.push({ ...details, id: target.id, label: tNode.label });
+    tNode.incoming.push({ ...details, id: source.id, label: sNode.label });
   }, filter);
 
   const result = [...nodes.values()];
@@ -79,6 +80,7 @@ export function openListView(win: Window): void {
       sortAlpha: getString("list-sort-alpha"),
       sortCount: getString("list-sort-count"),
       sortYear: getString("list-sort-year"),
+      exportMd: getString("export-md"),
     },
   };
 
