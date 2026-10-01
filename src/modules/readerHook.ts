@@ -1,7 +1,7 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import { pickItems, referenceTargets } from "./picker";
-import { getLinks, makeLink, setLinks } from "./storage";
+import { getLinks, makeLink, reportSaveError, setLinks } from "./storage";
 import { refreshSectionIfVisible } from "./referenceSection";
 import {
   zReader,
@@ -137,7 +137,7 @@ async function createReferenceFromAnnotation(
     const pageLabel = ann ? ann.annotationPageLabel || undefined : undefined;
     await createReference(r.att, r.source, async () => annKey, pageLabel);
   } catch (e) {
-    log("QRef: failed to create reference from annotation", e);
+    reportSaveError("QRef: failed to create reference from annotation", e);
   }
 }
 
@@ -170,7 +170,7 @@ async function createReferenceFromSelection(
       annotation.pageLabel || undefined,
     );
   } catch (e) {
-    log("QRef: failed to create reference from selection", e);
+    reportSaveError("QRef: failed to create reference from selection", e);
   }
 }
 

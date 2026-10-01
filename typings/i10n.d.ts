@@ -86,6 +86,7 @@ export type FluentMessageId =
   | 'reader-add-ref'
   | 'reader-groupcopy-stripped'
   | 'reader-ref-created'
+  | 'save-too-large'
   | 'scope-all'
   | 'scope-label'
   | 'scope-selection'

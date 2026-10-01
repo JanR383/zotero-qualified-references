@@ -6,6 +6,8 @@ import {
   getLinks,
   itemForIndexKey,
   libraryIDFromRef,
+  EXTRA_BYTE_LIMIT,
+  ExtraTooLargeError,
   libraryRef,
   makeLink,
   onItemChanged,
@@ -13,6 +15,7 @@ import {
   setLinks,
   updateLink,
   updateLinks,
+  utf8Length,
 } from "../src/modules/storage";
 import { createGroup, refsLine } from "./helpers";
 
@@ -104,6 +107,46 @@ describe("storage", function () {
       await setLinks(source, []);
       assert.deepEqual(getLinks(source), []);
       assert.notInclude(source.getField("extra"), "Reference-Graph");
+    });
+  });
+
+  describe("sync size limit of Extra", function () {
+    it("counts UTF-8 bytes like the sync server", function () {
+      assert.equal(utf8Length("abc"), 3);
+      assert.equal(utf8Length("ä"), 2);
+      assert.equal(utf8Length("€"), 3);
+      assert.equal(utf8Length("😀"), 4);
+    });
+
+    it("refuses a save that grows Extra past the limit, item unchanged", async function () {
+      const before = source.getField("extra");
+      const link = makeLink(target.key, target.libraryID);
+      link.comment = "ä".repeat(EXTRA_BYTE_LIMIT / 2);
+      let error: unknown;
+      try {
+        await setLinks(source, [link]);
+      } catch (e) {
+        error = e;
+      }
+      assert.instanceOf(error, ExtraTooLargeError);
+      assert.equal(source.getField("extra"), before);
+      assert.isFalse(source.hasChanged());
+    });
+
+    it("still allows shrinking an Extra that is already too large", async function () {
+      const big = makeLink(target.key, target.libraryID);
+      big.comment = "x".repeat(4000);
+      // Over the limit, written directly as another device or tool might.
+      const links = Array.from({ length: 16 }, () => ({
+        ...big,
+        id: makeLink(target.key, target.libraryID).id,
+      }));
+      source.setField("extra", `Reference-Graph: ${JSON.stringify(links)}`);
+      await source.saveTx();
+      assert.isAbove(utf8Length(source.getField("extra")), EXTRA_BYTE_LIMIT);
+
+      await setLinks(source, getLinks(source).slice(1));
+      assert.lengthOf(getLinks(source), 15);
     });
   });
 

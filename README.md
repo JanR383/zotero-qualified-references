@@ -142,8 +142,12 @@ The plugin is built around an in-memory reverse index, sized to the number of
   `source → targets` index, so bulk add/delete does not degrade.
 - **Per-field cap.** Each item's reference data lives on one line of its `Extra`
   field. Individual text fields within a reference (the comment, page strings
-  and keys) are capped at 10 000 characters on read as a sanity limit; the
-  number of references per item is not otherwise bounded.
+  and keys) are capped at 10 000 characters on read as a sanity limit.
+- **Sync size limit.** Zotero's sync server rejects fields larger than
+  64 KB, so the plugin refuses a save that would grow `Extra` beyond about
+  60 000 bytes and says so; comments typed in the item pane are limited to 2 000
+  characters. In practice that is roughly 200–350 references per source item
+  without long comments.
 - **Practical ceiling.** Tens of thousands of references are fine. The graph and
   list windows render every reference at once, so a graph with thousands of
   edges becomes visually dense — use the graph's filters and search, or the
