@@ -76,6 +76,7 @@ prefs-palette-colorblind =
     .label = Colour-blind safe
 prefs-stance-compact =
     .label = Compact stance setter (single pill with a menu)
+prefs-comment-max = Maximum comment length (characters):
 prefs-pane-title = Item pane and list window
 prefs-pane-fields = Show items with:
 prefs-graph-title = Graph window
@@ -117,6 +118,7 @@ anchor-missing = (highlight deleted)
 anchor-page = p.
 reader-add-ref = Add qualified reference from here…
 reader-ref-created = Reference created
+save-too-large = Not saved: this item's references would make its Extra field too large to sync. Shorten comments or remove references.
 reader-groupcopy-stripped = Qualified references were not copied to the group (see Preferences → Privacy)
 
 # Edit > Undo/Redo labels (Zotero 10); Zotero shows them as "Undo …"

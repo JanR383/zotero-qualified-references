@@ -1,7 +1,7 @@
 import { zFtl, zItems, type UndoSaveOptions } from "../utils/zoteroApis";
-import { getLocaleID } from "../utils/locale";
+import { getLocaleID, getString } from "../utils/locale";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
-import { log } from "../utils/log";
+import { log, showNotice } from "../utils/log";
 
 /**
  * Storage layer for qualified references.
@@ -248,10 +248,50 @@ export function unregisterUndoLabels(): void {
   zFtl().removeResourceIds([ftlResourceID()]);
 }
 
+// --- Size limit -------------------------------------------------------------
+// The Zotero sync server rejects field values over 65 535 bytes (UTF-8). An
+// item whose Extra exceeds that saves locally but then fails to upload, and
+// with it every later change to the item. Refuse such saves well below the
+// limit, so other lines in Extra (e.g. a citation key) still fit.
+
+export const EXTRA_BYTE_LIMIT = 60_000;
+
+/** Thrown by setLinks when the new Extra value would be too large to sync. */
+export class ExtraTooLargeError extends Error {
+  constructor(readonly bytes: number) {
+    super(`Extra would be ${bytes} bytes (limit ${EXTRA_BYTE_LIMIT})`);
+    this.name = "ExtraTooLargeError";
+  }
+}
+
+/** Length of `s` in UTF-8 bytes, as the sync server counts it. */
+export function utf8Length(s: string): number {
+  let n = 0;
+  for (const ch of s) {
+    const c = ch.codePointAt(0)!;
+    n += c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+  }
+  return n;
+}
+
+/**
+ * Report a failed save: a size-limit refusal as a notice the user can act on,
+ * anything else to the log.
+ */
+export function reportSaveError(context: string, e: unknown): void {
+  if (e instanceof ExtraTooLargeError) {
+    showNotice(getString("save-too-large"), 10_000);
+  } else {
+    log(context, e);
+  }
+}
+
 /**
  * Persist the given links onto the source item (replacing the existing
  * Reference-Graph line) and save. The notifier keeps the reverse index fresh.
  * Pass `undo` for user actions so Zotero 10 offers them in Edit > Undo.
+ * Throws ExtraTooLargeError, leaving the item unchanged, when the result would
+ * be too large to sync.
  */
 export async function setLinks(
   item: Zotero.Item,
@@ -264,7 +304,14 @@ export async function setLinks(
     kept.push(`${EXTRA_KEY}: ${JSON.stringify(links.map(serializeLink))}`);
   }
   // Drop leading/trailing empties left behind by removing our line.
-  item.setField("extra", kept.join("\n").replace(/^\n+|\n+$/g, ""));
+  const value = kept.join("\n").replace(/^\n+|\n+$/g, "");
+  // Saves that do not grow Extra stay allowed, so an item already over the
+  // limit can always be shortened.
+  const bytes = utf8Length(value);
+  if (bytes > EXTRA_BYTE_LIMIT && bytes > utf8Length(extra)) {
+    throw new ExtraTooLargeError(bytes);
+  }
+  item.setField("extra", value);
   await item.saveTx(undoOptions(undo));
 }
 

@@ -29,4 +29,16 @@ describe("prefs", function () {
     );
     assert.isUndefined(value);
   });
+
+  it("stores the comment limit as a number, also when set from text", function () {
+    const key = `${config.prefsPrefix}.commentMaxLength`;
+    assert.strictEqual(Zotero.Prefs.get(key, true), 2000);
+    // The settings pane binds a number input, whose value is a string.
+    try {
+      Zotero.Prefs.set(key, "500" as unknown as number, true);
+      assert.strictEqual(Zotero.Prefs.get(key, true), 500);
+    } finally {
+      Zotero.Prefs.clear(key, true);
+    }
+  });
 });

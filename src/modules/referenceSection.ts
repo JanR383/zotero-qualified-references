@@ -12,6 +12,7 @@ import {
   getIncoming,
   getLinks,
   makeLink,
+  reportSaveError,
   updateLink,
   updateLinks,
 } from "./storage";
@@ -34,6 +35,18 @@ const rendered = new Map<
  * Wrap a (possibly async) event handler so rejections are logged instead of
  * surfacing as unhandled promise rejections.
  */
+/**
+ * Maximum length of a reference comment typed in the pane (S1), from the
+ * settings. Clamped so a stray value cannot disable the limit or make the
+ * field unusable; 10 000 is also the cap applied when reading.
+ */
+function commentMaxLength(): number {
+  const v = Number(
+    Zotero.Prefs.get(`${config.prefsPrefix}.commentMaxLength`, true),
+  );
+  return Number.isFinite(v) ? Math.min(10_000, Math.max(100, v)) : 2000;
+}
+
 function catching<A extends unknown[]>(
   fn: (...args: A) => Promise<void> | void,
 ): (...args: A) => void {
@@ -41,10 +54,10 @@ function catching<A extends unknown[]>(
     try {
       const result = fn(...args);
       if (result instanceof Promise) {
-        result.catch((e) => log("QRef: handler failed", e));
+        result.catch((e) => reportSaveError("QRef: handler failed", e));
       }
     } catch (e) {
-      log("QRef: handler failed", e);
+      reportSaveError("QRef: handler failed", e);
     }
   };
 }
@@ -252,6 +265,9 @@ function outgoingRow(
   comment.rows = 2;
   comment.placeholder = getString("field-comment");
   comment.className = "qref-comment";
+  // Keeps one item's references well inside the sync size limit (S1); longer
+  // comments saved before stay as they are.
+  comment.maxLength = commentMaxLength();
   comment.disabled = !editable;
   comment.addEventListener(
     "change",

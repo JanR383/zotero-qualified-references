@@ -76,6 +76,7 @@ prefs-palette-colorblind =
     .label = Farbenblind-sicher
 prefs-stance-compact =
     .label = Kompakter Stance-Setzer (eine Pille mit Menü)
+prefs-comment-max = Kommentare höchstens (Zeichen):
 prefs-pane-title = Seitenleiste und Listenfenster
 prefs-pane-fields = Einträge anzeigen mit:
 prefs-graph-title = Graph-Fenster
@@ -117,6 +118,7 @@ anchor-missing = (Markierung gelöscht)
 anchor-page = S.
 reader-add-ref = Qualifizierte Referenz von hier…
 reader-ref-created = Referenz angelegt
+save-too-large = Nicht gespeichert: Mit diesen Referenzen würde das Extra-Feld des Items zu groß für die Synchronisierung. Kommentare kürzen oder Referenzen entfernen.
 reader-groupcopy-stripped = Qualifizierte Referenzen wurden nicht in die Gruppe kopiert (siehe Einstellungen → Datenschutz)
 
 # Beschriftungen für Bearbeiten > Rückgängig/Wiederholen (Zotero 10)
