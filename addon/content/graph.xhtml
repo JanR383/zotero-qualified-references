@@ -113,6 +113,9 @@
       #filters > :not(summary) {
         margin-bottom: 6px;
       }
+      #controls [hidden] {
+        display: none !important;
+      }
       #empty {
         display: none;
         position: fixed;
@@ -132,11 +135,11 @@
         <label id="scope-label"></label>
         <div id="scope"></div>
       </div>
-      <div class="control-row">
+      <div class="control-row" data-group="search">
         <input id="search" type="search" />
       </div>
-      <div class="control-row" id="search-depth"></div>
-      <details id="filters">
+      <div class="control-row" id="search-depth" hidden="hidden"></div>
+      <details id="filters" data-group="filters">
         <summary id="filters-summary"></summary>
         <div class="control-row wrap">
           <span id="stance-filter-label"></span>
@@ -149,15 +152,15 @@
           <input id="min-links" type="number" min="1" max="50" step="1" />
         </div>
       </details>
-      <div class="control-row" id="size-incoming"></div>
-      <div class="control-row">
+      <div class="control-row" id="size-incoming" data-group="size"></div>
+      <div class="control-row" data-group="distance">
         <label id="link-distance-label" for="link-distance"></label>
         <input id="link-distance" type="range" min="10" max="200" step="5" />
       </div>
-      <div class="control-row">
+      <div class="control-row" data-group="tags">
         <div id="tags"></div>
       </div>
-      <div class="control-row">
+      <div class="control-row" data-group="tags">
         <input id="tag-focus" type="checkbox" />
         <label id="tag-focus-label" for="tag-focus"></label>
       </div>

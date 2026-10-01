@@ -310,7 +310,9 @@ function main(): void {
   let sizeByIncoming = true;
   let query = "";
   let depth: 1 | 2 = 1;
-  const selectedTags = new Set(arg.highlightTags);
+  // With tag highlighting switched off, a stored selection must not leave
+  // rings that can't be changed from the window.
+  const selectedTags = new Set(arg.controls.tags ? arg.highlightTags : []);
   let rings = new Map<number, string[]>();
   let tagFocus = false;
   let hovered: number | null = null;
@@ -566,19 +568,28 @@ function main(): void {
 
   // --- Controls -------------------------------------------------------------
 
+  // Optional groups can be switched off in the preferences pane.
+  for (const el of document.querySelectorAll<HTMLElement>("[data-group]")) {
+    const group = el.dataset.group as keyof GraphArg["controls"];
+    if (arg.controls[group] === false) el.hidden = true;
+  }
+
   // Search (G5): hits are outlined, their neighbourhood stays opaque, the
   // rest is dimmed; Enter centres the view on the first hit.
   const search = byId("search") as HTMLInputElement | null;
+  const depthMount = byId("search-depth");
   if (search) {
     search.placeholder = strings.search;
     search.addEventListener("input", () => {
       query = search.value;
+      if (depthMount) depthMount.hidden = !query.trim();
       refresh();
     });
     search.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         search.value = "";
         query = "";
+        if (depthMount) depthMount.hidden = true;
         refresh();
         return;
       }
@@ -590,7 +601,6 @@ function main(): void {
       }
     });
   }
-  const depthMount = byId("search-depth");
   depthMount?.appendChild(
     checkbox(strings.searchDepth2, false, (on) => {
       depth = on ? 2 : 1;

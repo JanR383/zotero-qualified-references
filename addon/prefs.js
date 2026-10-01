@@ -23,6 +23,14 @@ pref("graphLinkDistance", 40);
 // names. Chosen in the graph window.
 pref("graphHighlightTags", "[]");
 
+// Graph window: which optional control groups to show. Scope is always shown;
+// the search-depth checkbox appears only while a search term is entered.
+pref("graphShowSearch", true);
+pref("graphShowFilters", true);
+pref("graphShowTags", true);
+pref("graphShowSizeToggle", false);
+pref("graphShowLinkDistance", false);
+
 // Reader: show a "create qualified reference" button in the PDF text-selection
 // popup (anchors a reference to a highlight created on the fly).
 pref("readerSelectionButton", true);

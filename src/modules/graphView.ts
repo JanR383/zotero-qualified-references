@@ -15,7 +15,13 @@ import { forEachResolvedLink, getLinks } from "./storage";
 import { makePredicate } from "./scope";
 import { collectTagOptions, loadTagColors } from "./tagHighlight";
 import type { Stance } from "./types";
-import type { GraphArg, GraphData, GraphLink, GraphNode } from "../graph/types";
+import type {
+  GraphArg,
+  GraphControlGroup,
+  GraphData,
+  GraphLink,
+  GraphNode,
+} from "../graph/types";
 
 /**
  * Builds the reference graph from the in-memory reverse index
@@ -182,6 +188,24 @@ function loadHighlightTags(): string[] {
   }
 }
 
+const CONTROL_PREFS: Record<GraphControlGroup, string> = {
+  search: "graphShowSearch",
+  filters: "graphShowFilters",
+  tags: "graphShowTags",
+  size: "graphShowSizeToggle",
+  distance: "graphShowLinkDistance",
+};
+
+/** Which optional control groups the graph window shows (prefs pane). */
+function loadControls(): Record<GraphControlGroup, boolean> {
+  const out = {} as Record<GraphControlGroup, boolean>;
+  for (const [group, key] of Object.entries(CONTROL_PREFS)) {
+    out[group as GraphControlGroup] =
+      Zotero.Prefs.get(`${config.prefsPrefix}.${key}`, true) !== false;
+  }
+  return out;
+}
+
 export function openGraphView(win: Window): void {
   const { nodes, links, typeLegend, itemTypes, tagOptions } = buildData();
   const colorByType =
@@ -225,6 +249,7 @@ export function openGraphView(win: Window): void {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
     },
     openAnchor,
+    controls: loadControls(),
   };
 
   openViewWindow(win, "graph", { width: 900, height: 700 }, arg);
