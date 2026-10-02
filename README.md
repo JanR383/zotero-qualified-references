@@ -128,6 +128,15 @@ Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
   Zotero itself drops "Related" links across libraries. This is controlled by
   **Settings → Privacy** (see below) and can be turned on if you do want to
   share them with the group.
+- **Backup and restore.** **Settings → Qualified References → Backup**
+  saves every reference of every library to one JSON file, with all fields (stance,
+  pages, comment, PDF anchor, timestamps) and the items identified by library
+  and key. **Restore…** in the same section merges such a file back:
+  references an item no longer has are added again, a reference edited later
+  than in the backup is kept, and nothing is deleted. Items that are missing,
+  in read-only group libraries or would exceed the sync size limit are skipped
+  and counted. Use it before risky bulk edits, or to recover the side lost in a
+  sync conflict or a line wiped by another tool.
 
 ## Scale & limits
 
@@ -161,16 +170,18 @@ Open **Zotero → Settings → Qualified References**. The page is grouped by wh
 a setting takes effect:
 
 - **Item pane and list window:** which fields (author / year / title) label
-  items, and the compact single-pill stance setter instead of the default
-  segmented scale.
+  items, the compact single-pill stance setter instead of the default
+  segmented scale, and the maximum comment length (2 000 characters).
 - **Graph window:** which fields label nodes, colouring nodes by item type, and
   which controls the window shows (search, filters and tag highlighting on by
   default; node-size switch, edge-length slider and the network / timeline
-  switch off by default).
+  switch off by default), and a transparent background for the PNG export.
 - **PDF reader:** the "create qualified reference" button in the text-selection
   popup (on by default).
 - **Colours:** the stance palette (default or colour-blind safe).
 - **Privacy:** copying references into group libraries (off by default).
+- **Backup:** back up all references to a JSON file and restore them (see
+  [Sync & data safety](#sync--data-safety)).
 
 ![The plugin's settings pane](docs/preferences.png)
 

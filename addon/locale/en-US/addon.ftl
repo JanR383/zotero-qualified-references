@@ -28,6 +28,23 @@ menu-graph =
     .label = Reference Graph
 menu-list =
     .label = Reference List
+prefs-backup-title = Backup
+prefs-backup-desc = Saves every qualified reference of all libraries to a JSON file with all fields. Restoring merges such a file back: missing references are added, later edits are kept, nothing is deleted.
+prefs-backup-button =
+    .label = Back Up…
+prefs-restore-button =
+    .label = Restore…
+backup-title = Back up qualified references
+backup-done = { $count ->
+    [one] Backup saved: 1 reference.
+   *[other] Backup saved: { $count } references.
+}
+backup-failed = The backup could not be saved. Details are in the debug output.
+restore-title = Restore qualified references from a backup
+restore-invalid = This file is not a backup of Qualified References.
+restore-done = Restored: { $added } added, { $updated } updated in { $items } items.
+restore-skipped = Skipped items: { $notFound } not found, { $readOnly } read-only, { $tooLarge } too large to sync.
+restore-failed = The backup could not be restored. Details are in the debug output.
 list-window-title = Qualified References – List
 list-no-match = No matching entries.
 list-search = Search title or author

@@ -28,6 +28,23 @@ menu-graph =
     .label = Referenzgraph
 menu-list =
     .label = Referenzliste
+prefs-backup-title = Sicherung
+prefs-backup-desc = Speichert alle qualifizierten Referenzen aller Bibliotheken mit allen Feldern in eine JSON-Datei. Beim Wiederherstellen wird eine solche Datei zusammengeführt: Fehlende Referenzen kommen zurück, spätere Änderungen bleiben erhalten, gelöscht wird nichts.
+prefs-backup-button =
+    .label = Sichern…
+prefs-restore-button =
+    .label = Wiederherstellen…
+backup-title = Qualifizierte Referenzen sichern
+backup-done = { $count ->
+    [one] Sicherung gespeichert: 1 Referenz.
+   *[other] Sicherung gespeichert: { $count } Referenzen.
+}
+backup-failed = Die Sicherung konnte nicht gespeichert werden. Details stehen in der Debug-Ausgabe.
+restore-title = Qualifizierte Referenzen aus einer Sicherung wiederherstellen
+restore-invalid = Diese Datei ist keine Sicherung von Qualified References.
+restore-done = Wiederhergestellt: { $added } hinzugefügt, { $updated } aktualisiert in { $items } Items.
+restore-skipped = Übersprungene Items: { $notFound } nicht gefunden, { $readOnly } schreibgeschützt, { $tooLarge } zu groß für die Synchronisierung.
+restore-failed = Die Sicherung konnte nicht wiederhergestellt werden. Details stehen in der Debug-Ausgabe.
 list-window-title = Qualifizierte Referenzen – Liste
 list-no-match = Keine passenden Einträge.
 list-search = Titel oder Autor suchen

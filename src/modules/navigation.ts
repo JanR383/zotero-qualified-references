@@ -1,6 +1,7 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import { log } from "../utils/log";
+import { pickSavePath } from "../utils/filePicker";
 import { zReader } from "../utils/zoteroApis";
 import {
   VIEW_CHANGED_EVENT,
@@ -112,25 +113,6 @@ export function itemUri(item: Zotero.Item): string {
   return `zotero://select/${path}/items/${item.key}`;
 }
 
-interface FilePickerInstance {
-  init(win: Window, title: string, mode: number): void;
-  appendFilter(title: string, filter: string): void;
-  defaultString: string;
-  show(): Promise<number>;
-  file: string;
-  modeSave: number;
-  returnOK: number;
-  returnReplace: number;
-}
-
-/** Zotero's async file picker (chrome/content/zotero/modules/filePicker.mjs). */
-function filePicker(): FilePickerInstance {
-  const { FilePicker } = ChromeUtils.importESModule(
-    "chrome://zotero/content/modules/filePicker.mjs",
-  ) as { FilePicker: new () => FilePickerInstance };
-  return new FilePicker();
-}
-
 function base64ToBytes(win: Window, b64: string): Uint8Array {
   const bin = win.atob(b64);
   const bytes = new Uint8Array(bin.length);
@@ -144,15 +126,10 @@ async function saveExport(
   data: string,
   base64 = false,
 ): Promise<void> {
-  const fp = filePicker();
-  fp.init(win, getString("export-title"), fp.modeSave);
-  const ext = fileName.slice(fileName.lastIndexOf(".") + 1);
-  fp.appendFilter(ext.toUpperCase(), `*.${ext}`);
-  fp.defaultString = fileName;
-  const rv = await fp.show();
-  if (rv !== fp.returnOK && rv !== fp.returnReplace) return;
-  if (base64) await IOUtils.write(fp.file, base64ToBytes(win, data));
-  else await IOUtils.writeUTF8(fp.file, data);
+  const path = await pickSavePath(win, getString("export-title"), fileName);
+  if (!path) return;
+  if (base64) await IOUtils.write(path, base64ToBytes(win, data));
+  else await IOUtils.writeUTF8(path, data);
 }
 
 /** The open graph and list windows, told when references change (G6/L8). */
