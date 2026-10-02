@@ -24,7 +24,8 @@ each with its stance, pages and a jump-back link.
 ![The read-only "Referenced by" view on a target item](docs/referenced-by.png)
 
 Multiple references from A to B are allowed (e.g. supporting on p. 36,
-contrasting on p. 90).
+contrasting on p. 90). On Zotero 10, adding, editing and deleting references can be
+undone with **Edit → Undo**.
 
 The **PDF anchor** is created straight from a highlight: right-click a passage
 in the source item's PDF and choose _"Add qualified reference from here…"_.
