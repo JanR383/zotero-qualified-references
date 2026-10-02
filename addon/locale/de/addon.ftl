@@ -28,10 +28,12 @@ menu-graph =
     .label = Referenzgraph
 menu-list =
     .label = Referenzliste
-menu-backup =
-    .label = Qualifizierte Referenzen sichern…
-menu-restore =
-    .label = Qualifizierte Referenzen wiederherstellen…
+prefs-backup-title = Sicherung
+prefs-backup-desc = Speichert alle qualifizierten Referenzen aller Bibliotheken mit allen Feldern in eine JSON-Datei. Beim Wiederherstellen wird eine solche Datei zusammengeführt: Fehlende Referenzen kommen zurück, spätere Änderungen bleiben erhalten, gelöscht wird nichts.
+prefs-backup-button =
+    .label = Sichern…
+prefs-restore-button =
+    .label = Wiederherstellen…
 backup-title = Qualifizierte Referenzen sichern
 backup-done = { $count ->
     [one] Sicherung gespeichert: 1 Referenz.

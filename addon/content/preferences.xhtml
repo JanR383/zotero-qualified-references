@@ -122,4 +122,18 @@
       data-l10n-id="prefs-copy-refs-to-group-desc"
     ></html:p>
   </groupbox>
+  <groupbox style="margin-bottom: 20px">
+    <html:h2 data-l10n-id="prefs-backup-title"></html:h2>
+    <html:p class="description" data-l10n-id="prefs-backup-desc"></html:p>
+    <hbox>
+      <button
+        data-l10n-id="prefs-backup-button"
+        oncommand="Zotero.QRef.api.backUpReferences(window)"
+      />
+      <button
+        data-l10n-id="prefs-restore-button"
+        oncommand="Zotero.QRef.api.restoreReferences(window)"
+      />
+    </hbox>
+  </groupbox>
 </vbox>

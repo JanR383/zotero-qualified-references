@@ -1,5 +1,6 @@
 import { config } from "../package.json";
 import hooks from "./hooks";
+import { backUpReferences, restoreReferences } from "./modules/backup";
 import type { IncomingLink } from "./modules/types";
 
 class Addon {
@@ -22,7 +23,11 @@ class Addon {
   // Lifecycle hooks
   public hooks: typeof hooks;
   // APIs
-  public api: object;
+  // Called from the settings pane (preferences.xhtml).
+  public api: {
+    backUpReferences: typeof backUpReferences;
+    restoreReferences: typeof restoreReferences;
+  };
 
   constructor() {
     this.data = {
@@ -34,7 +39,7 @@ class Addon {
       incomingBySource: new Map(),
     };
     this.hooks = hooks;
-    this.api = {};
+    this.api = { backUpReferences, restoreReferences };
   }
 }
 

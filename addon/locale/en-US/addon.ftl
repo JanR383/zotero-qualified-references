@@ -28,10 +28,12 @@ menu-graph =
     .label = Reference Graph
 menu-list =
     .label = Reference List
-menu-backup =
-    .label = Back Up Qualified References…
-menu-restore =
-    .label = Restore Qualified References…
+prefs-backup-title = Backup
+prefs-backup-desc = Saves every qualified reference of all libraries to a JSON file with all fields. Restoring merges such a file back: missing references are added, later edits are kept, nothing is deleted.
+prefs-backup-button =
+    .label = Back Up…
+prefs-restore-button =
+    .label = Restore…
 backup-title = Back up qualified references
 backup-done = { $count ->
     [one] Backup saved: 1 reference.
