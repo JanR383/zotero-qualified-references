@@ -1,3 +1,4 @@
+import { backUpReferences, restoreReferences } from "./modules/backup";
 import { config } from "../package.json";
 import { getLocaleID, getString, initLocale } from "./utils/locale";
 import {
@@ -117,6 +118,18 @@ function registerMenus(): void {
         menuType: "menuitem",
         l10nID: getLocaleID("menu-list"),
         onCommand: () => openListView(Zotero.getMainWindow() as Window),
+      },
+      {
+        menuType: "menuitem",
+        l10nID: getLocaleID("menu-backup"),
+        onCommand: () =>
+          void backUpReferences(Zotero.getMainWindow() as Window),
+      },
+      {
+        menuType: "menuitem",
+        l10nID: getLocaleID("menu-restore"),
+        onCommand: () =>
+          void restoreReferences(Zotero.getMainWindow() as Window),
       },
     ],
   });

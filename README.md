@@ -128,6 +128,15 @@ Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
   Zotero itself drops "Related" links across libraries. This is controlled by
   **Settings → Privacy** (see below) and can be turned on if you do want to
   share them with the group.
+- **Backup and restore.** **Tools → Back Up Qualified References…** saves
+  every reference of every library to one JSON file, with all fields (stance,
+  pages, comment, PDF anchor, timestamps) and the items identified by library
+  and key. **Tools → Restore Qualified References…** merges such a file back:
+  references an item no longer has are added again, a reference edited later
+  than in the backup is kept, and nothing is deleted. Items that are missing,
+  in read-only group libraries or would exceed the sync size limit are skipped
+  and counted. Use it before risky bulk edits, or to recover the side lost in a
+  sync conflict or a line wiped by another tool.
 
 ## Scale & limits
 

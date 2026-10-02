@@ -150,6 +150,23 @@ function sanitizeLink(raw: unknown): ReferenceLink | null {
   };
 }
 
+/**
+ * Validate stored entries (from Extra or a backup) and resolve each target's
+ * library on this device; `sourceLib` is the library of the item storing them.
+ */
+export function parseStoredLinks(
+  raw: unknown[],
+  sourceLib: number,
+): ReferenceLink[] {
+  const links = raw
+    .map(sanitizeLink)
+    .filter((l): l is ReferenceLink => l !== null);
+  for (const link of links) {
+    link.targetLib = resolveTargetLib(link, sourceLib);
+  }
+  return links;
+}
+
 export function getLinks(item: Zotero.Item): ReferenceLink[] {
   const extra = item.getField("extra") || "";
   for (const line of extra.split(/\r?\n/)) {
@@ -163,13 +180,7 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
         );
         return [];
       }
-      const links = parsed
-        .map(sanitizeLink)
-        .filter((l): l is ReferenceLink => l !== null);
-      for (const link of links) {
-        link.targetLib = resolveTargetLib(link, item.libraryID);
-      }
-      return links;
+      return parseStoredLinks(parsed, item.libraryID);
     } catch (e) {
       log(
         `QRef: failed to parse Reference-Graph on item ${item.libraryID}:${item.key}`,
@@ -191,7 +202,7 @@ export function getLinks(item: Zotero.Item): ReferenceLink[] {
  * name the library (a group it has not joined), the ref it was read with is
  * kept so the link survives the round trip.
  */
-function serializeLink(l: ReferenceLink): ReferenceLink {
+export function serializeLink(l: ReferenceLink): ReferenceLink {
   return {
     id: l.id,
     targetKey: l.targetKey,
@@ -516,6 +527,11 @@ export function onItemChanged(id: number, removed: boolean): Set<string> {
   if (item && item.isRegularItem() && !item.deleted) addSourceToIndex(item);
   for (const key of bySource().get(id) ?? []) affected.add(key);
   return affected;
+}
+
+/** Ids of the (non-trashed) items that store references, from the index. */
+export function sourceItemIDs(): number[] {
+  return [...bySource().keys()];
 }
 
 /** The live item behind an index key from onItemChanged, if any. */
