@@ -156,7 +156,7 @@ describe("notifier", function () {
         () => getLinks(copy).length === 0,
         "references stripped by the guard",
       );
-      assert.notInclude(copy.getField("extra"), "Reference-Graph");
+      assert.equal(copy.getField("extra"), "Reference-Graph: []");
     });
   });
 });

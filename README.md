@@ -137,6 +137,21 @@ Zotero's sync source, `syncLocal.js` / `extractExtraFields`):
   in read-only group libraries or would exceed the sync size limit are skipped
   and counted. Use it before risky bulk edits, or to recover the side lost in a
   sync conflict or a line wiped by another tool.
+- **Change journal.** Before each change to an item's references, the plugin
+  keeps the previous state in `qualified-references-journal.json` in the
+  Zotero profile folder: the last 10 states per item, on this device only, not
+  synced. The item pane lists them under **Earlier states**, each with a
+  **Restore** button (undoable in Zotero 10). This covers the side discarded in
+  a sync conflict and changes made by other tools. The file contains your
+  comments in plain text, like Zotero's own database.
+- **Removals by other tools.** When the `Reference-Graph:` line of an item with
+  references disappears or becomes unreadable without the plugin, a notice
+  says so and the item pane offers to restore the last state. To tell such
+  removals apart, the plugin keeps an empty `Reference-Graph: []` line after
+  you delete an item's last reference. Devices still running a version before
+  0.11.0 remove the line instead, which other devices then report as a
+  removal. Partial changes by other tools are not reported; the journal still
+  has the earlier state.
 
 ## Scale & limits
 

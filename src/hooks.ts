@@ -11,6 +11,7 @@ import { openGraphView } from "./modules/graphView";
 import { openListView } from "./modules/listView";
 import { registerReaderHook, unregisterReaderHook } from "./modules/readerHook";
 import { registerUndoLabels, unregisterUndoLabels } from "./modules/storage";
+import { loadJournal, saveJournal } from "./modules/journal";
 import { zMenuManager } from "./utils/zoteroApis";
 import {
   getCurrentPaletteId,
@@ -37,6 +38,7 @@ async function onStartup() {
   for (const win of Zotero.getMainWindows()) {
     injectLocaleIntoWindow(win as unknown as Window);
   }
+  void loadJournal();
   // Registers the notifier synchronously and builds the reverse index in the
   // background — startup is not blocked on large databases.
   initIndexAndNotifier().catch((e) =>
@@ -200,6 +202,7 @@ function onShutdown(): void {
   unregisterUndoLabels();
   zMenuManager()?.unregisterMenu(`${addon.data.config.addonRef}-tools`);
   unregisterNotifier();
+  void saveJournal();
   if (palettePrefObserver !== undefined) {
     Zotero.Prefs.unregisterObserver(palettePrefObserver);
     palettePrefObserver = undefined;

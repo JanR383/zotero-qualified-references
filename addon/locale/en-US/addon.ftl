@@ -148,3 +148,23 @@ undo-add-reference = { $count ->
 }
 undo-edit-reference = Edit Reference
 undo-delete-reference = Delete Reference
+undo-restore-references = Restore References
+
+# Change journal (S4) and removals by other tools (S5)
+journal-title = { $count ->
+    [one] Earlier state (1)
+   *[other] Earlier states ({ $count })
+}
+journal-desc = Saved on this device only, before each change to this item's references.
+journal-entry = { $count ->
+    [one] Until { $time }: 1 reference
+   *[other] Until { $time }: { $count } references
+}
+journal-restore = Restore
+journal-dismiss = Dismiss
+journal-banner = { $count ->
+    [one] The reference of this item was removed outside Qualified References (for example by another tool or in the web library).
+   *[other] The { $count } references of this item were removed outside Qualified References (for example by another tool or in the web library).
+}
+journal-removed-one = The references of “{ $title }” were removed outside Qualified References. They can be restored in the item pane.
+journal-removed-many = The references of { $count } items were removed outside Qualified References. They can be restored in each item's pane.

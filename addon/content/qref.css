@@ -230,3 +230,35 @@ a.qref-title,
   font-weight: bold;
   color: var(--qref-stance-fg);
 }
+
+/* References removed by another tool (S5) */
+.qref-banner {
+  margin: 4px 0 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--accent-orange, #e8a33d);
+  border-radius: 5px;
+}
+
+.qref-banner .qref-button {
+  margin-inline-end: 6px;
+}
+
+/* Earlier states from the local journal (S4) */
+.qref-history {
+  margin-top: 8px;
+}
+
+.qref-history summary {
+  cursor: pointer;
+  color: var(--fill-secondary, #888);
+}
+
+.qref-history-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.qref-history-row .qref-button {
+  margin-top: 2px;
+}

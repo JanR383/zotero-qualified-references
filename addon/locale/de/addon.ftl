@@ -148,3 +148,23 @@ undo-add-reference = { $count ->
 }
 undo-edit-reference = Bezug bearbeiten
 undo-delete-reference = Bezug löschen
+undo-restore-references = Bezüge wiederherstellen
+
+# Änderungsjournal (S4) und Löschungen durch andere Werkzeuge (S5)
+journal-title = { $count ->
+    [one] Früherer Stand (1)
+   *[other] Frühere Stände ({ $count })
+}
+journal-desc = Nur auf diesem Gerät gespeichert, jeweils vor einer Änderung der Bezüge dieses Eintrags.
+journal-entry = { $count ->
+    [one] Bis { $time }: 1 Bezug
+   *[other] Bis { $time }: { $count } Bezüge
+}
+journal-restore = Wiederherstellen
+journal-dismiss = Ausblenden
+journal-banner = { $count ->
+    [one] Der Bezug dieses Eintrags wurde außerhalb von Qualified References entfernt (etwa durch ein anderes Werkzeug oder in der Web-Bibliothek).
+   *[other] Die { $count } Bezüge dieses Eintrags wurden außerhalb von Qualified References entfernt (etwa durch ein anderes Werkzeug oder in der Web-Bibliothek).
+}
+journal-removed-one = Die Bezüge von „{ $title }“ wurden außerhalb von Qualified References entfernt. Im Eintragsbereich lassen sie sich wiederherstellen.
+journal-removed-many = Die Bezüge von { $count } Einträgen wurden außerhalb von Qualified References entfernt. Im Bereich des jeweiligen Eintrags lassen sie sich wiederherstellen.

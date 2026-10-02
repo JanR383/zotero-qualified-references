@@ -2,6 +2,8 @@ import { zFtl, zItems, type UndoSaveOptions } from "../utils/zoteroApis";
 import { getLocaleID, getString } from "../utils/locale";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
 import { log, showNotice } from "../utils/log";
+import { expectOwnWrite } from "./journal";
+import { EMPTY_LINE } from "./journalLogic";
 
 /**
  * Storage layer for qualified references.
@@ -167,29 +169,40 @@ export function parseStoredLinks(
   return links;
 }
 
-export function getLinks(item: Zotero.Item): ReferenceLink[] {
+/** The JSON part of the item's Reference-Graph line; null without one. */
+export function referenceLine(item: Zotero.Item): string | null {
   const extra = item.getField("extra") || "";
   for (const line of extra.split(/\r?\n/)) {
     const m = line.match(EXTRA_LINE_RE);
-    if (!m) continue;
-    try {
-      const parsed = JSON.parse(m[1]);
-      if (!Array.isArray(parsed)) {
-        log(
-          `QRef: Reference-Graph on item ${item.libraryID}:${item.key} is not an array — ignoring`,
-        );
-        return [];
-      }
-      return parseStoredLinks(parsed, item.libraryID);
-    } catch (e) {
-      log(
-        `QRef: failed to parse Reference-Graph on item ${item.libraryID}:${item.key}`,
-        e,
-      );
+    if (m) return m[1];
+  }
+  return null;
+}
+
+/**
+ * The valid links in a Reference-Graph line (its JSON part) stored on an item
+ * of library `sourceLib`; empty when the line is missing or unreadable.
+ */
+export function linksInLine(
+  line: string | null,
+  sourceLib: number,
+): ReferenceLink[] {
+  if (line === null) return [];
+  try {
+    const parsed = JSON.parse(line);
+    if (!Array.isArray(parsed)) {
+      log(`QRef: Reference-Graph is not an array — ignoring`);
       return [];
     }
+    return parseStoredLinks(parsed, sourceLib);
+  } catch (e) {
+    log(`QRef: failed to parse a Reference-Graph line`, e);
+    return [];
   }
-  return [];
+}
+
+export function getLinks(item: Zotero.Item): ReferenceLink[] {
+  return linksInLine(referenceLine(item), item.libraryID);
 }
 
 /**
@@ -227,7 +240,7 @@ export function serializeLink(l: ReferenceLink): ReferenceLink {
 
 /** What a user-initiated save did, shown as "Undo <label>". */
 export interface UndoLabel {
-  action: "add" | "edit" | "delete";
+  action: "add" | "edit" | "delete" | "restore";
   count?: number;
 }
 
@@ -235,6 +248,7 @@ const UNDO_MESSAGE = {
   add: "undo-add-reference",
   edit: "undo-edit-reference",
   delete: "undo-delete-reference",
+  restore: "undo-restore-references",
 } as const;
 
 function undoOptions(undo?: UndoLabel): UndoSaveOptions {
@@ -303,6 +317,10 @@ export function reportSaveError(context: string, e: unknown): void {
  * Pass `undo` for user actions so Zotero 10 offers them in Edit > Undo.
  * Throws ExtraTooLargeError, leaving the item unchanged, when the result would
  * be too large to sync.
+ *
+ * Deleting the last reference leaves an empty "Reference-Graph: []" line, so
+ * every device can tell that the plugin removed the references and not
+ * another tool (S5). An item without a line does not get one.
  */
 export async function setLinks(
   item: Zotero.Item,
@@ -310,10 +328,15 @@ export async function setLinks(
   undo?: UndoLabel,
 ): Promise<void> {
   const extra = item.getField("extra") || "";
+  const hadLine = referenceLine(item) !== null;
   const kept = extra.split(/\r?\n/).filter((line) => !EXTRA_LINE_RE.test(line));
-  if (links.length > 0) {
-    kept.push(`${EXTRA_KEY}: ${JSON.stringify(links.map(serializeLink))}`);
-  }
+  const json =
+    links.length > 0
+      ? JSON.stringify(links.map(serializeLink))
+      : hadLine
+        ? EMPTY_LINE
+        : null;
+  if (json !== null) kept.push(`${EXTRA_KEY}: ${json}`);
   // Drop leading/trailing empties left behind by removing our line.
   const value = kept.join("\n").replace(/^\n+|\n+$/g, "");
   // Saves that do not grow Extra stay allowed, so an item already over the
@@ -322,6 +345,9 @@ export async function setLinks(
   if (bytes > EXTRA_BYTE_LIMIT && bytes > utf8Length(extra)) {
     throw new ExtraTooLargeError(bytes);
   }
+  // Tell the journal this change is ours. A line added by an undoable save
+  // can disappear again through Edit > Undo, which is not a foreign removal.
+  expectOwnWrite(item.id, json, !!undo && !hadLine && links.length > 0);
   item.setField("extra", value);
   await item.saveTx(undoOptions(undo));
 }

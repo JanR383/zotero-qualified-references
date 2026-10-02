@@ -44,6 +44,14 @@ export type FluentMessageId =
   | 'graph-type-other'
   | 'graph-undated'
   | 'graph-window-title'
+  | 'journal-banner'
+  | 'journal-desc'
+  | 'journal-dismiss'
+  | 'journal-entry'
+  | 'journal-removed-many'
+  | 'journal-removed-one'
+  | 'journal-restore'
+  | 'journal-title'
   | 'list-collapse-all'
   | 'list-expand-all'
   | 'list-no-match'
@@ -117,4 +125,5 @@ export type FluentMessageId =
   | 'stance-pp'
   | 'undo-add-reference'
   | 'undo-delete-reference'
-  | 'undo-edit-reference';
+  | 'undo-edit-reference'
+  | 'undo-restore-references';

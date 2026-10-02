@@ -102,11 +102,23 @@ describe("storage", function () {
       assert.lengthOf(getLinks(source), 1);
     });
 
-    it("removes the Reference-Graph line when links are emptied", async function () {
+    it("leaves an empty Reference-Graph line when links are emptied", async function () {
+      source.setField("extra", "DOI: 10.1/abc");
+      await source.saveTx();
       await setLinks(source, [makeLink(target.key, lib)]);
       await setLinks(source, []);
       assert.deepEqual(getLinks(source), []);
-      assert.notInclude(source.getField("extra"), "Reference-Graph");
+      assert.equal(
+        source.getField("extra"),
+        "DOI: 10.1/abc\nReference-Graph: []",
+      );
+    });
+
+    it("adds no line when an item without references stays without", async function () {
+      source.setField("extra", "DOI: 10.1/abc");
+      await source.saveTx();
+      await setLinks(source, []);
+      assert.equal(source.getField("extra"), "DOI: 10.1/abc");
     });
   });
 
