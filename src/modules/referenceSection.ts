@@ -17,6 +17,13 @@ import {
   updateLinks,
 } from "./storage";
 import { pickItems, referenceTargets } from "./picker";
+import {
+  dismissRemoval,
+  itemHistory,
+  restoreEntry,
+  wasRemovedExternally,
+} from "./history";
+import type { JournalEntry } from "./journalLogic";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
 import { log } from "../utils/log";
 
@@ -155,6 +162,12 @@ export function renderSection(
   const doc = body.ownerDocument!;
   body.replaceChildren();
   const rerender = () => renderSection(body, item, editable);
+  const history = itemHistory(item);
+
+  // Another tool removed this item's references (S5): offer them back.
+  if (editable && wasRemovedExternally(item) && history.length > 0) {
+    body.appendChild(removalBanner(doc, item, history[0], rerender));
+  }
 
   // Outgoing references (editable)
   body.appendChild(heading(doc, getString("section-outgoing-title")));
@@ -187,6 +200,9 @@ export function renderSection(
       }),
     );
     body.appendChild(add);
+  }
+  if (history.length > 0) {
+    body.appendChild(historyList(doc, item, history, editable, rerender));
   }
 
   // Incoming references (read-only)
@@ -304,6 +320,77 @@ function outgoingRow(
   }
 
   return row;
+}
+
+// --- Earlier states (S4) and foreign removals (S5) ----------------------------
+
+function removalBanner(
+  doc: Document,
+  item: Zotero.Item,
+  latest: JournalEntry,
+  rerender: () => void,
+): HTMLElement {
+  const banner = el(doc, "div", "qref-banner");
+  const text = doc.createElement("div");
+  text.textContent = getString("journal-banner", {
+    args: { count: latest.count },
+  });
+  const restore = button(doc, getString("journal-restore"));
+  restore.addEventListener(
+    "click",
+    catching(async () => {
+      await restoreEntry(item, latest);
+      rerender();
+    }),
+  );
+  const dismiss = button(doc, getString("journal-dismiss"));
+  dismiss.addEventListener("click", () => {
+    dismissRemoval(item);
+    rerender();
+  });
+  banner.append(text, restore, dismiss);
+  return banner;
+}
+
+/** Collapsed list of the item's earlier states from the local journal. */
+function historyList(
+  doc: Document,
+  item: Zotero.Item,
+  history: JournalEntry[],
+  editable: boolean,
+  rerender: () => void,
+): HTMLElement {
+  const details = el(doc, "details", "qref-history");
+  const summary = doc.createElement("summary");
+  summary.textContent = getString("journal-title", {
+    args: { count: history.length },
+  });
+  details.appendChild(summary);
+  details.appendChild(muted(doc, getString("journal-desc")));
+  for (const entry of history) {
+    const row = el(doc, "div", "qref-history-row");
+    const label = doc.createElement("span");
+    label.textContent = getString("journal-entry", {
+      args: {
+        time: new Date(entry.time).toLocaleString(),
+        count: entry.count,
+      },
+    });
+    row.appendChild(label);
+    if (editable) {
+      const restore = button(doc, getString("journal-restore"));
+      restore.addEventListener(
+        "click",
+        catching(async () => {
+          await restoreEntry(item, entry);
+          rerender();
+        }),
+      );
+      row.appendChild(restore);
+    }
+    details.appendChild(row);
+  }
+  return details;
 }
 
 function incomingRow(doc: Document, inc: IncomingLink): HTMLElement {

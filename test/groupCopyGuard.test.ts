@@ -80,7 +80,7 @@ describe("groupCopyGuard", function () {
     await handlePossibleGroupCopy(source.id);
 
     assert.deepEqual(getLinks(source), []);
-    assert.notInclude(source.getField("extra"), "Reference-Graph");
+    assert.equal(source.getField("extra"), "Reference-Graph: []");
   });
 
   it("keeps the references when copyRefsToGroup is enabled", async function () {

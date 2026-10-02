@@ -2,7 +2,9 @@ import { handlePossibleGroupCopy } from "./groupCopyGuard";
 import { notifyViews } from "./navigation";
 import { refreshSectionIfVisible } from "./referenceSection";
 import { itemForIndexKey, onItemChanged, rebuildIndex } from "./storage";
-import { log } from "../utils/log";
+import { seedJournal, trackLineChange } from "./history";
+import { getString } from "../utils/locale";
+import { log, showNotice } from "../utils/log";
 
 let notifierID: string | undefined;
 
@@ -36,16 +38,24 @@ export function initIndexAndNotifier(): Promise<void> {
       if (type !== "item" || !HANDLED.has(event)) return;
       const removed = event === "delete";
       const affected = new Set<string>();
+      const removedElsewhere: number[] = [];
       for (const id of ids) {
         try {
           for (const key of onItemChanged(Number(id), removed)) {
             affected.add(key);
+          }
+          if (
+            (event === "modify" || event === "add") &&
+            trackLineChange(Number(id))
+          ) {
+            removedElsewhere.push(Number(id));
           }
         } catch (e) {
           log(`QRef: notifier error for item ${id}`, e);
         }
       }
       refreshTargets(affected);
+      reportRemovals(removedElsewhere);
       notifyViews();
       // Privacy guard: a personal item copied into a group fires `add` with the
       // cloned Extra (incl. references) already present. Drop them unless the
@@ -64,7 +74,25 @@ export function initIndexAndNotifier(): Promise<void> {
     ["item", "collection-item"],
     "qref",
   );
-  return rebuildIndex();
+  return rebuildIndex().then(seedJournal);
+}
+
+/**
+ * Another tool removed the references of these items (S5): say so once per
+ * batch and show the restore option in their open panes.
+ */
+function reportRemovals(ids: number[]): void {
+  if (ids.length === 0) return;
+  for (const id of ids) refreshSectionIfVisible(id);
+  const item = ids.length === 1 ? Zotero.Items.get(ids[0]) : false;
+  showNotice(
+    item
+      ? getString("journal-removed-one", {
+          args: { title: item.getDisplayTitle() },
+        })
+      : getString("journal-removed-many", { args: { count: ids.length } }),
+    15_000,
+  );
 }
 
 /**
