@@ -58,6 +58,8 @@ export interface GraphStrings extends ViewStringsBase {
   tagsFilter: string;
   tagsNone: string;
   tagFocus: string;
+  tagColor: string;
+  tagColorAuto: string;
 }
 
 /** Scoped data the window re-requests when the user switches scope (N6). */
@@ -87,6 +89,12 @@ export interface GraphArg extends ViewArgBase {
   highlightTags: string[];
   /** Persist a changed tag selection back to prefs. */
   onHighlightTagsChange?: (tags: string[]) => void;
+  /** Six colours offered per highlighted tag (colour-blind set if enabled). */
+  tagPalette: string[];
+  /** Palette slot picked per highlighted tag (lower-cased key → slot). */
+  tagColors: Record<string, number>;
+  /** Persist changed colour picks back to prefs. */
+  onTagColorsChange?: (colors: Record<string, number>) => void;
   /** Initial force-link distance (edge length) from prefs. */
   linkDistance: number;
   /** Persist a changed link distance back to prefs. */

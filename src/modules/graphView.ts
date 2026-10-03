@@ -13,7 +13,13 @@ import { formatItem, graphFields, itemYear } from "./itemFormat";
 import { TYPED_KEYS } from "./itemTypeColors";
 import { STANCE_CSS_VAR, STANCE_GLYPH } from "./stanceMeta";
 import { forEachResolvedLink } from "./storage";
-import { collectTagOptions, loadTagColors } from "./tagHighlight";
+import { getCurrentPaletteId } from "./stancePalette";
+import {
+  collectTagOptions,
+  loadTagColors,
+  TAG_PALETTE,
+  TAG_PALETTE_COLORBLIND,
+} from "./tagHighlight";
 import type { Stance } from "./types";
 import type {
   GraphArg,
@@ -189,6 +195,26 @@ function loadHighlightTags(): string[] {
   }
 }
 
+const HIGHLIGHT_COLORS_PREF = `${config.prefsPrefix}.graphHighlightColors`;
+
+/** Palette slots picked for highlighted tags (lower-cased key → slot). */
+function loadHighlightColors(): Record<string, number> {
+  try {
+    const v = JSON.parse(
+      String(Zotero.Prefs.get(HIGHLIGHT_COLORS_PREF, true) ?? ""),
+    );
+    const out: Record<string, number> = {};
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      for (const [key, slot] of Object.entries(v)) {
+        if (Number.isInteger(slot)) out[key] = slot as number;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 const CONTROL_PREFS: Record<GraphControlGroup, string> = {
   search: "graphShowSearch",
   filters: "graphShowFilters",
@@ -237,6 +263,8 @@ export function openGraphView(win: Window): void {
       tagsFilter: getString("graph-tags-filter"),
       tagsNone: getString("graph-tags-none"),
       tagFocus: getString("graph-tag-focus"),
+      tagColor: getString("graph-tag-color"),
+      tagColorAuto: getString("graph-tag-color-auto"),
       layoutNetwork: getString("graph-layout-network"),
       layoutTimeline: getString("graph-layout-timeline"),
       undated: getString("graph-undated"),
@@ -250,6 +278,14 @@ export function openGraphView(win: Window): void {
     highlightTags: loadHighlightTags(),
     onHighlightTagsChange: (tags: string[]) => {
       Zotero.Prefs.set(HIGHLIGHT_PREF, JSON.stringify(tags), true);
+    },
+    tagPalette:
+      getCurrentPaletteId() === "colorblind"
+        ? TAG_PALETTE_COLORBLIND
+        : TAG_PALETTE,
+    tagColors: loadHighlightColors(),
+    onTagColorsChange: (colors: Record<string, number>) => {
+      Zotero.Prefs.set(HIGHLIGHT_COLORS_PREF, JSON.stringify(colors), true);
     },
     linkDistance: Number.isFinite(linkDistance) ? linkDistance : 40,
     onLinkDistanceChange: (v: number) => {

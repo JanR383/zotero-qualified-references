@@ -19,18 +19,31 @@ export interface TagOption {
 }
 
 /**
- * Colours for selected tags without a Zotero colour, used in turn. No reds,
- * greens or greys: those encode stance on the edges.
+ * The six colours offered for highlighted tags, besides Zotero's own tag
+ * colours. No reds, greens or greys: those encode stance on the edges.
  */
-const FALLBACK_COLORS = [
+export const TAG_PALETTE = [
   "#4363d8",
   "#f58231",
   "#911eb4",
   "#42d4f4",
   "#f032e6",
   "#9a6324",
-  "#808000",
-  "#000075",
+];
+
+/**
+ * The same six slots for the colour-blind stance palette: a subset of Paul
+ * Tol's "muted" scheme (https://personal.sron.nl/~pault/), distinguishable
+ * under red-green and blue-yellow colour blindness and apart from that
+ * palette's blues and oranges.
+ */
+export const TAG_PALETTE_COLORBLIND = [
+  "#332288",
+  "#44AA99",
+  "#117733",
+  "#DDCC77",
+  "#882255",
+  "#AA4499",
 ];
 
 export const tagKey = (name: string): string => name.toLowerCase();
@@ -88,21 +101,39 @@ export function collectTagOptions(
 }
 
 /**
- * Colour each selected tag that occurs in `options`: its Zotero colour, else
- * the next palette colour. The map keeps selection order (= legend order).
+ * Colour each selected tag that occurs in `options`: the palette slot picked
+ * for it in `chosen`, else its Zotero colour, else the first palette colour no
+ * other selected tag uses (cycling once all are taken). The map keeps
+ * selection order (= legend order).
  */
 export function assignTagColors(
   selected: string[],
   options: TagOption[],
+  palette: string[] = TAG_PALETTE,
+  chosen: ReadonlyMap<string, number> = new Map(),
 ): Map<string, { name: string; color: string }> {
   const byKey = new Map(options.map((o) => [tagKey(o.name), o]));
+  const keys = [...new Set(selected)].filter((k) => byKey.has(k));
+  const fixed = new Map<string, string>();
+  for (const key of keys) {
+    const slot = chosen.get(key);
+    const color =
+      slot !== undefined && palette[slot]
+        ? palette[slot]
+        : byKey.get(key)!.color;
+    if (color) fixed.set(key, color);
+  }
+  const used = new Set(fixed.values());
   const out = new Map<string, { name: string; color: string }>();
   let next = 0;
-  for (const key of selected) {
-    const opt = byKey.get(key);
-    if (!opt || out.has(key)) continue;
-    const color = opt.color ?? FALLBACK_COLORS[next++ % FALLBACK_COLORS.length];
-    out.set(key, { name: opt.name, color });
+  for (const key of keys) {
+    let color = fixed.get(key);
+    if (!color) {
+      color =
+        palette.find((c) => !used.has(c)) ?? palette[next++ % palette.length];
+      used.add(color);
+    }
+    out.set(key, { name: byKey.get(key)!.name, color });
   }
   return out;
 }

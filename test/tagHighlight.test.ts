@@ -5,6 +5,8 @@ import {
   mergeTagColors,
   orderTagOptions,
   ringColors,
+  TAG_PALETTE,
+  TAG_PALETTE_COLORBLIND,
 } from "../src/modules/tagHighlight";
 
 /**
@@ -69,6 +71,35 @@ describe("tag highlighting", function () {
         [{ name: "a" }, { name: "b" }],
       );
       assert.notEqual(assigned.get("a")!.color, assigned.get("b")!.color);
+    });
+
+    it("uses a picked palette slot over the Zotero colour", function () {
+      const assigned = assignTagColors(
+        ["#quelle", "alpha"],
+        [{ name: "#Quelle", color: "#990000" }, { name: "Alpha" }],
+        TAG_PALETTE_COLORBLIND,
+        new Map([["#quelle", 3]]),
+      );
+      assert.equal(assigned.get("#quelle")!.color, TAG_PALETTE_COLORBLIND[3]);
+      assert.equal(assigned.get("alpha")!.color, TAG_PALETTE_COLORBLIND[0]);
+    });
+
+    it("skips colours picked for other tags when assigning automatically", function () {
+      const assigned = assignTagColors(
+        ["a", "b"],
+        [{ name: "a" }, { name: "b" }],
+        TAG_PALETTE,
+        new Map([["b", 0]]),
+      );
+      assert.equal(assigned.get("a")!.color, TAG_PALETTE[1]);
+      assert.equal(assigned.get("b")!.color, TAG_PALETTE[0]);
+    });
+
+    it("offers six distinct colours in both palettes", function () {
+      for (const palette of [TAG_PALETTE, TAG_PALETTE_COLORBLIND]) {
+        assert.lengthOf(palette, 6);
+        assert.lengthOf(new Set(palette), 6);
+      }
     });
   });
 

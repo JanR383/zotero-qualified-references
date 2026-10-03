@@ -39,6 +39,8 @@ export type FluentMessageId =
   | 'graph-search'
   | 'graph-search-depth2'
   | 'graph-size-incoming'
+  | 'graph-tag-color'
+  | 'graph-tag-color-auto'
   | 'graph-tag-focus'
   | 'graph-tags'
   | 'graph-tags-filter'
