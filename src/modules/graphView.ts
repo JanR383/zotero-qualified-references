@@ -239,6 +239,13 @@ export function openGraphView(win: Window): void {
       tagFocus: getString("graph-tag-focus"),
       layoutNetwork: getString("graph-layout-network"),
       layoutTimeline: getString("graph-layout-timeline"),
+      layoutEgo: getString("graph-layout-ego"),
+      layoutLayers: getString("graph-layout-layers"),
+      layerLevel: getString("graph-layer-level"),
+      hintNetwork: getString("graph-hint-network"),
+      hintTimeline: getString("graph-hint-timeline"),
+      hintEgo: getString("graph-hint-ego"),
+      hintLayers: getString("graph-hint-layers"),
       undated: getString("graph-undated"),
       exportGraphml: getString("export-graphml"),
       exportPng: getString("export-png"),
@@ -255,6 +262,8 @@ export function openGraphView(win: Window): void {
     onLinkDistanceChange: (v: number) => {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
     },
+    getSelectedItemId: () =>
+      Zotero.getActiveZoteroPane()?.getSelectedItems()[0]?.id ?? null,
     controls: loadControls(),
     exportTransparent: () =>
       Zotero.Prefs.get(`${config.prefsPrefix}.graphExportTransparent`, true) ===

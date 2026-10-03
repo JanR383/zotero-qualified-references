@@ -119,9 +119,18 @@
       #controls [hidden] {
         display: none !important;
       }
+      #layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+      }
       #layout button {
-        flex: 1 1 0;
         cursor: pointer;
+      }
+      #layout-hint {
+        opacity: 0.75;
+        font-size: 11px;
+        line-height: 1.4;
       }
       #layout button[aria-pressed="true"] {
         font-weight: bold;
@@ -164,6 +173,7 @@
         role="group"
         data-group="timeline"
       ></div>
+      <div id="layout-hint" data-group="timeline"></div>
       <div class="control-row" data-group="search">
         <input id="search" type="search" />
       </div>
