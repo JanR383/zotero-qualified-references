@@ -78,6 +78,7 @@ export type FluentMessageId =
   | 'prefs-comment-max'
   | 'prefs-copy-refs-to-group'
   | 'prefs-copy-refs-to-group-desc'
+  | 'prefs-edit-incoming'
   | 'prefs-field-author'
   | 'prefs-field-title'
   | 'prefs-field-year'

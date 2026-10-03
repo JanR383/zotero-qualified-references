@@ -22,6 +22,7 @@ import { log } from "./utils/log";
 
 let palettePrefObserver: symbol | undefined;
 let stancePrefObserver: symbol | undefined;
+let incomingPrefObserver: symbol | undefined;
 
 async function onStartup() {
   await Promise.all([
@@ -74,6 +75,11 @@ async function onStartup() {
   // so toggling the compact setting takes effect without reopening the pane.
   stancePrefObserver = Zotero.Prefs.registerObserver(
     `${config.prefsPrefix}.stanceControlCompact`,
+    () => refreshAllSections(),
+    true,
+  );
+  incomingPrefObserver = Zotero.Prefs.registerObserver(
+    `${config.prefsPrefix}.editIncoming`,
     () => refreshAllSections(),
     true,
   );
@@ -210,6 +216,10 @@ function onShutdown(): void {
   if (stancePrefObserver !== undefined) {
     Zotero.Prefs.unregisterObserver(stancePrefObserver);
     stancePrefObserver = undefined;
+  }
+  if (incomingPrefObserver !== undefined) {
+    Zotero.Prefs.unregisterObserver(incomingPrefObserver);
+    incomingPrefObserver = undefined;
   }
   // Remove addon object
   addon.data.alive = false;

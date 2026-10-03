@@ -213,6 +213,9 @@ export function renderSection(
   // Incoming references (read-only)
   body.appendChild(heading(doc, getString("section-incoming-title")));
   const incoming = getIncoming(item);
+  const editIncoming =
+    editable &&
+    Zotero.Prefs.get(`${config.prefsPrefix}.editIncoming`, true) !== false;
   if (incoming.length === 0) {
     body.appendChild(muted(doc, getString("no-incoming")));
   }
@@ -221,12 +224,12 @@ export function renderSection(
     // otherwise the compact read-only view.
     const source = Zotero.Items.get(inc.sourceID);
     body.appendChild(
-      editable && source && source.isEditable()
+      editIncoming && source && source.isEditable()
         ? linkRow(doc, source, inc.link, source, true, rerender)
         : incomingRow(doc, inc),
     );
   }
-  if (editable) {
+  if (editIncoming) {
     // The reverse direction: the picked items reference this one. Each
     // reference is stored on (and saved to) the picked item.
     const addIncoming = button(doc, getString("add-incoming-button-label"));
