@@ -18,6 +18,7 @@ declare namespace _ZoteroTypes {
       "graphExportTransparent": boolean;
       "graphLinkDistance": number;
       "graphHighlightTags": string;
+      "graphHighlightColors": string;
       "graphShowSearch": boolean;
       "graphShowFilters": boolean;
       "graphShowTags": boolean;

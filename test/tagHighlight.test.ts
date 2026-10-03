@@ -3,7 +3,10 @@ import {
   assignTagColors,
   collectTagOptions,
   mergeTagColors,
+  orderTagOptions,
   ringColors,
+  TAG_PALETTE,
+  TAG_PALETTE_COLORBLIND,
 } from "../src/modules/tagHighlight";
 
 /**
@@ -69,6 +72,35 @@ describe("tag highlighting", function () {
       );
       assert.notEqual(assigned.get("a")!.color, assigned.get("b")!.color);
     });
+
+    it("uses a picked palette slot over the Zotero colour", function () {
+      const assigned = assignTagColors(
+        ["#quelle", "alpha"],
+        [{ name: "#Quelle", color: "#990000" }, { name: "Alpha" }],
+        TAG_PALETTE_COLORBLIND,
+        new Map([["#quelle", 3]]),
+      );
+      assert.equal(assigned.get("#quelle")!.color, TAG_PALETTE_COLORBLIND[3]);
+      assert.equal(assigned.get("alpha")!.color, TAG_PALETTE_COLORBLIND[0]);
+    });
+
+    it("skips colours picked for other tags when assigning automatically", function () {
+      const assigned = assignTagColors(
+        ["a", "b"],
+        [{ name: "a" }, { name: "b" }],
+        TAG_PALETTE,
+        new Map([["b", 0]]),
+      );
+      assert.equal(assigned.get("a")!.color, TAG_PALETTE[1]);
+      assert.equal(assigned.get("b")!.color, TAG_PALETTE[0]);
+    });
+
+    it("offers six distinct colours in both palettes", function () {
+      for (const palette of [TAG_PALETTE, TAG_PALETTE_COLORBLIND]) {
+        assert.lengthOf(palette, 6);
+        assert.lengthOf(new Set(palette), 6);
+      }
+    });
   });
 
   describe("ringColors", function () {
@@ -82,6 +114,26 @@ describe("tag highlighting", function () {
         "#00aa00",
       ]);
       assert.deepEqual(ringColors(["other"], assigned), []);
+    });
+  });
+
+  describe("orderTagOptions", function () {
+    const options = [{ name: "Alpha" }, { name: "beta" }, { name: "Gamma" }];
+    const names = (selected: string[]) =>
+      orderTagOptions(options, selected).map((o) => o.name);
+
+    it("lists selected tags first in selection order, the rest alphabetically", function () {
+      assert.deepEqual(names(["gamma", "alpha"]), ["Gamma", "Alpha", "beta"]);
+      assert.deepEqual(names([]), ["Alpha", "beta", "Gamma"]);
+    });
+
+    it("keeps a selected tag that no longer exists so it can be deselected", function () {
+      // e.g. "Old" was renamed after it had been selected.
+      const out = orderTagOptions(options, ["old", "beta"]);
+      assert.deepEqual(out[0], { name: "old", key: "old", missing: true });
+      assert.equal(out[1].name, "beta");
+      assert.isUndefined(out[1].missing);
+      assert.lengthOf(out, 4);
     });
   });
 });

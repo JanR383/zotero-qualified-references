@@ -322,6 +322,8 @@ function main(): void {
   // With tag highlighting switched off, a stored selection must not leave
   // rings that can't be changed from the window.
   const selectedTags = new Set(arg.controls.tags ? arg.highlightTags : []);
+  const tagColors = new Map(Object.entries(arg.tagColors));
+  let assigned = new Map<string, { name: string; color: string }>();
   let rings = new Map<number, string[]>();
   let tagFocus = false;
   let hovered: number | null = null;
@@ -588,7 +590,12 @@ function main(): void {
   };
 
   const refresh = (): void => {
-    const assigned = assignTagColors([...selectedTags], current.tagOptions);
+    assigned = assignTagColors(
+      [...selectedTags],
+      current.tagOptions,
+      arg.tagPalette,
+      tagColors,
+    );
     rings = new Map();
     for (const n of current.nodes) {
       const colors = ringColors(n.tags, assigned);
@@ -620,10 +627,20 @@ function main(): void {
       .linkColor(graph.linkColor());
   };
 
-  const tagSelect = buildTagSelect(strings, selectedTags, () => {
-    arg.onHighlightTagsChange?.([...selectedTags]);
-    refresh();
-  });
+  const tagSelect = buildTagSelect(
+    strings,
+    selectedTags,
+    {
+      palette: arg.tagPalette,
+      chosen: tagColors,
+      colorOf: (key) => assigned.get(key)?.color,
+    },
+    () => {
+      arg.onHighlightTagsChange?.([...selectedTags]);
+      arg.onTagColorsChange?.(Object.fromEntries(tagColors));
+      refresh();
+    },
+  );
 
   // Type filter checkboxes (G2), rebuilt per scope. Types new to this scope
   // start checked; types unchecked before stay unchecked.

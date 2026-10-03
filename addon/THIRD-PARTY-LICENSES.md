@@ -94,4 +94,5 @@ d3-timer, d3-transition, d3-zoom, internmap):
 
 - [GitHub Primer](https://primer.style/) (MIT) — default stance colours.
 - [Okabe–Ito](https://jfly.uni-koeln.de/color/) — colour-blind-safe stance palette.
+- [Paul Tol, "muted" scheme](https://personal.sron.nl/~pault/) — colour-blind-safe tag highlight colours.
 - [Open Color](https://yeun.github.io/open-color/) (MIT) — item-type node colours.

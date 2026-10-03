@@ -27,6 +27,11 @@ pref("graphLinkDistance", 40);
 // names. Chosen in the graph window.
 pref("graphHighlightTags", "[]");
 
+// Graph: colour picked per highlighted tag, a JSON object of lower-cased tag
+// name → slot (0–5) in the tag palette. Unset tags use their Zotero colour or
+// the next free palette colour.
+pref("graphHighlightColors", "{}");
+
 // Graph window: which optional control groups to show. Scope is always shown;
 // the search-depth checkbox appears only while a search term is entered.
 pref("graphShowSearch", true);
