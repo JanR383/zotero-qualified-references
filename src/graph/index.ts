@@ -37,7 +37,13 @@ import {
 import { assignTagColors, ringColors } from "../modules/tagHighlight";
 import { escapeHtml, truncate } from "../shared/text";
 import { buildTagSelect } from "./tagSelect";
-import { computeView, linkShown, sizeFactor, type ViewState } from "./view";
+import {
+  arrowLength,
+  computeView,
+  linkShown,
+  sizeFactor,
+  type ViewState,
+} from "./view";
 import { timeScale, type TimeScale } from "./timeline";
 import { LabelBoxes, estimateLabelWidth } from "./labels";
 import { clusterForce, components } from "./layout";
@@ -361,6 +367,16 @@ function main(): void {
     Math.min(alphaOf(endId(l.source)), alphaOf(endId(l.target)));
   const withAlpha = (color: string, alpha: number): string =>
     alpha >= 1 ? color : hexWithAlpha(color, alpha);
+  // Current zoom, updated before each frame; arrows are sized from it.
+  let zoomScale = 1;
+  // Edge length between the drawn node borders (chord; curvature is small).
+  const visibleLength = (l: GraphLink): number => {
+    const s = l.source as unknown as GraphNode;
+    const t = l.target as unknown as GraphNode;
+    if (typeof s !== "object" || typeof t !== "object") return 0;
+    const d = Math.hypot((t.x ?? 0) - (s.x ?? 0), (t.y ?? 0) - (s.y ?? 0));
+    return d - outer(s) - outer(t);
+  };
 
   const graph = new ForceGraph<GraphNode, GraphLink>(container)
     .graphData({ nodes: [], links: [] })
@@ -382,7 +398,7 @@ function main(): void {
     .linkColor((l) => withAlpha(colorFor(l.stance), linkAlpha(l)))
     .linkWidth(1.5)
     .linkCurvature("curvature")
-    .linkDirectionalArrowLength(7)
+    .linkDirectionalArrowLength((l) => arrowLength(zoomScale, visibleLength(l)))
     .linkDirectionalArrowColor((l) =>
       withAlpha(colorFor(l.stance), linkAlpha(l)),
     )
@@ -495,6 +511,7 @@ function main(): void {
     // Timeline layout (G11): year grid behind the nodes; layered layout:
     // one numbered line per layer.
     .onRenderFramePre((ctx, scale) => {
+      zoomScale = scale;
       labelBoxes.reset();
       if (!timeline && mode !== "layers") return;
       const tl = graph.screen2GraphCoords(0, 0);

@@ -1,5 +1,6 @@
 import { assert } from "chai";
 import {
+  arrowLength,
   computeView,
   matchesQuery,
   sizeFactor,
@@ -108,5 +109,20 @@ describe("graph view logic", function () {
     assert.equal(sizeFactor(0), 1);
     assert.isAbove(sizeFactor(4), sizeFactor(1));
     assert.equal(sizeFactor(1000), 2.2);
+  });
+
+  it("sizes arrows with the zoom, bounded on screen and by the edge", function () {
+    // Zoom 1: 7 px = 7 graph units.
+    assert.closeTo(arrowLength(1, 100), 7, 1e-9);
+    // Zoomed out: at least 6 px on screen, i.e. 6 / 0.25 = 24 units.
+    assert.closeTo(arrowLength(0.25, 100), 24, 1e-9);
+    // Zoomed in: at most 16 px on screen.
+    assert.closeTo(arrowLength(4, 100) * 4, 16, 1e-9);
+    // Short edge: capped to 40 % of the visible part.
+    assert.closeTo(arrowLength(1, 10), 4, 1e-9);
+    // Overlapping nodes or invalid zoom: no arrow.
+    assert.equal(arrowLength(1, 0), 0);
+    assert.equal(arrowLength(1, -5), 0);
+    assert.equal(arrowLength(0, 100), 0);
   });
 });
