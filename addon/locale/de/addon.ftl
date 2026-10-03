@@ -10,6 +10,11 @@ section-sidenav-tooltip =
 section-outgoing-title = Bezüge (dieser Eintrag → andere)
 section-incoming-title = Referenziert von
 add-button-label = + Bezug hinzufügen
+add-incoming-button-label = + Eingehenden Bezug hinzufügen
+add-incoming-read-only = { $count ->
+    [one] 1 Eintrag übersprungen: Seine Bibliothek ist schreibgeschützt.
+   *[other] { $count } Einträge übersprungen: Ihre Bibliothek ist schreibgeschützt.
+}
 delete-button = Löschen
 field-source-pages = Quelle S.
 field-target-pages = Ziel S.

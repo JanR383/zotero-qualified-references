@@ -9,6 +9,7 @@ import {
 } from "./stanceMeta";
 import { formatItem, paneFields } from "./itemFormat";
 import {
+  addIncomingLinks,
   getIncoming,
   getLinks,
   makeLink,
@@ -25,7 +26,7 @@ import {
 } from "./history";
 import type { JournalEntry } from "./journalLogic";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
-import { log } from "../utils/log";
+import { log, showNotice } from "../utils/log";
 
 let registeredID: string | false = false;
 
@@ -176,7 +177,11 @@ export function renderSection(
     body.appendChild(muted(doc, getString("no-outgoing")));
   }
   for (const link of links) {
-    body.appendChild(outgoingRow(doc, item, link, editable, rerender));
+    const target = Zotero.Items.getByLibraryAndKey(
+      link.targetLib,
+      link.targetKey,
+    );
+    body.appendChild(linkRow(doc, item, link, target, editable, rerender));
   }
   if (editable) {
     const add = button(doc, getString("add-button-label"));
@@ -212,14 +217,54 @@ export function renderSection(
     body.appendChild(muted(doc, getString("no-incoming")));
   }
   for (const inc of incoming) {
-    body.appendChild(incomingRow(doc, inc));
+    // Editable in place when the item storing the reference can be saved;
+    // otherwise the compact read-only view.
+    const source = Zotero.Items.get(inc.sourceID);
+    body.appendChild(
+      editable && source && source.isEditable()
+        ? linkRow(doc, source, inc.link, source, true, rerender)
+        : incomingRow(doc, inc),
+    );
+  }
+  if (editable) {
+    // The reverse direction: the picked items reference this one. Each
+    // reference is stored on (and saved to) the picked item.
+    const addIncoming = button(doc, getString("add-incoming-button-label"));
+    addIncoming.addEventListener(
+      "click",
+      catching(async () => {
+        const win = doc.defaultView as Window;
+        const ids = referenceTargets(item, pickItems(win));
+        if (ids.length === 0) return;
+        const result = await addIncomingLinks(item, ids);
+        if (result.readOnly > 0) {
+          showNotice(
+            getString("add-incoming-read-only", {
+              args: { count: result.readOnly },
+            }),
+            10_000,
+          );
+        }
+        if (result.tooLarge > 0) {
+          showNotice(getString("save-too-large"), 10_000);
+        }
+        rerender();
+      }),
+    );
+    body.appendChild(addIncoming);
   }
 }
 
-function outgoingRow(
+/**
+ * Editor for one reference stored on `source`. `shown` is the item named in
+ * the row: the target for an outgoing reference, the source for an incoming
+ * one (false when it no longer exists).
+ */
+function linkRow(
   doc: Document,
   source: Zotero.Item,
   link: ReferenceLink,
+  shown: Zotero.Item | false,
   editable: boolean,
   rerender: () => void,
 ): HTMLElement {
@@ -227,15 +272,11 @@ function outgoingRow(
   // under the referenced title, instead of flowing inline next to it.
   const row = box(doc, "qref-outgoing");
 
-  const target = Zotero.Items.getByLibraryAndKey(
-    link.targetLib,
-    link.targetKey,
-  );
   row.appendChild(
     titleLink(
       doc,
-      target ? formatItem(target, paneFields()) : getString("missing-item"),
-      target || undefined,
+      shown ? formatItem(shown, paneFields()) : getString("missing-item"),
+      shown || undefined,
     ),
   );
 

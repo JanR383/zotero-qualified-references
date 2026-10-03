@@ -10,6 +10,11 @@ section-sidenav-tooltip =
 section-outgoing-title = References (this item → others)
 section-incoming-title = Referenced by
 add-button-label = + Add reference
+add-incoming-button-label = + Add incoming reference
+add-incoming-read-only = { $count ->
+    [one] Skipped 1 item: its library is read-only.
+   *[other] Skipped { $count } items: their library is read-only.
+}
 delete-button = Delete
 field-source-pages = Source p.
 field-target-pages = Target p.

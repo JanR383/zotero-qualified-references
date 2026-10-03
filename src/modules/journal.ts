@@ -36,7 +36,7 @@ let saveTimer: Promise<void> | null = null;
 
 function journalPath(): string {
   return PathUtils.join(
-    Zotero.getProfileDirectory().path,
+    PathUtils.profileDir,
     "qualified-references-journal.json",
   );
 }
