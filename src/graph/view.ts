@@ -147,3 +147,16 @@ export function computeView(
 export function sizeFactor(incoming: number): number {
   return Math.min(2.2, 1 + 0.3 * Math.sqrt(incoming));
 }
+
+/**
+ * Arrowhead length in graph units. Grows with the zoom like the rest of the
+ * graph, but stays between 6 and 16 screen pixels so arrows remain visible
+ * when zoomed out and don't swamp the view when zoomed in. It never takes
+ * more than 40 % of the edge's visible part (between the node borders), so
+ * short edges keep a line behind the arrow and still read as directed.
+ */
+export function arrowLength(scale: number, visibleLength: number): number {
+  if (!(scale > 0) || visibleLength <= 0) return 0;
+  const px = Math.min(16, Math.max(6, 7 * scale));
+  return Math.min(px / scale, 0.4 * visibleLength);
+}
