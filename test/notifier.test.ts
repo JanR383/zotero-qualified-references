@@ -96,16 +96,18 @@ describe("notifier", function () {
   });
 
   it("asks the item trees to refresh the target's row when a source changes (F5)", async function () {
+    const tree = Zotero.getMainWindows()[0].ZoteroPane.itemsView as any;
+    const original = tree.notify;
     const refreshed: number[] = [];
-    const observer = Zotero.Notifier.registerObserver(
-      {
-        notify: (event: string, _type: string, ids: Array<string | number>) => {
-          if (event === "refresh") refreshed.push(...ids.map(Number));
-        },
-      },
-      ["item"],
-      "qref-test",
-    );
+    tree.notify = function (
+      action: string,
+      type: string,
+      ids: number[],
+      ...rest: unknown[]
+    ) {
+      if (action === "refresh" && type === "item") refreshed.push(...ids);
+      return original.call(this, action, type, ids, ...rest);
+    };
     try {
       const s = await makeSource(1);
       await waitFor(
@@ -118,6 +120,28 @@ describe("notifier", function () {
         () => refreshed.includes(target.id),
         "target refreshed after the link was removed",
       );
+    } finally {
+      tree.notify = original;
+    }
+  });
+
+  it("does not broadcast an item refresh, which re-renders and scrolls the item pane", async function () {
+    const broadcast: number[] = [];
+    const observer = Zotero.Notifier.registerObserver(
+      {
+        notify: (event: string, _type: string, ids: Array<string | number>) => {
+          if (event === "refresh") broadcast.push(...ids.map(Number));
+        },
+      },
+      ["item"],
+      "qref-test",
+    );
+    try {
+      const s = await makeSource(1);
+      await waitFor(() => !!incomingFrom(s.id), "source indexed after add");
+      await setLinks(s, []);
+      await waitFor(() => !incomingFrom(s.id), "entry gone after removal");
+      assert.notInclude(broadcast, target.id);
     } finally {
       Zotero.Notifier.unregisterObserver(observer);
     }
