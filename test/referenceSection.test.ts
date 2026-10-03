@@ -89,18 +89,44 @@ describe("referenceSection", function () {
     assert.lengthOf(buttons(body, getString("delete-button")), 2);
   });
 
-  it("lists incoming references on the target", async function () {
-    await withOneLink({ comment: "incoming comment", targetPages: "7" });
+  async function renderTargetIndexed(editable: boolean): Promise<HTMLElement> {
     await waitFor(() => {
       const b = makeBody();
-      renderSection(b, target, true);
+      renderSection(b, target, editable);
       return !b.textContent!.includes(getString("no-incoming"));
     }, "incoming reference indexed");
     const body = makeBody();
-    renderSection(body, target, true);
+    renderSection(body, target, editable);
+    return body;
+  }
+
+  it("lists incoming references on the target", async function () {
+    await withOneLink({ comment: "incoming comment", targetPages: "7" });
+    const body = await renderTargetIndexed(false);
     assert.include(body.textContent, "QRef section source");
     assert.include(body.textContent, "incoming comment");
     assert.include(body.textContent, "7");
+  });
+
+  it("edits an incoming reference's stance and comment on its source", async function () {
+    await withOneLink({ comment: "before" });
+    const body = await renderTargetIndexed(true);
+    assert.include(body.textContent, "QRef section source");
+    const comment = body.querySelector("textarea")!;
+    assert.equal(comment.value, "before");
+    comment.value = "edited from the target";
+    fire(comment, "change");
+    await waitFor(
+      () => getLinks(source)[0]?.comment === "edited from the target",
+      "comment saved on the source",
+    );
+    (
+      body.querySelector(
+        `button[aria-label="${getString("stance-mm")}"]`,
+      ) as HTMLButtonElement
+    ).click();
+    await waitFor(() => getLinks(source)[0]?.stance === -2, "stance saved");
+    assert.deepEqual(getLinks(target), [], "nothing is stored on the target");
   });
 
   it("is read-only when not editable", async function () {

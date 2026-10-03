@@ -177,7 +177,11 @@ export function renderSection(
     body.appendChild(muted(doc, getString("no-outgoing")));
   }
   for (const link of links) {
-    body.appendChild(outgoingRow(doc, item, link, editable, rerender));
+    const target = Zotero.Items.getByLibraryAndKey(
+      link.targetLib,
+      link.targetKey,
+    );
+    body.appendChild(linkRow(doc, item, link, target, editable, rerender));
   }
   if (editable) {
     const add = button(doc, getString("add-button-label"));
@@ -213,7 +217,14 @@ export function renderSection(
     body.appendChild(muted(doc, getString("no-incoming")));
   }
   for (const inc of incoming) {
-    body.appendChild(incomingRow(doc, inc));
+    // Editable in place when the item storing the reference can be saved;
+    // otherwise the compact read-only view.
+    const source = Zotero.Items.get(inc.sourceID);
+    body.appendChild(
+      editable && source && source.isEditable()
+        ? linkRow(doc, source, inc.link, source, true, rerender)
+        : incomingRow(doc, inc),
+    );
   }
   if (editable) {
     // The reverse direction: the picked items reference this one. Each
@@ -244,10 +255,16 @@ export function renderSection(
   }
 }
 
-function outgoingRow(
+/**
+ * Editor for one reference stored on `source`. `shown` is the item named in
+ * the row: the target for an outgoing reference, the source for an incoming
+ * one (false when it no longer exists).
+ */
+function linkRow(
   doc: Document,
   source: Zotero.Item,
   link: ReferenceLink,
+  shown: Zotero.Item | false,
   editable: boolean,
   rerender: () => void,
 ): HTMLElement {
@@ -255,15 +272,11 @@ function outgoingRow(
   // under the referenced title, instead of flowing inline next to it.
   const row = box(doc, "qref-outgoing");
 
-  const target = Zotero.Items.getByLibraryAndKey(
-    link.targetLib,
-    link.targetKey,
-  );
   row.appendChild(
     titleLink(
       doc,
-      target ? formatItem(target, paneFields()) : getString("missing-item"),
-      target || undefined,
+      shown ? formatItem(shown, paneFields()) : getString("missing-item"),
+      shown || undefined,
     ),
   );
 
