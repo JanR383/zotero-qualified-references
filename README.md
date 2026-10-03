@@ -49,8 +49,8 @@ neighbourhood; a collapsible **Filters** group limits the view by stance, item
 type and a minimum number of references. Hovering an arrow shows its stance,
 comment and pages; clicking it opens the passage in the PDF or selects the
 citing item. Unconnected groups of items are kept apart. Optional layouts
-(each switched on separately in the settings, off by default), explained by a
-short note in the window:
+(each switched on separately in the settings, off by default; their buttons
+and settings explain them):
 **timeline** places items by publication year, with undated items in a
 separate lane; **ego network** puts one item in the centre, with the items
 citing it on a left half circle, the items it cites on a right one and the

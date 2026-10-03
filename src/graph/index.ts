@@ -952,18 +952,14 @@ function main(): void {
     });
   }
 
-  // Layout switch: network, timeline (G11), ego network or layers, with a
-  // short explanation of the chosen layout below.
+  // Layout switch: network, timeline (G11), ego network or layers; each
+  // button explains its layout on hover.
   const layoutMount = byId("layout");
-  const layoutHint = byId("layout-hint");
   const hints: Record<LayoutMode, string> = {
     network: strings.hintNetwork,
     timeline: strings.hintTimeline,
     ego: strings.hintEgo,
     layers: strings.hintLayers,
-  };
-  const showHint = (): void => {
-    if (layoutHint) layoutHint.textContent = hints[mode];
   };
   if (layoutMount) {
     // Network is always there; the other layouts are switched on one by
@@ -976,13 +972,11 @@ function main(): void {
         ["layers", strings.layoutLayers],
       ] as [LayoutMode, string][]
     ).filter(([m]) => m === "network" || arg.controls[m]);
-    if (modes.length === 1) {
-      layoutMount.hidden = true;
-      if (layoutHint) layoutHint.hidden = true;
-    }
+    if (modes.length === 1) layoutMount.hidden = true;
     const buttons = modes.map(([m, label]) => {
       const b = create("button");
       b.textContent = label;
+      b.title = hints[m];
       b.setAttribute("aria-pressed", String(m === mode));
       b.addEventListener("click", () => {
         if (m === mode) return;
@@ -990,13 +984,11 @@ function main(): void {
           other.setAttribute("aria-pressed", String(other === b));
         }
         applyLayout(m);
-        showHint();
       });
       return b;
     });
     layoutMount.append(...buttons);
   }
-  showHint();
 
   // Search (G5): hits are outlined, their neighbourhood stays opaque, the
   // rest is dimmed; Enter centres the view on the first hit.
