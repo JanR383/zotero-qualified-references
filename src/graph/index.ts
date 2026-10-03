@@ -40,6 +40,7 @@ import { buildTagSelect } from "./tagSelect";
 import { computeView, linkShown, sizeFactor, type ViewState } from "./view";
 import { timeScale, type TimeScale } from "./timeline";
 import { LabelBoxes, estimateLabelWidth } from "./labels";
+import { clusterForce, components } from "./layout";
 import type { Stance } from "../modules/types";
 import type {
   GraphArg,
@@ -507,11 +508,60 @@ function main(): void {
   // in-window slider so dense graphs can be spread out for legibility.
   const linkForce = graph.d3Force("link") as
     { distance: (d: number) => unknown } | undefined;
+  // Network layout: repulsion grows with the edge length, and unconnected
+  // clusters are kept apart (their nodes too) by clusterForce. Hidden nodes
+  // neither repel nor take part in a cluster.
+  const chargeForce = graph.d3Force("charge") as
+    | {
+        strength: (s: number | ((n: GraphNode) => number)) => unknown;
+        distanceMax: (d: number) => unknown;
+      }
+    | undefined;
+  let distance = arg.linkDistance;
+  const clusters = clusterForce({
+    gap: () => Math.max(20, distance * 0.3),
+    nodeRadius: (n) => outer(n as GraphNode),
+    spacing: () => distance * 0.5,
+  });
+  let clusterKey = "";
+  const applyNetworkForces = (): void => {
+    const network = !timeline;
+    chargeForce?.strength(
+      network
+        ? (n: GraphNode) =>
+            view.visible.has(n.id) ? -Math.max(30, distance * 1.5) : 0
+        : -30,
+    );
+    chargeForce?.distanceMax(network ? distance * 4 : Infinity);
+    graph.d3Force("clusters", network ? clusters : null);
+  };
+  // Clusters as shown: visible nodes joined by visible links. Returns true
+  // when they differ from the last call.
+  const updateClusters = (): boolean => {
+    const groups = components(
+      view.visible,
+      current.links
+        .map((l) => ({
+          source: endId(l.source),
+          target: endId(l.target),
+          stance: l.stance,
+        }))
+        .filter((l) => linkShown(l, view, shownStances)),
+    );
+    clusters.groups(groups);
+    const key = groups
+      .map((g) => [...g].sort((a, b) => a - b).join(","))
+      .join("|");
+    const changed = key !== clusterKey;
+    clusterKey = key;
+    return changed;
+  };
   const applyDistance = (d: number): void => {
+    distance = d;
     linkForce?.distance(d);
+    applyNetworkForces();
     graph.d3ReheatSimulation();
   };
-  applyDistance(arg.linkDistance);
 
   // Timeline layout (G11): x is fixed by year, y stays free but is pulled
   // gently towards the axis so the band does not drift apart.
@@ -556,6 +606,7 @@ function main(): void {
       else delete n.fx;
     }
     graph.d3Force("timelineY", timeline ? pullToAxis : null);
+    applyNetworkForces();
     graph.d3ReheatSimulation();
     if (!fit) return;
     window.setTimeout(
@@ -573,6 +624,7 @@ function main(): void {
     itemTypes: [],
     tagOptions: [],
   };
+  applyDistance(arg.linkDistance);
 
   // Recompute rings, filters, search focus and legend; setting the accessors
   // again makes force-graph redraw even when the layout is at rest.
@@ -617,6 +669,10 @@ function main(): void {
         depth,
       },
     );
+    // Charge strengths depend on visibility; re-layout when the clusters
+    // shown have changed (filters can split or join them).
+    applyNetworkForces();
+    if (updateClusters() && !timeline) graph.d3ReheatSimulation();
     updateFilterSummary();
     renderLegend(arg, current.typeLegend, [...assigned.values()], isDark);
     showEmpty(view.visible.size === 0);
