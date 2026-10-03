@@ -222,6 +222,8 @@ const CONTROL_PREFS: Record<GraphControlGroup, string> = {
   size: "graphShowSizeToggle",
   distance: "graphShowLinkDistance",
   timeline: "graphShowTimeline",
+  ego: "graphShowEgo",
+  layers: "graphShowLayers",
 };
 
 /** Which optional control groups the graph window shows (prefs pane). */
@@ -248,6 +250,8 @@ export function openGraphView(win: Window): void {
     strings: {
       ...viewStringsBase("graph-window-title"),
       linkDistance: getString("graph-link-distance"),
+      legend: getString("graph-legend"),
+      controls: getString("graph-controls"),
       search: getString("graph-search"),
       searchDepth2: getString("graph-search-depth2"),
       filters: getString("graph-filters"),
@@ -267,6 +271,13 @@ export function openGraphView(win: Window): void {
       tagColorAuto: getString("graph-tag-color-auto"),
       layoutNetwork: getString("graph-layout-network"),
       layoutTimeline: getString("graph-layout-timeline"),
+      layoutEgo: getString("graph-layout-ego"),
+      layoutLayers: getString("graph-layout-layers"),
+      layerLevel: getString("graph-layer-level"),
+      hintNetwork: getString("graph-hint-network"),
+      hintTimeline: getString("graph-hint-timeline"),
+      hintEgo: getString("graph-hint-ego"),
+      hintLayers: getString("graph-hint-layers"),
       undated: getString("graph-undated"),
       exportGraphml: getString("export-graphml"),
       exportPng: getString("export-png"),
@@ -290,6 +301,23 @@ export function openGraphView(win: Window): void {
     linkDistance: Number.isFinite(linkDistance) ? linkDistance : 40,
     onLinkDistanceChange: (v: number) => {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);
+    },
+    getSelectedItemId: () =>
+      Zotero.getActiveZoteroPane()?.getSelectedItems()[0]?.id ?? null,
+    collapsed: {
+      legend:
+        Zotero.Prefs.get(`${config.prefsPrefix}.graphLegendCollapsed`, true) ===
+        true,
+      controls:
+        Zotero.Prefs.get(
+          `${config.prefsPrefix}.graphControlsCollapsed`,
+          true,
+        ) === true,
+    },
+    onCollapsedChange: (panel, on) => {
+      const key =
+        panel === "legend" ? "graphLegendCollapsed" : "graphControlsCollapsed";
+      Zotero.Prefs.set(`${config.prefsPrefix}.${key}`, on, true);
     },
     controls: loadControls(),
     exportTransparent: () =>

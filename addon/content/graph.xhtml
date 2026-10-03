@@ -15,17 +15,40 @@
         width: 100vw;
         height: 100vh;
       }
-      #legend {
+      #legend-panel {
         position: fixed;
         top: 10px;
         left: 10px;
-        padding: 8px 10px;
+        padding: 4px 10px;
         border-radius: 6px;
         background: color-mix(in srgb, Canvas 85%, transparent);
         border: 1px solid var(--material-border-quarternary, #ccc);
         font-size: 12px;
         line-height: 1.6;
+      }
+      #legend {
         pointer-events: none;
+      }
+      /* Collapse toggles of the legend and the controls panel. */
+      .panel-toggle {
+        display: block;
+        padding: 0;
+        border: none;
+        background: none;
+        color: inherit;
+        font: inherit;
+        opacity: 0.75;
+        cursor: pointer;
+        user-select: none;
+      }
+      .panel-toggle::before {
+        content: "▾ ";
+      }
+      .panel-toggle[aria-expanded="false"]::before {
+        content: "▸ ";
+      }
+      #controls > .panel-toggle {
+        align-self: flex-end;
       }
       .legend-row {
         display: flex;
@@ -63,6 +86,12 @@
         max-height: calc(100vh - 40px);
         max-width: 300px;
         overflow-y: auto;
+      }
+      #controls-body {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
       }
       #controls .control-row.wrap {
         flex-wrap: wrap;
@@ -119,8 +148,16 @@
       #controls [hidden] {
         display: none !important;
       }
+      /* Layout buttons share one row in equal widths (overrides the flex
+         layout of .control-row). */
+      #controls #layout {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        gap: 4px;
+      }
       #layout button {
-        flex: 1 1 0;
+        margin: 0;
         cursor: pointer;
       }
       #layout button[aria-pressed="true"] {
@@ -151,47 +188,48 @@
   </head>
   <body>
     <div id="graph"></div>
-    <div id="legend"></div>
+    <div id="legend-panel">
+      <button class="panel-toggle" id="legend-toggle"></button>
+      <div id="legend"></div>
+    </div>
     <div id="controls">
-      <div class="control-row">
-        <label id="scope-label"></label>
-        <div id="scope"></div>
-        <div id="export"></div>
-      </div>
-      <div
-        class="control-row"
-        id="layout"
-        role="group"
-        data-group="timeline"
-      ></div>
-      <div class="control-row" data-group="search">
-        <input id="search" type="search" />
-      </div>
-      <div class="control-row" id="search-depth" hidden="hidden"></div>
-      <details id="filters" data-group="filters">
-        <summary id="filters-summary"></summary>
-        <div class="control-row wrap">
-          <span id="stance-filter-label"></span>
-          <span id="stance-filter" class="control-row wrap"></span>
-        </div>
-        <div id="type-filter-label"></div>
-        <div id="type-filter" class="control-row wrap"></div>
+      <button class="panel-toggle" id="controls-toggle"></button>
+      <div id="controls-body">
         <div class="control-row">
-          <label id="min-links-label" for="min-links"></label>
-          <input id="min-links" type="number" min="1" max="50" step="1" />
+          <label id="scope-label"></label>
+          <div id="scope"></div>
+          <div id="export"></div>
         </div>
-      </details>
-      <div class="control-row" id="size-incoming" data-group="size"></div>
-      <div class="control-row" data-group="distance">
-        <label id="link-distance-label" for="link-distance"></label>
-        <input id="link-distance" type="range" min="10" max="200" step="5" />
-      </div>
-      <div class="control-row" data-group="tags">
-        <div id="tags"></div>
-      </div>
-      <div class="control-row" data-group="tags">
-        <input id="tag-focus" type="checkbox" />
-        <label id="tag-focus-label" for="tag-focus"></label>
+        <div class="control-row" id="layout" role="group"></div>
+        <div class="control-row" data-group="search">
+          <input id="search" type="search" />
+        </div>
+        <div class="control-row" id="search-depth" hidden="hidden"></div>
+        <details id="filters" data-group="filters">
+          <summary id="filters-summary"></summary>
+          <div class="control-row wrap">
+            <span id="stance-filter-label"></span>
+            <span id="stance-filter" class="control-row wrap"></span>
+          </div>
+          <div id="type-filter-label"></div>
+          <div id="type-filter" class="control-row wrap"></div>
+          <div class="control-row">
+            <label id="min-links-label" for="min-links"></label>
+            <input id="min-links" type="number" min="1" max="50" step="1" />
+          </div>
+        </details>
+        <div class="control-row" id="size-incoming" data-group="size"></div>
+        <div class="control-row" data-group="distance">
+          <label id="link-distance-label" for="link-distance"></label>
+          <input id="link-distance" type="range" min="10" max="200" step="5" />
+        </div>
+        <div class="control-row" data-group="tags">
+          <div id="tags"></div>
+        </div>
+        <div class="control-row" data-group="tags">
+          <input id="tag-focus" type="checkbox" />
+          <label id="tag-focus-label" for="tag-focus"></label>
+        </div>
       </div>
     </div>
     <div id="empty"></div>

@@ -41,6 +41,7 @@ import { computeView, linkShown, sizeFactor, type ViewState } from "./view";
 import { timeScale, type TimeScale } from "./timeline";
 import { LabelBoxes, estimateLabelWidth } from "./labels";
 import { clusterForce, components } from "./layout";
+import { egoLayout, layerLevels, type DirectedLink } from "./modes";
 import type { Stance } from "../modules/types";
 import type {
   GraphArg,
@@ -311,6 +312,7 @@ function main(): void {
   const LABEL_ZOOM = 1.5;
   const LABEL_ALL_MAX_NODES = 40;
   const DIMMED = 0.15; // opacity of nodes/links outside the search focus (G5)
+  const EGO_OUTER = 0.45; // opacity of the ego network's second ring
 
   // Filter and highlight state. Types start with every type present.
   const shownStances = new Set<Stance>(STANCE_ORDER);
@@ -327,6 +329,15 @@ function main(): void {
   let assigned = new Map<string, { name: string; color: string }>();
   let rings = new Map<number, string[]>();
   let tagFocus = false;
+  // Layout mode: force network, timeline (G11), ego network or layers.
+  type LayoutMode = "network" | "timeline" | "ego" | "layers";
+  let mode: LayoutMode = "network";
+  let egoCenter: number | null = null;
+  let egoOuter = new Set<number>(); // second ring, drawn faded
+  let egoSide = new Map<number, number>(); // -1 / 1: label left / right
+  let egoAbove = new Set<number>(); // label above (top of the ring)
+  let layers = new Map<number, number>(); // layer per item
+  let layerGap = 0; // vertical distance between layers, graph units
   let hovered: number | null = null;
   let labels = new Map<number, string>();
   let view: ViewState = {
@@ -344,6 +355,10 @@ function main(): void {
   const outer = (n: GraphNode): number =>
     rings.has(n.id) ? ringRadius(n) + RING_W / 2 : radius(n);
   const dimmed = (id: number): boolean => !!view.focus && !view.focus.has(id);
+  const alphaOf = (id: number): number =>
+    dimmed(id) ? DIMMED : egoOuter.has(id) ? EGO_OUTER : 1;
+  const linkAlpha = (l: GraphLink): number =>
+    Math.min(alphaOf(endId(l.source)), alphaOf(endId(l.target)));
   const withAlpha = (color: string, alpha: number): string =>
     alpha >= 1 ? color : hexWithAlpha(color, alpha);
 
@@ -364,20 +379,12 @@ function main(): void {
         shownStances,
       ),
     )
-    .linkColor((l) =>
-      withAlpha(
-        colorFor(l.stance),
-        dimmed(endId(l.source)) || dimmed(endId(l.target)) ? DIMMED : 1,
-      ),
-    )
+    .linkColor((l) => withAlpha(colorFor(l.stance), linkAlpha(l)))
     .linkWidth(1.5)
     .linkCurvature("curvature")
     .linkDirectionalArrowLength(7)
     .linkDirectionalArrowColor((l) =>
-      withAlpha(
-        colorFor(l.stance),
-        dimmed(endId(l.source)) || dimmed(endId(l.target)) ? DIMMED : 1,
-      ),
+      withAlpha(colorFor(l.stance), linkAlpha(l)),
     )
     .linkDirectionalArrowRelPos(1)
     .linkLabel((l) => linkTooltip(l, labels, strings))
@@ -387,7 +394,15 @@ function main(): void {
       if (l.hasAnchor) arg.openAnchor(source, l.id);
       else arg.selectItem(source);
     })
-    .onNodeClick((n) => arg.selectItem(n.id))
+    .onNodeClick((n) => {
+      arg.selectItem(n.id);
+      // Ego network: the clicked item becomes the centre.
+      if (mode === "ego" && n.id !== egoCenter) {
+        egoCenter = n.id;
+        refresh();
+        fitSoon();
+      }
+    })
     .onNodeHover((n) => {
       hovered = n ? n.id : null;
     })
@@ -398,7 +413,7 @@ function main(): void {
       const x = n.x ?? 0;
       const y = n.y ?? 0;
       const r = radius(n);
-      ctx.globalAlpha = dimmed(n.id) ? DIMMED : 1;
+      ctx.globalAlpha = alphaOf(n.id);
       pathShape(ctx, typeShape(n.itemType), x, y, r);
       ctx.fillStyle = arg.colorByType
         ? typeColor(n.itemType, isDark)
@@ -440,14 +455,28 @@ function main(): void {
       if (showLabel) {
         const fontSize = 12 / scale;
         ctx.font = `${fontSize}px sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
+        // Below the node; in the ego network outside the ring (left, right,
+        // or above at the top).
+        const side = egoSide.get(n.id) ?? 0;
+        const above = egoAbove.has(n.id);
+        ctx.textAlign = side < 0 ? "right" : side > 0 ? "left" : "center";
+        ctx.textBaseline = side ? "middle" : "top";
         const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
-        const ly = y + outer(n) + 2 / scale;
+        const lx = x + side * (outer(n) + 4 / scale);
+        const ly = side
+          ? y
+          : above
+            ? y - outer(n) - 2 / scale - fontSize * 1.2
+            : y + outer(n) + 2 / scale;
         // Skip a label that would cover one already drawn (nodes are drawn
         // most-connected first); hovered node and search hits always show.
         const w = ctx.measureText(text).width;
-        const box = { x: x - w / 2, y: ly, w, h: fontSize * 1.2 };
+        const box = {
+          x: side < 0 ? lx - w : side > 0 ? lx : lx - w / 2,
+          y: side ? ly - fontSize * 0.6 : ly,
+          w,
+          h: fontSize * 1.2,
+        };
         if (hovered === n.id || view.hits?.has(n.id)) labelBoxes.force(box);
         else if (!labelBoxes.claim(box)) {
           ctx.globalAlpha = 1;
@@ -457,16 +486,17 @@ function main(): void {
         ctx.lineWidth = 3 / scale;
         ctx.lineJoin = "round";
         ctx.strokeStyle = haloColor;
-        ctx.strokeText(text, x, ly);
+        ctx.strokeText(text, lx, ly);
         ctx.fillStyle = labelColor;
-        ctx.fillText(text, x, ly);
+        ctx.fillText(text, lx, ly);
       }
       ctx.globalAlpha = 1;
     })
-    // Timeline layout (G11): year grid behind the nodes.
+    // Timeline layout (G11): year grid behind the nodes; layered layout:
+    // one numbered line per layer.
     .onRenderFramePre((ctx, scale) => {
       labelBoxes.reset();
-      if (!timeline) return;
+      if (!timeline && mode !== "layers") return;
       const tl = graph.screen2GraphCoords(0, 0);
       const br = graph.screen2GraphCoords(
         window.innerWidth,
@@ -491,9 +521,25 @@ function main(): void {
         // Year at the bottom edge: legend and controls cover the top.
         ctx.fillText(text, x, br.y - fontSize - 6 / scale);
       };
-      for (const t of timeline.ticks) column(t.x, String(t.year), false);
-      if (timeline.undatedX !== null) {
-        column(timeline.undatedX, strings.undated, true);
+      if (timeline) {
+        for (const t of timeline.ticks) column(t.x, String(t.year), false);
+        if (timeline.undatedX !== null) {
+          column(timeline.undatedX, strings.undated, true);
+        }
+      } else {
+        ctx.textAlign = "left";
+        ctx.textBaseline = "bottom";
+        const top = Math.max(-1, ...layers.values());
+        for (let l = 0; l <= top; l++) {
+          const y = -l * layerGap;
+          ctx.globalAlpha = 0.15;
+          ctx.beginPath();
+          ctx.moveTo(tl.x, y);
+          ctx.lineTo(br.x, y);
+          ctx.stroke();
+          ctx.globalAlpha = 0.7;
+          ctx.fillText(`${strings.layerLevel} ${l}`, tl.x + 6 / scale, y);
+        }
       }
       ctx.restore();
     })
@@ -525,29 +571,21 @@ function main(): void {
   });
   let clusterKey = "";
   const applyNetworkForces = (): void => {
-    const network = !timeline;
+    const scaled = mode !== "timeline";
     chargeForce?.strength(
-      network
+      scaled
         ? (n: GraphNode) =>
             view.visible.has(n.id) ? -Math.max(30, distance * 1.5) : 0
         : -30,
     );
-    chargeForce?.distanceMax(network ? distance * 4 : Infinity);
-    graph.d3Force("clusters", network ? clusters : null);
+    chargeForce?.distanceMax(scaled ? distance * 4 : Infinity);
+    graph.d3Force("clusters", mode === "network" ? clusters : null);
+    graph.d3Force("layersX", mode === "layers" ? spreadLayers : null);
   };
   // Clusters as shown: visible nodes joined by visible links. Returns true
   // when they differ from the last call.
-  const updateClusters = (): boolean => {
-    const groups = components(
-      view.visible,
-      current.links
-        .map((l) => ({
-          source: endId(l.source),
-          target: endId(l.target),
-          stance: l.stance,
-        }))
-        .filter((l) => linkShown(l, view, shownStances)),
-    );
+  const updateClusters = (shown: DirectedLink[]): boolean => {
+    const groups = components(view.visible, shown);
     clusters.groups(groups);
     const key = groups
       .map((g) => [...g].sort((a, b) => a - b).join(","))
@@ -560,6 +598,8 @@ function main(): void {
     distance = d;
     linkForce?.distance(d);
     applyNetworkForces();
+    // Ego and layer positions are spaced by the edge length too.
+    if (mode === "ego" || mode === "layers") refresh();
     graph.d3ReheatSimulation();
   };
 
@@ -599,21 +639,141 @@ function main(): void {
       },
     },
   );
-  const applyLayout = (useTimeline: boolean, fit = true): void => {
-    timeline = useTimeline ? timeScale(current.nodes.map((n) => n.year)) : null;
+  // Layered layout: y is fixed by layer; items of one layer are pushed
+  // apart horizontally so their labels do not overlap.
+  let layerNodes: GraphNode[] = [];
+  const spreadLayers = Object.assign(
+    (alpha: number): void => {
+      const rows = new Map<number, GraphNode[]>();
+      for (const n of layerNodes) {
+        const l = layers.get(n.id);
+        if (l === undefined || !view.visible.has(n.id)) continue;
+        const row = rows.get(l);
+        if (row) row.push(n);
+        else rows.set(l, [n]);
+      }
+      for (const row of rows.values()) {
+        row.sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
+        for (let i = 0; i + 1 < row.length; i++) {
+          const a = row[i];
+          const b = row[i + 1];
+          const need =
+            (estimateLabelWidth(a.label) + estimateLabelWidth(b.label)) / 2 +
+            10;
+          const dx = (b.x ?? 0) - (a.x ?? 0);
+          if (dx >= need) continue;
+          const push = (need - dx) * 0.3; // like a collision, not cooled by alpha
+          a.vx = (a.vx ?? 0) - push;
+          b.vx = (b.vx ?? 0) + push;
+        }
+      }
+    },
+    {
+      initialize: (ns: GraphNode[]): void => {
+        layerNodes = ns;
+      },
+    },
+  );
+  // Fit the view once the new positions are roughly in place, and again
+  // when the layout has settled. Ego and layer labels need more margin.
+  let refitOnStop = false;
+  const fit = (): void => {
+    const pad = mode === "ego" || mode === "layers" ? 100 : 40;
+    graph.zoomToFit(600, pad, (n) => view.visible.has(n.id));
+  };
+  const fitSoon = (): void => {
+    refitOnStop = true;
+    window.setTimeout(fit, 900);
+  };
+  graph.onEngineStop(() => {
+    if (!refitOnStop) return;
+    refitOnStop = false;
+    fit();
+  });
+  const applyLayout = (next: LayoutMode, refit = true): void => {
+    mode = next;
+    if (mode === "ego") egoCenter = null; // pick afresh (Zotero selection)
+    timeline =
+      mode === "timeline" ? timeScale(current.nodes.map((n) => n.year)) : null;
     for (const n of current.nodes) {
+      delete n.fx;
+      delete n.fy;
       if (timeline) n.fx = timeline.x(n.year);
-      else delete n.fx;
     }
     graph.d3Force("timelineY", timeline ? pullToAxis : null);
-    applyNetworkForces();
+    refresh(); // places ego and layer items, sets the forces
     graph.d3ReheatSimulation();
-    if (!fit) return;
-    window.setTimeout(
-      () => graph.zoomToFit(600, 40, (n) => view.visible.has(n.id)),
-      900,
-    );
+    if (refit) fitSoon();
   };
+
+  // Ego network: the centre is kept while visible; otherwise the item
+  // selected in Zotero, the first search hit or the most connected item.
+  const pickCenter = (): number | null => {
+    if (egoCenter !== null && view.visible.has(egoCenter)) return egoCenter;
+    const selected = arg.getSelectedItemId?.() ?? null;
+    if (selected !== null && view.visible.has(selected)) return selected;
+    const pool = view.hits
+      ? current.nodes.filter((n) => view.hits!.has(n.id))
+      : current.nodes; // sorted most connected first
+    return pool.find((n) => view.visible.has(n.id))?.id ?? null;
+  };
+  // Fix the ego / layer positions; returns a key that changes whenever they do.
+  const placeNodes = (shown: DirectedLink[]): string => {
+    egoOuter = new Set();
+    egoSide = new Map();
+    egoAbove = new Set();
+    layers = new Map();
+    if (mode === "ego") {
+      egoCenter = pickCenter();
+      const byId = new Map(current.nodes.map((n) => [n.id, n]));
+      const order = (a: number, b: number): number => {
+        const na = byId.get(a);
+        const nb = byId.get(b);
+        return (
+          (na?.year ?? 9999) - (nb?.year ?? 9999) ||
+          (na?.label ?? "").localeCompare(nb?.label ?? "")
+        );
+      };
+      const places =
+        egoCenter === null
+          ? new Map()
+          : egoLayout(
+              egoCenter,
+              shown,
+              { ring: Math.max(300, 240 + distance), gap: 40 },
+              order,
+            );
+      for (const id of [...view.visible]) {
+        if (!places.has(id)) view.visible.delete(id);
+      }
+      for (const n of current.nodes) {
+        const p = places.get(n.id);
+        if (p) {
+          n.fx = p.x;
+          n.fy = p.y;
+          if (p.level === 2) egoOuter.add(n.id);
+          if (Math.abs(p.x) > 1) egoSide.set(n.id, Math.sign(p.x));
+          else if (p.y < 0) egoAbove.add(n.id);
+        } else {
+          delete n.fx;
+          delete n.fy;
+        }
+      }
+      return `ego:${[...places].map(([id, p]) => `${id}@${p.x},${p.y}`).join(";")}`;
+    }
+    if (mode === "layers") {
+      layers = layerLevels(view.visible, shown);
+      layerGap = Math.max(120, distance * 2);
+      for (const n of current.nodes) {
+        const l = layers.get(n.id);
+        if (l !== undefined) n.fy = -l * layerGap;
+        else delete n.fy;
+      }
+      return `layers:${layerGap}:${[...layers].join(";")}`;
+    }
+    return "";
+  };
+  let placedKey = "";
 
   const labelBoxes = new LabelBoxes();
 
@@ -670,9 +830,22 @@ function main(): void {
       },
     );
     // Charge strengths depend on visibility; re-layout when the clusters
-    // shown have changed (filters can split or join them).
+    // shown or the ego / layer positions have changed (filters can split or
+    // join clusters).
+    const shown = current.links
+      .map((l) => ({
+        source: endId(l.source),
+        target: endId(l.target),
+        stance: l.stance,
+      }))
+      .filter((l) => linkShown(l, view, shownStances));
+    const key = placeNodes(shown);
     applyNetworkForces();
-    if (updateClusters() && !timeline) graph.d3ReheatSimulation();
+    const clustersChanged = updateClusters(shown);
+    if (mode === "network" ? clustersChanged : key !== placedKey) {
+      graph.d3ReheatSimulation();
+    }
+    placedKey = key;
     updateFilterSummary();
     renderLegend(arg, current.typeLegend, [...assigned.values()], isDark);
     showEmpty(view.visible.size === 0);
@@ -758,7 +931,7 @@ function main(): void {
     tagSelect.setOptions(data.tagOptions);
     renderTypeFilter();
     refresh();
-    if (timeline) applyLayout(true, !live);
+    if (timeline) applyLayout("timeline", !live);
   };
   applyData({
     nodes: arg.nodes,
@@ -770,28 +943,64 @@ function main(): void {
 
   // --- Controls -------------------------------------------------------------
 
-  // Optional groups can be switched off in the preferences pane.
+  // Optional groups can be switched off in the preferences pane (the
+  // layouts are handled with the layout switch below).
   for (const el of document.querySelectorAll<HTMLElement>("[data-group]")) {
     const group = el.dataset.group as keyof GraphArg["controls"];
     if (arg.controls[group] === false) el.hidden = true;
   }
 
-  // Layout switch (G11): network or timeline.
+  // Legend and controls panel collapse to a single toggle line, so the
+  // graph can use the whole window.
+  for (const panel of ["legend", "controls"] as const) {
+    const toggle = byId(`${panel}-toggle`);
+    const body = byId(panel === "legend" ? "legend" : "controls-body");
+    if (!toggle || !body) continue;
+    toggle.textContent = strings[panel];
+    const set = (collapsed: boolean): void => {
+      body.hidden = collapsed;
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+    };
+    set(arg.collapsed[panel]);
+    toggle.addEventListener("click", () => {
+      const collapsed = !body.hidden;
+      set(collapsed);
+      arg.onCollapsedChange?.(panel, collapsed);
+    });
+  }
+
+  // Layout switch: network, timeline (G11), ego network or layers; each
+  // button explains its layout on hover.
   const layoutMount = byId("layout");
+  const hints: Record<LayoutMode, string> = {
+    network: strings.hintNetwork,
+    timeline: strings.hintTimeline,
+    ego: strings.hintEgo,
+    layers: strings.hintLayers,
+  };
   if (layoutMount) {
-    const buttons = [
-      { label: strings.layoutNetwork, on: false },
-      { label: strings.layoutTimeline, on: true },
-    ].map(({ label, on }) => {
+    // Network is always there; the other layouts are switched on one by
+    // one in the preferences pane. Network alone needs no switch.
+    const modes = (
+      [
+        ["network", strings.layoutNetwork],
+        ["timeline", strings.layoutTimeline],
+        ["ego", strings.layoutEgo],
+        ["layers", strings.layoutLayers],
+      ] as [LayoutMode, string][]
+    ).filter(([m]) => m === "network" || arg.controls[m]);
+    if (modes.length === 1) layoutMount.hidden = true;
+    const buttons = modes.map(([m, label]) => {
       const b = create("button");
       b.textContent = label;
-      b.setAttribute("aria-pressed", String(on === !!timeline));
+      b.title = hints[m];
+      b.setAttribute("aria-pressed", String(m === mode));
       b.addEventListener("click", () => {
-        if (on === !!timeline) return;
+        if (m === mode) return;
         for (const other of buttons) {
           other.setAttribute("aria-pressed", String(other === b));
         }
-        applyLayout(on);
+        applyLayout(m);
       });
       return b;
     });
@@ -819,6 +1028,13 @@ function main(): void {
       }
       if (e.key !== "Enter" || !view.hits || view.hits.size === 0) return;
       const first = current.nodes.find((n) => view.hits!.has(n.id));
+      // Ego network: the first hit becomes the centre.
+      if (mode === "ego" && first) {
+        egoCenter = first.id;
+        refresh();
+        fitSoon();
+        return;
+      }
       if (first?.x !== undefined && first.y !== undefined) {
         graph.centerAt(first.x, first.y, 600);
         graph.zoom(Math.max(graph.zoom(), 2), 600);

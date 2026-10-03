@@ -48,8 +48,16 @@ A **search** outlines matching items and dims everything outside their
 neighbourhood; a collapsible **Filters** group limits the view by stance, item
 type and a minimum number of references. Hovering an arrow shows its stance,
 comment and pages; clicking it opens the passage in the PDF or selects the
-citing item. An optional **timeline** layout (switched on in the settings)
-places items by publication year, with undated items in a separate lane. The
+citing item. Unconnected groups of items are kept apart. Optional layouts
+(each switched on separately in the settings, off by default; their buttons
+and settings explain them):
+**timeline** places items by publication year, with undated items in a
+separate lane; **ego network** puts one item in the centre, with the items
+citing it on a left half circle, the items it cites on a right one and the
+next ring faded further out (click an item to recentre); **layers** stacks items by
+citation flow, from items citing none of the shown ones at the bottom to the
+items building on them above. Legend and controls collapse to a single line
+each (remembered), leaving the whole window to the graph. The
 graph's **Highlight tags** picker marks items carrying
 any of the chosen tags (e.g. `#Quelle` for primary sources) with a ring in the
 tag's colour — Zotero's own colour for coloured tags — and can hide everything
@@ -194,8 +202,9 @@ a setting takes effect:
   segmented scale, and the maximum comment length (2 000 characters).
 - **Graph window:** which fields label nodes, colouring nodes by item type, and
   which controls the window shows (search, filters and tag highlighting on by
-  default; node-size switch, edge-length slider and the network / timeline
-  switch off by default), and a transparent background for the PNG export.
+  default; node-size switch and edge-length slider off by default), which extra
+  layouts the window offers (timeline, ego network, layers; all off by
+  default), and a transparent background for the PNG export.
 - **PDF reader:** the "create qualified reference" button in the text-selection
   popup (on by default).
 - **Colours:** the stance palette (default or colour-blind safe).
