@@ -79,6 +79,12 @@ interface UndoSaveOptions extends Zotero.DataObject.SaveOptions {
   undoActionArgs?: Record<string, unknown>;
 }
 
+// A main window's item list (itemTree.jsx); waitForLoad() resolves once its
+// rows have been built.
+interface MainWindowPane {
+  ZoteroPane?: { itemsView?: { waitForLoad?(): Promise<unknown> } | false };
+}
+
 function z(): ZoteroExtras {
   return Zotero as unknown as ZoteroExtras;
 }
@@ -91,4 +97,6 @@ export const zDate = (): ZoteroExtras["Date"] => z().Date;
 export const zItems = (): ZoteroExtras["Items"] =>
   Zotero.Items as unknown as ZoteroExtras["Items"];
 export const zFtl = (): ZoteroExtras["ftl"] => z().ftl;
+export const zItemsView = (win: unknown) =>
+  (win as MainWindowPane).ZoteroPane?.itemsView || undefined;
 export type { ReaderEvent, ReaderSelectionEvent, UndoSaveOptions };

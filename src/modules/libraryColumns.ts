@@ -1,4 +1,5 @@
 import { getString } from "../utils/locale";
+import { zItemsView } from "../utils/zoteroApis";
 import { getIncoming } from "./storage";
 
 /**
@@ -10,6 +11,7 @@ import { getIncoming } from "./storage";
  * Columns are opt-in: the user must enable them via right-click on the column header.
  */
 export async function registerLibraryColumns(): Promise<void> {
+  await itemListsLoaded();
   const count = (item: Zotero.Item, match: (stance: number) => boolean) => {
     const n = getIncoming(item).filter((l) => match(l.link.stance)).length;
     return n > 0 ? String(n) : "";
@@ -26,6 +28,19 @@ export async function registerLibraryColumns(): Promise<void> {
     label: getString("column-neg-label"),
     dataProvider: (item: Zotero.Item) => count(item, (s) => s <= -1),
   });
+}
+
+/**
+ * Registering a column makes every item list reset its columns. A list that
+ * has not been rendered yet fails there ("_resetColumns … this.tree is
+ * undefined" in Zotero's itemTree, which lacks a null check), so wait until
+ * the main windows' item lists have loaded, at most 10 s.
+ */
+async function itemListsLoaded(): Promise<void> {
+  const loads = Zotero.getMainWindows().map((win) =>
+    zItemsView(win)?.waitForLoad?.(),
+  );
+  await Promise.race([Promise.all(loads), Zotero.Promise.delay(10_000)]);
 }
 
 type ColumnOptions = Parameters<

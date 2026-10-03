@@ -48,11 +48,10 @@ async function onStartup() {
   registerReferenceSection();
   registerReaderHook();
   registerMenus();
-  try {
-    await registerLibraryColumns();
-  } catch (e) {
-    log("QRef: column registration failed, continuing without columns", e);
-  }
+  // Not awaited: it waits for the item lists to load (see libraryColumns.ts).
+  registerLibraryColumns().catch((e) =>
+    log("QRef: column registration failed, continuing without columns", e),
+  );
 
   // Preferences pane (M7). rootURI is a plugin-scope global (set by bootstrap).
   Zotero.PreferencePanes.register({
