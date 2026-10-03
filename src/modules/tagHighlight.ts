@@ -119,3 +119,26 @@ export function ringColors(
   }
   return out;
 }
+
+/**
+ * Order the tag picker: selected tags first (in selection order), then the
+ * rest alphabetically as given. A selected tag missing from `options` (renamed
+ * or deleted since, or absent from this scope) is still listed, under its key,
+ * so it can be deselected.
+ */
+export function orderTagOptions(
+  options: TagOption[],
+  selected: Iterable<string>,
+): (TagOption & { key: string; missing?: true })[] {
+  const byKey = new Map(options.map((o) => [tagKey(o.name), o]));
+  const chosen = new Set(selected);
+  const top: (TagOption & { key: string; missing?: true })[] = [];
+  for (const key of chosen) {
+    const opt = byKey.get(key);
+    top.push(opt ? { ...opt, key } : { name: key, key, missing: true });
+  }
+  const rest = options
+    .filter((o) => !chosen.has(tagKey(o.name)))
+    .map((o) => ({ ...o, key: tagKey(o.name) }));
+  return [...top, ...rest];
+}

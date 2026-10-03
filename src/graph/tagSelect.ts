@@ -4,7 +4,7 @@
  * shared/scopeSelect.ts (native <select> popups misrender in chrome windows).
  */
 import { create } from "../shared/dom";
-import { tagKey, type TagOption } from "../modules/tagHighlight";
+import { orderTagOptions, type TagOption } from "../modules/tagHighlight";
 
 declare const document: Document;
 declare const window: Window;
@@ -67,7 +67,9 @@ export function buildTagSelect(
   const renderList = (): void => {
     list.replaceChildren();
     const q = filter.value.trim().toLowerCase();
-    const shown = options.filter((o) => tagKey(o.name).includes(q));
+    const shown = orderTagOptions(options, selected).filter((o) =>
+      o.key.includes(q),
+    );
     if (shown.length === 0) {
       const none = create("div");
       none.style.opacity = "0.6";
@@ -77,7 +79,7 @@ export function buildTagSelect(
       return;
     }
     for (const opt of shown) {
-      const key = tagKey(opt.name);
+      const key = opt.key;
       const row = create("label");
       row.style.display = "flex";
       row.style.alignItems = "center";
@@ -92,10 +94,15 @@ export function buildTagSelect(
         else selected.delete(key);
         updateButton();
         onChange();
+        // Re-sort: a checked tag moves to the top, an unchecked one back.
+        const scroll = list.scrollTop;
+        renderList();
+        list.scrollTop = scroll;
       });
       const text = create("span");
       text.textContent = opt.name;
       if (opt.color) text.style.color = opt.color; // Zotero coloured tag
+      if (opt.missing) text.style.opacity = "0.6"; // renamed, deleted or not in scope
       row.append(box, text);
       list.appendChild(row);
     }
