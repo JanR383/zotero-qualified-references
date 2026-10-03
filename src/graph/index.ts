@@ -909,10 +909,30 @@ function main(): void {
 
   // --- Controls -------------------------------------------------------------
 
-  // Optional groups can be switched off in the preferences pane.
+  // Optional groups can be switched off in the preferences pane (the
+  // layouts are handled with the layout switch below).
   for (const el of document.querySelectorAll<HTMLElement>("[data-group]")) {
     const group = el.dataset.group as keyof GraphArg["controls"];
     if (arg.controls[group] === false) el.hidden = true;
+  }
+
+  // Legend and controls panel collapse to a single toggle line, so the
+  // graph can use the whole window.
+  for (const panel of ["legend", "controls"] as const) {
+    const toggle = byId(`${panel}-toggle`);
+    const body = byId(panel === "legend" ? "legend" : "controls-body");
+    if (!toggle || !body) continue;
+    toggle.textContent = strings[panel];
+    const set = (collapsed: boolean): void => {
+      body.hidden = collapsed;
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+    };
+    set(arg.collapsed[panel]);
+    toggle.addEventListener("click", () => {
+      const collapsed = !body.hidden;
+      set(collapsed);
+      arg.onCollapsedChange?.(panel, collapsed);
+    });
   }
 
   // Layout switch: network, timeline (G11), ego network or layers, with a
@@ -929,12 +949,20 @@ function main(): void {
     if (layoutHint) layoutHint.textContent = hints[mode];
   };
   if (layoutMount) {
-    const modes: [LayoutMode, string][] = [
-      ["network", strings.layoutNetwork],
-      ["timeline", strings.layoutTimeline],
-      ["ego", strings.layoutEgo],
-      ["layers", strings.layoutLayers],
-    ];
+    // Network is always there; the other layouts are switched on one by
+    // one in the preferences pane. Network alone needs no switch.
+    const modes = (
+      [
+        ["network", strings.layoutNetwork],
+        ["timeline", strings.layoutTimeline],
+        ["ego", strings.layoutEgo],
+        ["layers", strings.layoutLayers],
+      ] as [LayoutMode, string][]
+    ).filter(([m]) => m === "network" || arg.controls[m]);
+    if (modes.length === 1) {
+      layoutMount.hidden = true;
+      if (layoutHint) layoutHint.hidden = true;
+    }
     const buttons = modes.map(([m, label]) => {
       const b = create("button");
       b.textContent = label;

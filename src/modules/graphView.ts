@@ -196,6 +196,8 @@ const CONTROL_PREFS: Record<GraphControlGroup, string> = {
   size: "graphShowSizeToggle",
   distance: "graphShowLinkDistance",
   timeline: "graphShowTimeline",
+  ego: "graphShowEgo",
+  layers: "graphShowLayers",
 };
 
 /** Which optional control groups the graph window shows (prefs pane). */
@@ -222,6 +224,8 @@ export function openGraphView(win: Window): void {
     strings: {
       ...viewStringsBase("graph-window-title"),
       linkDistance: getString("graph-link-distance"),
+      legend: getString("graph-legend"),
+      controls: getString("graph-controls"),
       search: getString("graph-search"),
       searchDepth2: getString("graph-search-depth2"),
       filters: getString("graph-filters"),
@@ -264,6 +268,21 @@ export function openGraphView(win: Window): void {
     },
     getSelectedItemId: () =>
       Zotero.getActiveZoteroPane()?.getSelectedItems()[0]?.id ?? null,
+    collapsed: {
+      legend:
+        Zotero.Prefs.get(`${config.prefsPrefix}.graphLegendCollapsed`, true) ===
+        true,
+      controls:
+        Zotero.Prefs.get(
+          `${config.prefsPrefix}.graphControlsCollapsed`,
+          true,
+        ) === true,
+    },
+    onCollapsedChange: (panel, on) => {
+      const key =
+        panel === "legend" ? "graphLegendCollapsed" : "graphControlsCollapsed";
+      Zotero.Prefs.set(`${config.prefsPrefix}.${key}`, on, true);
+    },
     controls: loadControls(),
     exportTransparent: () =>
       Zotero.Prefs.get(`${config.prefsPrefix}.graphExportTransparent`, true) ===

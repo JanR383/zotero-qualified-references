@@ -39,6 +39,8 @@ export interface GraphLink {
 
 export interface GraphStrings extends ViewStringsBase {
   linkDistance: string;
+  legend: string;
+  controls: string;
   layoutNetwork: string;
   layoutTimeline: string;
   layoutEgo: string;
@@ -79,7 +81,14 @@ export interface GraphData {
 }
 
 export type GraphControlGroup =
-  "search" | "filters" | "tags" | "size" | "distance" | "timeline";
+  | "search"
+  | "filters"
+  | "tags"
+  | "size"
+  | "distance"
+  | "timeline"
+  | "ego"
+  | "layers";
 
 export interface GraphArg extends ViewArgBase {
   nodes: GraphNode[];
@@ -104,6 +113,10 @@ export interface GraphArg extends ViewArgBase {
   /** Open the source PDF at the reference's anchor (G3). */
   /** Item selected in Zotero, the first centre of the ego network. */
   getSelectedItemId?: () => number | null;
+  /** Legend / controls panel collapsed, restored from prefs. */
+  collapsed: { legend: boolean; controls: boolean };
+  /** Persist a panel's collapsed state back to prefs. */
+  onCollapsedChange?: (panel: "legend" | "controls", on: boolean) => void;
   /** Optional control groups shown in the window (from prefs). */
   controls: Record<GraphControlGroup, boolean>;
   /** Item types present in the initial data (G2). */
