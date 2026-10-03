@@ -9,6 +9,7 @@ import {
 } from "./stanceMeta";
 import { formatItem, paneFields } from "./itemFormat";
 import {
+  addIncomingLinks,
   getIncoming,
   getLinks,
   makeLink,
@@ -25,7 +26,7 @@ import {
 } from "./history";
 import type { JournalEntry } from "./journalLogic";
 import type { IncomingLink, ReferenceLink, Stance } from "./types";
-import { log } from "../utils/log";
+import { log, showNotice } from "../utils/log";
 
 let registeredID: string | false = false;
 
@@ -213,6 +214,33 @@ export function renderSection(
   }
   for (const inc of incoming) {
     body.appendChild(incomingRow(doc, inc));
+  }
+  if (editable) {
+    // The reverse direction: the picked items reference this one. Each
+    // reference is stored on (and saved to) the picked item.
+    const addIncoming = button(doc, getString("add-incoming-button-label"));
+    addIncoming.addEventListener(
+      "click",
+      catching(async () => {
+        const win = doc.defaultView as Window;
+        const ids = referenceTargets(item, pickItems(win));
+        if (ids.length === 0) return;
+        const result = await addIncomingLinks(item, ids);
+        if (result.readOnly > 0) {
+          showNotice(
+            getString("add-incoming-read-only", {
+              args: { count: result.readOnly },
+            }),
+            10_000,
+          );
+        }
+        if (result.tooLarge > 0) {
+          showNotice(getString("save-too-large"), 10_000);
+        }
+        rerender();
+      }),
+    );
+    body.appendChild(addIncoming);
   }
 }
 

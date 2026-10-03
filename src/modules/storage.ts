@@ -368,6 +368,49 @@ export async function updateLinks(
   await setLinks(item, links, undo);
 }
 
+/** Outcome of addIncomingLinks: how many sources were written or skipped. */
+export interface IncomingAddResult {
+  added: number;
+  readOnly: number;
+  tooLarge: number;
+}
+
+/**
+ * Add a reference to `target` on each of the given source items (the reverse
+ * direction of the pane's "Add reference"). References are stored on their
+ * source, so every source is saved on its own, each as one undo step. Sources
+ * in read-only libraries are skipped, and a source whose Extra would grow past
+ * the sync limit is left unchanged; the others are still saved.
+ */
+export async function addIncomingLinks(
+  target: Zotero.Item,
+  sourceIDs: number[],
+): Promise<IncomingAddResult> {
+  const result: IncomingAddResult = { added: 0, readOnly: 0, tooLarge: 0 };
+  for (const id of sourceIDs) {
+    const source = Zotero.Items.get(id);
+    if (!source) continue;
+    if (!source.isEditable()) {
+      result.readOnly++;
+      continue;
+    }
+    try {
+      await updateLinks(
+        source,
+        (current) => {
+          current.push(makeLink(target.key, target.libraryID));
+        },
+        { action: "add" },
+      );
+      result.added++;
+    } catch (e) {
+      if (!(e instanceof ExtraTooLargeError)) throw e;
+      result.tooLarge++;
+    }
+  }
+  return result;
+}
+
 /**
  * Patch one link by id (no-op if it no longer exists) and stamp `modified`.
  * Always a user edit, so it is labelled for undo.

@@ -1,6 +1,7 @@
 import { assert } from "chai";
 import { config } from "../package.json";
 import {
+  addIncomingLinks,
   forEachResolvedLink,
   getIncoming,
   getLinks,
@@ -507,6 +508,85 @@ describe("storage", function () {
       await setLinks(source, [makeLink(target.key, lib)]);
       await updateLinks(source, (links) => links.splice(0, 1));
       assert.deepEqual(getLinks(source), []);
+    });
+  });
+
+  describe("addIncomingLinks (reverse direction)", function () {
+    let group: any;
+    let extra: Zotero.Item | undefined;
+    let groupSource: Zotero.Item | undefined;
+
+    afterEach(async function () {
+      for (const item of [extra, groupSource]) {
+        if (item && Zotero.Items.get(item.id)) await item.eraseTx();
+      }
+      extra = groupSource = undefined;
+      if (group) await group.eraseTx();
+      group = undefined;
+    });
+
+    it("stores a reference to the target on each picked source", async function () {
+      extra = await makeItem("QRef second source");
+      const result = await addIncomingLinks(target, [source.id, extra.id]);
+      assert.deepEqual(result, { added: 2, readOnly: 0, tooLarge: 0 });
+      for (const item of [source, extra]) {
+        const links = getLinks(item);
+        assert.lengthOf(links, 1);
+        assert.equal(links[0].targetKey, target.key);
+        assert.equal(links[0].targetLib, target.libraryID);
+        assert.equal(links[0].stance, 0);
+      }
+      assert.deepEqual(getLinks(target), [], "nothing is stored on the target");
+    });
+
+    it("keeps the source's existing references", async function () {
+      await setLinks(source, [makeLink(target.key, lib, 2)]);
+      await addIncomingLinks(target, [source.id]);
+      const links = getLinks(source);
+      assert.lengthOf(links, 2);
+      assert.equal(links[0].stance, 2);
+    });
+
+    it("skips sources in a read-only library", async function () {
+      group = await createGroup("QRef read-only group");
+      groupSource = new Zotero.Item("journalArticle");
+      groupSource.libraryID = group.libraryID;
+      groupSource.setField("title", "QRef read-only source");
+      await groupSource.saveTx();
+      group.editable = false;
+      await group.saveTx();
+      const before = groupSource.getField("extra");
+
+      const result = await addIncomingLinks(target, [
+        groupSource.id,
+        source.id,
+      ]);
+
+      assert.deepEqual(result, { added: 1, readOnly: 1, tooLarge: 0 });
+      assert.equal(groupSource.getField("extra"), before);
+      assert.lengthOf(getLinks(source), 1);
+      // Make the library editable again so afterEach can erase the item.
+      group.editable = true;
+      await group.saveTx();
+    });
+
+    it("leaves a source unchanged when its Extra would grow too large", async function () {
+      extra = await makeItem("QRef full source");
+      const big = makeLink(target.key, lib);
+      big.comment = "x".repeat(4000);
+      const links = Array.from({ length: 16 }, () => ({
+        ...big,
+        id: makeLink(target.key, lib).id,
+      }));
+      extra.setField("extra", `Reference-Graph: ${JSON.stringify(links)}`);
+      await extra.saveTx();
+      const before = extra.getField("extra");
+
+      const result = await addIncomingLinks(target, [extra.id, source.id]);
+
+      assert.deepEqual(result, { added: 1, readOnly: 0, tooLarge: 1 });
+      assert.equal(extra.getField("extra"), before);
+      assert.lengthOf(getLinks(source), 1);
     });
   });
 

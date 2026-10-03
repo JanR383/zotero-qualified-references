@@ -19,7 +19,10 @@ one or more other items, each with:
 ![Editing outgoing references in the item pane](docs/item-pane.png)
 
 The target item shows a read-only **"Referenced by"** list of incoming links,
-each with its stance, pages and a jump-back link.
+each with its stance, pages and a jump-back link. **"Add incoming reference"**
+below that list works the other way round: the picked items get a reference to
+the current one. The reference is stored on, and edited in, the picked item;
+items in read-only libraries are skipped.
 
 ![The read-only "Referenced by" view on a target item](docs/referenced-by.png)
 
