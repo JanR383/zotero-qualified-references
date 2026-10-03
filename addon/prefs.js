@@ -45,6 +45,10 @@ pref("readerSelectionButton", true);
 // opens a menu on click.
 pref("stanceControlCompact", false);
 
+// Item pane: add and edit incoming references under "Referenced by" (they are
+// saved on the referencing item). false = the list is read-only.
+pref("editIncoming", true);
+
 // Item pane: maximum length of a reference comment typed in the pane. Keeps
 // an item's references inside the sync size limit of Extra (clamped to
 // 100–10000 when read).

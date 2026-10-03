@@ -129,6 +129,21 @@ describe("referenceSection", function () {
     assert.deepEqual(getLinks(target), [], "nothing is stored on the target");
   });
 
+  it("keeps incoming references read-only when editIncoming is off", async function () {
+    const key = `${config.prefsPrefix}.editIncoming`;
+    const before = Zotero.Prefs.get(key, true);
+    Zotero.Prefs.set(key, false, true);
+    try {
+      await withOneLink({ comment: "incoming comment" });
+      const body = await renderTargetIndexed(true);
+      assert.include(body.textContent, "incoming comment");
+      assert.isNull(body.querySelector("textarea"));
+      assert.lengthOf(buttons(body, getString("add-incoming-button-label")), 0);
+    } finally {
+      Zotero.Prefs.set(key, before as boolean, true);
+    }
+  });
+
   it("is read-only when not editable", async function () {
     await withOneLink();
     const body = await render(false);

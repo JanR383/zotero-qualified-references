@@ -23,7 +23,8 @@ its stance, pages and a jump-back link. **"Add incoming reference"** below that
 list works the other way round: the picked items get a reference to the current
 one. The reference is stored on the picked item, but its stance, pages and
 comment can be edited in either item; items in read-only libraries are skipped
-and their references stay read-only.
+and their references stay read-only. Settings can turn adding and editing
+incoming references off, which makes the list read-only again.
 
 ![The read-only "Referenced by" view on a target item](docs/referenced-by.png)
 

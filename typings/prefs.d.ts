@@ -26,6 +26,7 @@ declare namespace _ZoteroTypes {
       "graphShowTimeline": boolean;
       "readerSelectionButton": boolean;
       "stanceControlCompact": boolean;
+      "editIncoming": boolean;
       "commentMaxLength": number;
       "copyRefsToGroup": boolean;
     };
