@@ -53,8 +53,8 @@ citing item. Unconnected groups of items are kept apart. Optional layouts
 short note in the window:
 **timeline** places items by publication year, with undated items in a
 separate lane; **ego network** puts one item in the centre, with the items
-citing it on the left, the items it cites on the right and the next ring
-faded at the edges (click an item to recentre); **layers** stacks items by
+citing it on a left half circle, the items it cites on a right one and the
+next ring faded further out (click an item to recentre); **layers** stacks items by
 citation flow, from items citing none of the shown ones at the bottom to the
 items building on them above. Legend and controls collapse to a single line
 each (remembered), leaving the whole window to the graph. The

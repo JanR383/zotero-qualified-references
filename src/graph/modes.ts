@@ -16,15 +16,17 @@ export interface EgoPlace {
 }
 
 /**
- * Ego network around `center`: items citing it on the left, items it cites
- * on the right, mutual references above and below it; neighbours of those
- * one column further out, on their neighbour's side. Each column is sorted
- * by `order` and centred vertically.
+ * Ego network around `center`, laid out radially so it fills a window in
+ * both directions: items citing it on a left half circle, items it cites on
+ * a right one, mutual references at the top and bottom; neighbours of those
+ * on an outer ring, on their neighbour's side and in their neighbour's
+ * order. Each side runs top to bottom in `order`. The rings grow so that
+ * neighbouring items stay at least `gap` apart along the ring.
  */
 export function egoLayout(
   center: number,
   links: DirectedLink[],
-  spacing: { column: number; row: number },
+  spacing: { ring: number; gap: number },
   order: (a: number, b: number) => number,
 ): Map<number, EgoPlace> {
   const cites = new Set<number>(); // center → n
@@ -34,12 +36,12 @@ export function egoLayout(
     if (l.source === center) cites.add(l.target);
     if (l.target === center) citedBy.add(l.source);
   }
-  // Side per item: -1 left, 0 middle, 1 right.
+  // Side per item: -1 left, 0 top/bottom, 1 right.
   const side = new Map<number, -1 | 0 | 1>();
   for (const n of new Set([...cites, ...citedBy])) {
     side.set(n, cites.has(n) && citedBy.has(n) ? 0 : cites.has(n) ? 1 : -1);
   }
-  const outer = new Map<number, -1 | 1>();
+  const outer = new Map<number, { side: -1 | 1; parent: number }>();
   for (const l of links) {
     for (const [near, far] of [
       [l.source, l.target],
@@ -49,35 +51,77 @@ export function egoLayout(
       if (s === undefined || far === center || side.has(far)) continue;
       if (outer.has(far)) continue;
       // Beside a mutual neighbour, follow the reference's direction.
-      outer.set(far, s !== 0 ? s : far === l.source ? -1 : 1);
+      const o = s !== 0 ? s : far === l.source ? -1 : 1;
+      outer.set(far, { side: o, parent: near });
     }
   }
 
+  const pick = (s: -1 | 0 | 1): number[] =>
+    [...side]
+      .filter(([, v]) => v === s)
+      .map(([id]) => id)
+      .sort(order);
+  const left = pick(-1);
+  const right = pick(1);
+  const mutual = pick(0);
+  // Angle kept free around the top and bottom (for mutual references).
+  const margin = mutual.length > 0 ? Math.PI / 6 : Math.PI / 12;
+  const span = Math.PI - 2 * margin; // angle per side, top to bottom
+  const cap = 1.6 * margin; // angle for mutual references at one pole
+  const need = (n: number, angle: number): number =>
+    n > 1 ? (spacing.gap * (n - 1)) / angle : 0;
+
   const places = new Map<number, EgoPlace>();
   places.set(center, { x: 0, y: 0, level: 0 });
-  const column = (ids: number[], x: number, level: 1 | 2): void => {
-    ids.sort(order);
+  // Items on one side, top to bottom; angle 0 points sideways.
+  const arc = (ids: number[], s: -1 | 1, r: number, level: 1 | 2): void => {
     ids.forEach((id, i) => {
-      places.set(id, { x, y: (i - (ids.length - 1) / 2) * spacing.row, level });
+      const t = ids.length === 1 ? 0.5 : i / (ids.length - 1);
+      const a = -Math.PI / 2 + margin + t * span;
+      places.set(id, { x: s * r * Math.cos(a), y: r * Math.sin(a), level });
     });
   };
-  const pick = <T>(m: Map<number, T>, v: T): number[] =>
-    [...m].filter(([, s]) => s === v).map(([id]) => id);
-  column(pick(side, -1), -spacing.column, 1);
-  column(pick(side, 1), spacing.column, 1);
-  column(pick(outer, -1), -2 * spacing.column, 2);
-  column(pick(outer, 1), 2 * spacing.column, 2);
-  // Mutual neighbours alternate above and below the centre.
-  pick(side, 0)
-    .sort(order)
-    .forEach((id, i) => {
-      const step = Math.floor(i / 2) + 1;
-      places.set(id, {
-        x: 0,
-        y: (i % 2 ? 1 : -1) * step * spacing.row,
-        level: 1,
-      });
+
+  const top = mutual.filter((_, i) => i % 2 === 0);
+  const bottom = mutual.filter((_, i) => i % 2 === 1);
+  const r1 = Math.max(
+    spacing.ring,
+    need(left.length, span),
+    need(right.length, span),
+    need(top.length, cap),
+  );
+  arc(left, -1, r1, 1);
+  arc(right, 1, r1, 1);
+  for (const [ids, pole] of [
+    [top, -1],
+    [bottom, 1],
+  ] as const) {
+    ids.forEach((id, i) => {
+      const t = ids.length === 1 ? 0 : i / (ids.length - 1) - 0.5;
+      const a = pole * (Math.PI / 2) + t * cap;
+      places.set(id, { x: r1 * Math.cos(a), y: r1 * Math.sin(a), level: 1 });
     });
+  }
+
+  // Outer ring: grouped by the position of the neighbour they hang on.
+  const outerSide = (s: -1 | 1): number[] =>
+    [...outer]
+      .filter(([, o]) => o.side === s)
+      .map(([id]) => id)
+      .sort(
+        (a, b) =>
+          places.get(outer.get(a)!.parent)!.y -
+            places.get(outer.get(b)!.parent)!.y || order(a, b),
+      );
+  const outerLeft = outerSide(-1);
+  const outerRight = outerSide(1);
+  const r2 = Math.max(
+    r1 + spacing.ring,
+    need(outerLeft.length, span),
+    need(outerRight.length, span),
+  );
+  arc(outerLeft, -1, r2, 2);
+  arc(outerRight, 1, r2, 2);
   return places;
 }
 

@@ -332,6 +332,8 @@ function main(): void {
   let mode: LayoutMode = "network";
   let egoCenter: number | null = null;
   let egoOuter = new Set<number>(); // second ring, drawn faded
+  let egoSide = new Map<number, number>(); // -1 / 1: label left / right
+  let egoAbove = new Set<number>(); // label above (top of the ring)
   let layers = new Map<number, number>(); // layer per item
   let layerGap = 0; // vertical distance between layers, graph units
   let hovered: number | null = null;
@@ -451,14 +453,28 @@ function main(): void {
       if (showLabel) {
         const fontSize = 12 / scale;
         ctx.font = `${fontSize}px sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
+        // Below the node; in the ego network outside the ring (left, right,
+        // or above at the top).
+        const side = egoSide.get(n.id) ?? 0;
+        const above = egoAbove.has(n.id);
+        ctx.textAlign = side < 0 ? "right" : side > 0 ? "left" : "center";
+        ctx.textBaseline = side ? "middle" : "top";
         const text = n.label.length > 40 ? `${n.label.slice(0, 39)}…` : n.label;
-        const ly = y + outer(n) + 2 / scale;
+        const lx = x + side * (outer(n) + 4 / scale);
+        const ly = side
+          ? y
+          : above
+            ? y - outer(n) - 2 / scale - fontSize * 1.2
+            : y + outer(n) + 2 / scale;
         // Skip a label that would cover one already drawn (nodes are drawn
         // most-connected first); hovered node and search hits always show.
         const w = ctx.measureText(text).width;
-        const box = { x: x - w / 2, y: ly, w, h: fontSize * 1.2 };
+        const box = {
+          x: side < 0 ? lx - w : side > 0 ? lx : lx - w / 2,
+          y: side ? ly - fontSize * 0.6 : ly,
+          w,
+          h: fontSize * 1.2,
+        };
         if (hovered === n.id || view.hits?.has(n.id)) labelBoxes.force(box);
         else if (!labelBoxes.claim(box)) {
           ctx.globalAlpha = 1;
@@ -468,9 +484,9 @@ function main(): void {
         ctx.lineWidth = 3 / scale;
         ctx.lineJoin = "round";
         ctx.strokeStyle = haloColor;
-        ctx.strokeText(text, x, ly);
+        ctx.strokeText(text, lx, ly);
         ctx.fillStyle = labelColor;
-        ctx.fillText(text, x, ly);
+        ctx.fillText(text, lx, ly);
       }
       ctx.globalAlpha = 1;
     })
@@ -702,6 +718,8 @@ function main(): void {
   // Fix the ego / layer positions; returns a key that changes whenever they do.
   const placeNodes = (shown: DirectedLink[]): string => {
     egoOuter = new Set();
+    egoSide = new Map();
+    egoAbove = new Set();
     layers = new Map();
     if (mode === "ego") {
       egoCenter = pickCenter();
@@ -720,10 +738,7 @@ function main(): void {
           : egoLayout(
               egoCenter,
               shown,
-              {
-                column: Math.max(280, 200 + distance),
-                row: Math.max(90, distance * 1.5),
-              },
+              { ring: Math.max(300, 240 + distance), gap: 40 },
               order,
             );
       for (const id of [...view.visible]) {
@@ -735,6 +750,8 @@ function main(): void {
           n.fx = p.x;
           n.fy = p.y;
           if (p.level === 2) egoOuter.add(n.id);
+          if (Math.abs(p.x) > 1) egoSide.set(n.id, Math.sign(p.x));
+          else if (p.y < 0) egoAbove.add(n.id);
         } else {
           delete n.fx;
           delete n.fy;
