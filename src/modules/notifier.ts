@@ -98,9 +98,14 @@ function reportRemovals(ids: number[]): void {
 /**
  * A source change alters what its targets show (the "Referenced by" list and
  * the Ref. (+)/(−) columns) without modifying the targets, so Zotero redraws
- * neither. Re-render their open panes, and send the item trees a "refresh",
- * which drops the cached cell values of those rows. The observer above ignores
- * "refresh", so this cannot loop.
+ * neither. Re-render their open panes, and hand the main windows' item trees a
+ * "refresh", which drops the cached cell values of those rows.
+ *
+ * The refresh goes to the item trees directly, not through
+ * Zotero.Notifier.trigger: the item pane observes every item "refresh" and
+ * re-renders in full, which scrolls it back to its pinned section and made the
+ * reference list jump while editing (it reacts even when the refreshed items
+ * are not the one shown).
  */
 function refreshTargets(keys: Set<string>): void {
   const ids: number[] = [];
@@ -116,9 +121,16 @@ function refreshTargets(keys: Set<string>): void {
       log(`QRef: refreshing pane of item ${id} failed`, e);
     }
   }
-  void Zotero.Notifier.trigger("refresh", "item", ids).catch((e: unknown) =>
-    log("QRef: item tree refresh failed", e),
-  );
+  for (const win of Zotero.getMainWindows()) {
+    const tree = win.ZoteroPane?.itemsView as unknown as
+      | { notify(action: string, type: string, ids: number[]): Promise<void> }
+      | false
+      | undefined;
+    if (!tree) continue;
+    void tree
+      .notify("refresh", "item", ids)
+      .catch((e: unknown) => log("QRef: item tree refresh failed", e));
+  }
 }
 
 export function unregisterNotifier(): void {
