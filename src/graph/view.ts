@@ -92,8 +92,9 @@ export function computeView(
   const first = count(stanceLinks, typed).degree;
   let visible = new Set([...typed].filter((id) => (first.get(id) ?? 0) >= min));
 
-  // 2. Tag focus: highlighted nodes plus their direct neighbours.
-  if (f.focusOn && f.focusOn.size > 0) {
+  // 2. Focus (tags, contested items): those nodes plus their direct
+  //    neighbours. An empty set leaves nothing.
+  if (f.focusOn) {
     const keep = new Set<number>();
     for (const l of stanceLinks) {
       if (!visible.has(l.source) || !visible.has(l.target)) continue;

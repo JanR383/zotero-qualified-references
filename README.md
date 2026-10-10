@@ -46,7 +46,8 @@ coloured by stance. Node size grows with incoming references; labels appear
 for small graphs, when zoomed in, on hover and for the most connected items.
 A **search** outlines matching items and dims everything outside their
 neighbourhood; a collapsible **Filters** group limits the view by stance, item
-type and a minimum number of references. Hovering an arrow shows its stance,
+type and a minimum number of references, or shows only contested items (see the
+list below) and their neighbours. Hovering an arrow shows its stance,
 comment and pages; clicking it opens the passage in the PDF or selects the
 citing item. Unconnected groups of items are kept apart. An optional
 **ego network** layout (switched on in the settings, off by default) puts one
@@ -62,11 +63,13 @@ except those items and their direct neighbours. A **Tools → Reference List**
 window shows the same data as an expandable list. Each row shows the number of
 incoming (←) and outgoing (→) references, each with a small diverging bar:
 contradicting references left of its centre line, supporting ones right of
-it, so the bar reads without telling the colours apart. A **±** marks items
-cited as supporting by one work and as contradicting by another. The toolbar
+it, so the bar reads without telling the colours apart. A **±** marks
+**contested** items: cited as supporting by one work and as contradicting by
+another. Tags chosen in the graph's **Highlight tags** picker show as dots in
+their colours after the title. The toolbar
 has **Expand all / Collapse all**, a **search** over title, author and
 comments, a **stance filter**, a **Show** menu (all items, items with or
-without references of their own, mixed stances, items cited by at least three
+without references of their own, contested items, items cited by at least three
 works but without references of their own) and a **sort order**
 (alphabetical, most cited, most references made, year). Each expanded entry
 shows its pages, a **↗ PDF** link to the anchored passage and the comment

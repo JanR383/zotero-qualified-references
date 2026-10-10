@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { commentMatches, filterNodes, isMixed } from "../src/list/filter";
+import { commentMatches, filterNodes } from "../src/list/filter";
 import type { Stance } from "../src/modules/types";
 import type { ListNode } from "../src/list/types";
 
@@ -75,7 +75,7 @@ describe("list filter", function () {
     assert.deepEqual(ids(filterNodes(nodes, "", all, "cited")), [2]);
   });
 
-  describe("mixed and unevaluated items", function () {
+  describe("contested and unevaluated items", function () {
     const entry = (id: number, stance: Stance) => ({
       stance,
       id,
@@ -84,17 +84,10 @@ describe("list filter", function () {
     const node = (incoming: ListNode["incoming"], outgoing = []) =>
       ({ id: 9, label: "Target", year: null, incoming, outgoing }) as never;
 
-    it("needs a positive and a negative stance from two works", function () {
-      assert.isTrue(isMixed(node([entry(1, 1), entry(2, -2)])));
-      assert.isFalse(isMixed(node([entry(1, 1), entry(1, -1)])));
-      assert.isFalse(isMixed(node([entry(1, 1), entry(2, 0)])));
-      assert.isTrue(isMixed(node([entry(1, 1), entry(1, -1), entry(2, 1)])));
-    });
-
     it("decides the mode before the stance filter", function () {
-      const mixed = node([entry(1, 1), entry(2, -1)]);
+      const contested = node([entry(1, 1), entry(2, -1)]);
       const onlyPos = new Set<Stance>([1]);
-      assert.lengthOf(filterNodes([mixed], "", onlyPos, "mixed"), 1);
+      assert.lengthOf(filterNodes([contested], "", onlyPos, "contested"), 1);
     });
 
     it("lists items cited by three works without own references", function () {

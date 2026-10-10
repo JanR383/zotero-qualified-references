@@ -17,8 +17,8 @@
         max-width: 260px;
       }
       #search {
-        flex: 1 1 220px;
-        min-width: 160px;
+        flex: 1 1 150px;
+        min-width: 130px;
         max-width: 300px;
       }
       .spacer {
@@ -33,11 +33,11 @@
       .node.open {
         background: color-mix(in srgb, currentColor 4%, transparent);
       }
-      /* Collapsed row: caret | title | ± | incoming | outgoing, the last two
-         as fixed columns so the numbers line up from row to row. */
+      /* Collapsed row: caret | title | tag dots | ± | incoming | outgoing,
+         the last two as fixed columns so the numbers line up. */
       .node-head {
         display: grid;
-        grid-template-columns: 1em minmax(0, 1fr) 1em 7.5em 7.5em;
+        grid-template-columns: 1em minmax(0, 1fr) auto 1em 7.5em 7.5em;
         align-items: center;
         column-gap: 6px;
         padding: 3px 4px;
@@ -65,7 +65,17 @@
       .node-title:hover {
         text-decoration: underline;
       }
-      .mixed {
+      .tags {
+        display: inline-flex;
+        gap: 2px;
+      }
+      .tag-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        cursor: help;
+      }
+      .contested {
         text-align: center;
         font-weight: 600;
         cursor: help;

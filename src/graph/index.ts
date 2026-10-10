@@ -27,6 +27,7 @@ import {
 } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
+import { contestedIds } from "../shared/contested";
 import { buildStanceToggles } from "../shared/stanceToggles";
 import { applyWindowStyle, onViewDataChanged } from "../shared/viewArg";
 import {
@@ -265,9 +266,9 @@ function main(): void {
   if (!container) return;
 
   const empty = byId("empty");
-  const showEmpty = (show: boolean): void => {
+  const showEmpty = (show: boolean, hasData = false): void => {
     if (!empty) return;
-    empty.textContent = strings.empty;
+    empty.textContent = hasData ? strings.noMatch : strings.empty;
     empty.style.display = show ? "block" : "none";
   };
 
@@ -331,6 +332,7 @@ function main(): void {
   let assigned = new Map<string, { name: string; color: string }>();
   let rings = new Map<number, string[]>();
   let tagFocus = false;
+  let contestedFocus = false;
   // Layout mode: force network or ego network.
   type LayoutMode = "network" | "ego";
   let mode: LayoutMode = "network";
@@ -672,9 +674,27 @@ function main(): void {
     const active =
       Number(shownStances.size < STANCE_ORDER.length) +
       Number([...knownTypes].some((t) => !shownTypes.has(t))) +
-      Number(minLinks > 1);
+      Number(minLinks > 1) +
+      Number(contestedFocus);
     filterSummary.textContent =
       active > 0 ? `${strings.filters} (${active})` : strings.filters;
+  };
+
+  // Tag focus (only with highlighted tags) and contested focus (A1, decided
+  // on all links of the scope); both on keeps the items that are both.
+  const focusSet = (): Set<number> | null => {
+    const tagged = tagFocus && rings.size > 0 ? new Set(rings.keys()) : null;
+    if (!contestedFocus) return tagged;
+    const contested = contestedIds(
+      current.links.map((l) => ({
+        source: endId(l.source),
+        target: endId(l.target),
+        stance: l.stance,
+      })),
+    );
+    return tagged
+      ? new Set([...contested].filter((id) => tagged.has(id)))
+      : contested;
   };
 
   const refresh = (): void => {
@@ -700,7 +720,7 @@ function main(): void {
         stances: shownStances,
         types: shownTypes,
         minLinks,
-        focusOn: tagFocus && rings.size > 0 ? new Set(rings.keys()) : null,
+        focusOn: focusSet(),
         query,
         depth,
       },
@@ -724,7 +744,7 @@ function main(): void {
     placedKey = key;
     updateFilterSummary();
     renderLegend(arg, current.typeLegend, [...assigned.values()], isDark);
-    showEmpty(view.visible.size === 0);
+    showEmpty(view.visible.size === 0, current.nodes.length > 0);
     graph
       .nodeVal(graph.nodeVal())
       .nodeVisibility(graph.nodeVisibility())
@@ -958,6 +978,13 @@ function main(): void {
       refresh();
     });
   }
+
+  byId("contested-focus")?.appendChild(
+    checkbox(strings.contestedFocus, false, (on) => {
+      contestedFocus = on;
+      refresh();
+    }),
+  );
 
   const slider = byId("link-distance") as HTMLInputElement | null;
   const sliderLabel = byId("link-distance-label");

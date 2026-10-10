@@ -14,6 +14,7 @@ import {
 } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
+import { isContested } from "../shared/contested";
 import { buildStanceToggles } from "../shared/stanceToggles";
 import { applyWindowStyle, onViewDataChanged } from "../shared/viewArg";
 import { referencesCsv, referencesMarkdown } from "../shared/export";
@@ -21,7 +22,6 @@ import { listExportData } from "./exportData";
 import {
   commentMatches,
   filterNodes,
-  isMixed,
   searchTerms,
   type ShowMode,
 } from "./filter";
@@ -214,11 +214,11 @@ interface NodeRow {
 /**
  * One expandable row. The open/closed state lives in `openIds` (not in the
  * DOM), so it survives re-renders from search, filter and scope changes (L1).
- * `mixed` is decided on the unfiltered node (see isMixed).
+ * `contested` is decided on the unfiltered node (see isContested).
  */
 function nodeRow(
   node: ListNode,
-  mixed: boolean,
+  contested: boolean,
   arg: ListArg,
   openIds: Set<number>,
   terms: string[],
@@ -240,17 +240,29 @@ function nodeRow(
   title.title = node.label;
   title.addEventListener("click", () => arg.selectItem(node.id));
 
+  // Tags highlighted in the graph window (C2), as dots after the title.
+  const tags = create("span");
+  tags.className = "tags";
+  for (const tag of node.tags) {
+    const dot = create("span");
+    dot.className = "tag-dot";
+    dot.style.background = tag.color;
+    dot.title = tag.name;
+    tags.appendChild(dot);
+  }
+
   const mark = create("span");
-  mark.className = "mixed";
-  if (mixed) {
+  mark.className = "contested";
+  if (contested) {
     mark.textContent = "±";
-    mark.title = arg.strings.mixed;
+    mark.title = arg.strings.contested;
   }
 
   const labels = arg.strings.stances;
   header.append(
     caret,
     title,
+    tags,
     mark,
     directionCell("←", arg.strings.incoming, node.incoming, labels),
     directionCell("→", arg.strings.outgoing, node.outgoing, labels),
@@ -333,7 +345,9 @@ function main(): void {
 
   const render = (): void => {
     const terms = searchTerms(query);
-    const mixed = new Set(nodes.filter(isMixed).map((n) => n.id));
+    const contested = new Set(
+      nodes.filter((n) => isContested(n.incoming)).map((n) => n.id),
+    );
     visible = sortNodes(filterNodes(nodes, query, shown, showMode), sortMode);
     root.replaceChildren();
     if (empty) {
@@ -342,7 +356,7 @@ function main(): void {
       empty.style.display = visible.length === 0 ? "block" : "none";
     }
     rows = visible.map((node) =>
-      nodeRow(node, mixed.has(node.id), arg, openIds, terms, updateToggle),
+      nodeRow(node, contested.has(node.id), arg, openIds, terms, updateToggle),
     );
     for (const row of rows) root.appendChild(row.el);
     updateToggle();
@@ -378,7 +392,7 @@ function main(): void {
         { id: "all", label: arg.strings.showAll },
         { id: "evaluated", label: arg.strings.showEvaluated },
         { id: "cited", label: arg.strings.showCited },
-        { id: "mixed", label: arg.strings.showMixed },
+        { id: "contested", label: arg.strings.showContested },
         { id: "unevaluated", label: arg.strings.showUnevaluated },
       ],
       (id) => {

@@ -21,6 +21,8 @@ export interface ListNode {
   label: string;
   year: number | null; // parsed from the date field, for sorting (L5)
   uri: string; // zotero://select link (export, L7)
+  /** Tags highlighted in the graph window that this item carries (C2). */
+  tags: { name: string; color: string }[];
   outgoing: ListEntry[]; // references this item makes
   incoming: ListEntry[]; // references pointing at this item
 }
@@ -41,9 +43,9 @@ export interface ListStrings extends ViewStringsBase {
   showAll: string;
   showEvaluated: string;
   showCited: string;
-  showMixed: string;
+  showContested: string;
   showUnevaluated: string;
-  mixed: string;
+  contested: string;
   exportMd: string;
   openPdf: string;
   openPdfTitle: string;

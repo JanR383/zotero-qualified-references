@@ -7,7 +7,17 @@ import {
   type ItemFilter,
 } from "./navigation";
 import { formatItem, itemYear, paneFields } from "./itemFormat";
+import { loadHighlightColors, loadHighlightTags } from "./graphView";
+import { getCurrentPaletteId } from "./stancePalette";
 import { forEachResolvedLink } from "./storage";
+import {
+  assignTagColors,
+  collectTagOptions,
+  loadTagColors,
+  TAG_PALETTE,
+  TAG_PALETTE_COLORBLIND,
+  tagKey,
+} from "./tagHighlight";
 import type { ListArg, ListEntry, ListNode } from "../list/types";
 
 /**
@@ -24,6 +34,7 @@ function byStance(a: ListEntry, b: ListEntry): number {
 function buildNodes(filter?: ItemFilter): ListNode[] {
   const fields = paneFields();
   const nodes = new Map<number, ListNode>();
+  const itemTags = new Map<number, string[]>();
 
   const ensure = (item: Zotero.Item): ListNode => {
     let node = nodes.get(item.id);
@@ -33,10 +44,15 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
         label: formatItem(item, fields),
         year: itemYear(item),
         uri: itemUri(item),
+        tags: [],
         outgoing: [],
         incoming: [],
       };
       nodes.set(item.id, node);
+      itemTags.set(
+        item.id,
+        item.getTags().map((t) => t.tag),
+      );
     }
     return node;
   };
@@ -56,7 +72,24 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
     tNode.incoming.push({ ...details, id: source.id, label: sNode.label });
   }, filter);
 
+  // Tags highlighted in the graph window (C2), in the same colours.
+  const assigned = assignTagColors(
+    loadHighlightTags(),
+    collectTagOptions([...itemTags.values()], loadTagColors()),
+    getCurrentPaletteId() === "colorblind"
+      ? TAG_PALETTE_COLORBLIND
+      : TAG_PALETTE,
+    new Map(Object.entries(loadHighlightColors())),
+  );
   const result = [...nodes.values()];
+  if (assigned.size > 0) {
+    for (const node of result) {
+      const own = new Set((itemTags.get(node.id) ?? []).map(tagKey));
+      node.tags = [...assigned]
+        .filter(([key]) => own.has(key))
+        .map(([, tag]) => tag);
+    }
+  }
   for (const node of result) {
     node.outgoing.sort(byStance);
     node.incoming.sort(byStance);
@@ -86,9 +119,9 @@ export function openListView(win: Window): void {
       showAll: getString("list-show-all"),
       showEvaluated: getString("list-show-evaluated"),
       showCited: getString("list-show-cited"),
-      showMixed: getString("list-show-mixed"),
+      showContested: getString("list-show-contested"),
       showUnevaluated: getString("list-show-unevaluated"),
-      mixed: getString("list-mixed"),
+      contested: getString("list-contested"),
       exportMd: getString("export-md"),
       openPdf: getString("list-open-pdf"),
       openPdfTitle: getString("list-open-pdf-title"),

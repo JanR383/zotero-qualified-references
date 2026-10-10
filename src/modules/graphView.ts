@@ -186,7 +186,7 @@ function buildData(filter?: ItemFilter): GraphData {
 const HIGHLIGHT_PREF = `${config.prefsPrefix}.graphHighlightTags`;
 
 /** The tags selected for highlighting last time (lower-cased keys). */
-function loadHighlightTags(): string[] {
+export function loadHighlightTags(): string[] {
   try {
     const v = JSON.parse(String(Zotero.Prefs.get(HIGHLIGHT_PREF, true) ?? ""));
     return Array.isArray(v) ? v.filter((t) => typeof t === "string") : [];
@@ -198,7 +198,7 @@ function loadHighlightTags(): string[] {
 const HIGHLIGHT_COLORS_PREF = `${config.prefsPrefix}.graphHighlightColors`;
 
 /** Palette slots picked for highlighted tags (lower-cased key → slot). */
-function loadHighlightColors(): Record<string, number> {
+export function loadHighlightColors(): Record<string, number> {
   try {
     const v = JSON.parse(
       String(Zotero.Prefs.get(HIGHLIGHT_COLORS_PREF, true) ?? ""),
@@ -256,6 +256,8 @@ export function openGraphView(win: Window): void {
       filterStances: getString("graph-filter-stances"),
       filterTypes: getString("graph-filter-types"),
       minLinks: getString("graph-min-links"),
+      contestedFocus: getString("graph-contested-focus"),
+      noMatch: getString("list-no-match"),
       sizeByIncoming: getString("graph-size-incoming"),
       sourcePages: getString("field-source-pages"),
       targetPages: getString("field-target-pages"),

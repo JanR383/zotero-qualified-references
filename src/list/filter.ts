@@ -1,4 +1,5 @@
 import type { Stance } from "../modules/types";
+import { isContested } from "../shared/contested";
 import type { ListEntry, ListNode } from "./types";
 
 /**
@@ -9,11 +10,12 @@ import type { ListEntry, ListNode } from "./types";
 
 /**
  * Which items the list shows: all; items with outgoing references ("I have
- * evaluated it"); items without ("only cited"); items cited as supporting by
- * one work and as contradicting by another ("mixed"); items cited by at least
- * UNEVALUATED_MIN works but without references of their own.
+ * evaluated it"); items without ("only cited"); contested items (see
+ * isContested); items cited by at least UNEVALUATED_MIN works but without
+ * references of their own.
  */
-export type ShowMode = "all" | "evaluated" | "cited" | "mixed" | "unevaluated";
+export type ShowMode =
+  "all" | "evaluated" | "cited" | "contested" | "unevaluated";
 
 export const UNEVALUATED_MIN = 3;
 
@@ -21,24 +23,14 @@ export const UNEVALUATED_MIN = 3;
 const distinctIds = (entries: ListEntry[]): Set<number> =>
   new Set(entries.map((e) => e.id));
 
-/**
- * The item is cited with a positive stance and with a negative one, by at
- * least two different works (one work citing it both ways does not count).
- */
-export function isMixed(node: ListNode): boolean {
-  const pos = distinctIds(node.incoming.filter((e) => e.stance > 0));
-  const neg = distinctIds(node.incoming.filter((e) => e.stance < 0));
-  return pos.size > 0 && neg.size > 0 && new Set([...pos, ...neg]).size > 1;
-}
-
 function shows(node: ListNode, mode: ShowMode): boolean {
   switch (mode) {
     case "evaluated":
       return node.outgoing.length > 0;
     case "cited":
       return node.outgoing.length === 0;
-    case "mixed":
-      return isMixed(node);
+    case "contested":
+      return isContested(node.incoming);
     case "unevaluated":
       return (
         node.outgoing.length === 0 &&

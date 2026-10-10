@@ -50,6 +50,8 @@ export interface GraphStrings extends ViewStringsBase {
   search: string;
   searchDepth2: string;
   filters: string;
+  contestedFocus: string;
+  noMatch: string;
   filterStances: string;
   filterTypes: string;
   minLinks: string;
