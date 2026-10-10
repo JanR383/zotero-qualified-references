@@ -40,9 +40,7 @@ pref("graphShowTags", true);
 pref("graphShowSizeToggle", false);
 pref("graphShowLinkDistance", false);
 // Extra layouts besides the network, each switched on separately.
-pref("graphShowTimeline", false);
 pref("graphShowEgo", false);
-pref("graphShowLayers", false);
 // Graph window: legend and controls panel collapsed (remembered per profile).
 pref("graphLegendCollapsed", false);
 pref("graphControlsCollapsed", false);

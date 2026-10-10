@@ -14,12 +14,12 @@ export interface GraphNode {
   itemType: string; // Zotero item type (for colour-by-type, N5)
   tooltip: string; // HTML shown on hover (header + type + stance pills)
   tags: string[]; // the item's tag names (for tag highlighting, G12)
-  year: number | null; // publication year (timeline layout, G11)
+  year: number | null; // publication year (ego network order)
   uri: string; // zotero://select link (export, G8)
   x?: number; // filled by the force engine at runtime
   y?: number;
-  fx?: number; // fixed x in the timeline and ego layouts
-  fy?: number; // fixed y in the ego and layered layouts
+  fx?: number; // fixed x in the ego layout
+  fy?: number; // fixed y in the ego layout
   vx?: number;
   vy?: number;
 }
@@ -42,15 +42,9 @@ export interface GraphStrings extends ViewStringsBase {
   legend: string;
   controls: string;
   layoutNetwork: string;
-  layoutTimeline: string;
   layoutEgo: string;
-  layoutLayers: string;
-  layerLevel: string;
   hintNetwork: string;
-  hintTimeline: string;
   hintEgo: string;
-  hintLayers: string;
-  undated: string;
   exportGraphml: string;
   exportPng: string;
   search: string;
@@ -83,14 +77,7 @@ export interface GraphData {
 }
 
 export type GraphControlGroup =
-  | "search"
-  | "filters"
-  | "tags"
-  | "size"
-  | "distance"
-  | "timeline"
-  | "ego"
-  | "layers";
+  "search" | "filters" | "tags" | "size" | "distance" | "ego";
 
 export interface GraphArg extends ViewArgBase {
   nodes: GraphNode[];

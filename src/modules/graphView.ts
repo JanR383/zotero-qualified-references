@@ -221,9 +221,7 @@ const CONTROL_PREFS: Record<GraphControlGroup, string> = {
   tags: "graphShowTags",
   size: "graphShowSizeToggle",
   distance: "graphShowLinkDistance",
-  timeline: "graphShowTimeline",
   ego: "graphShowEgo",
-  layers: "graphShowLayers",
 };
 
 /** Which optional control groups the graph window shows (prefs pane). */
@@ -270,15 +268,9 @@ export function openGraphView(win: Window): void {
       tagColor: getString("graph-tag-color"),
       tagColorAuto: getString("graph-tag-color-auto"),
       layoutNetwork: getString("graph-layout-network"),
-      layoutTimeline: getString("graph-layout-timeline"),
       layoutEgo: getString("graph-layout-ego"),
-      layoutLayers: getString("graph-layout-layers"),
-      layerLevel: getString("graph-layer-level"),
       hintNetwork: getString("graph-hint-network"),
-      hintTimeline: getString("graph-hint-timeline"),
       hintEgo: getString("graph-hint-ego"),
-      hintLayers: getString("graph-hint-layers"),
-      undated: getString("graph-undated"),
       exportGraphml: getString("export-graphml"),
       exportPng: getString("export-png"),
     },

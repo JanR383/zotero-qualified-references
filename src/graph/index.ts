@@ -44,10 +44,9 @@ import {
   sizeFactor,
   type ViewState,
 } from "./view";
-import { timeScale, type TimeScale } from "./timeline";
-import { LabelBoxes, estimateLabelWidth } from "./labels";
+import { LabelBoxes } from "./labels";
 import { clusterForce, components } from "./layout";
-import { egoLayout, layerLevels, type DirectedLink } from "./modes";
+import { egoLayout, type DirectedLink } from "./modes";
 import type { Stance } from "../modules/types";
 import type {
   GraphArg,
@@ -335,15 +334,13 @@ function main(): void {
   let assigned = new Map<string, { name: string; color: string }>();
   let rings = new Map<number, string[]>();
   let tagFocus = false;
-  // Layout mode: force network, timeline (G11), ego network or layers.
-  type LayoutMode = "network" | "timeline" | "ego" | "layers";
+  // Layout mode: force network or ego network.
+  type LayoutMode = "network" | "ego";
   let mode: LayoutMode = "network";
   let egoCenter: number | null = null;
   let egoOuter = new Set<number>(); // second ring, drawn faded
   let egoSide = new Map<number, number>(); // -1 / 1: label left / right
   let egoAbove = new Set<number>(); // label above (top of the ring)
-  let layers = new Map<number, number>(); // layer per item
-  let layerGap = 0; // vertical distance between layers, graph units
   let hovered: number | null = null;
   let labels = new Map<number, string>();
   let view: ViewState = {
@@ -460,14 +457,18 @@ function main(): void {
         });
       }
       // Label detail (G1): small graphs, zoomed in, hubs, hovered node,
-      // search focus and tag-highlighted nodes.
+      // search focus and tag-highlighted nodes. The ego network labels the
+      // centre and its direct neighbours, the outer ring only on demand.
+      const onDemand =
+        scale >= LABEL_ZOOM || hovered === n.id || !!view.hits?.has(n.id);
       const showLabel =
-        view.visible.size <= LABEL_ALL_MAX_NODES ||
-        scale >= LABEL_ZOOM ||
-        hovered === n.id ||
-        view.hubs.has(n.id) ||
-        rings.has(n.id) ||
-        (view.focus?.has(n.id) ?? false);
+        mode === "ego"
+          ? !egoOuter.has(n.id) || onDemand
+          : view.visible.size <= LABEL_ALL_MAX_NODES ||
+            onDemand ||
+            view.hubs.has(n.id) ||
+            rings.has(n.id) ||
+            (view.focus?.has(n.id) ?? false);
       if (showLabel) {
         const fontSize = 12 / scale;
         ctx.font = `${fontSize}px sans-serif`;
@@ -508,57 +509,9 @@ function main(): void {
       }
       ctx.globalAlpha = 1;
     })
-    // Timeline layout (G11): year grid behind the nodes; layered layout:
-    // one numbered line per layer.
-    .onRenderFramePre((ctx, scale) => {
+    .onRenderFramePre((_ctx, scale) => {
       zoomScale = scale;
       labelBoxes.reset();
-      if (!timeline && mode !== "layers") return;
-      const tl = graph.screen2GraphCoords(0, 0);
-      const br = graph.screen2GraphCoords(
-        window.innerWidth,
-        window.innerHeight,
-      );
-      const fontSize = 11 / scale;
-      ctx.save();
-      ctx.font = `${fontSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.strokeStyle = labelColor;
-      ctx.fillStyle = labelColor;
-      ctx.lineWidth = 1 / scale;
-      const column = (x: number, text: string, dashed: boolean): void => {
-        ctx.globalAlpha = 0.15;
-        ctx.setLineDash(dashed ? [4 / scale, 4 / scale] : []);
-        ctx.beginPath();
-        ctx.moveTo(x, tl.y);
-        ctx.lineTo(x, br.y);
-        ctx.stroke();
-        ctx.globalAlpha = 0.7;
-        // Year at the bottom edge: legend and controls cover the top.
-        ctx.fillText(text, x, br.y - fontSize - 6 / scale);
-      };
-      if (timeline) {
-        for (const t of timeline.ticks) column(t.x, String(t.year), false);
-        if (timeline.undatedX !== null) {
-          column(timeline.undatedX, strings.undated, true);
-        }
-      } else {
-        ctx.textAlign = "left";
-        ctx.textBaseline = "bottom";
-        const top = Math.max(-1, ...layers.values());
-        for (let l = 0; l <= top; l++) {
-          const y = -l * layerGap;
-          ctx.globalAlpha = 0.15;
-          ctx.beginPath();
-          ctx.moveTo(tl.x, y);
-          ctx.lineTo(br.x, y);
-          ctx.stroke();
-          ctx.globalAlpha = 0.7;
-          ctx.fillText(`${strings.layerLevel} ${l}`, tl.x + 6 / scale, y);
-        }
-      }
-      ctx.restore();
     })
     // Paint the clickable hit area to match the drawn shape.
     .nodePointerAreaPaint((n, color, ctx) => {
@@ -588,16 +541,11 @@ function main(): void {
   });
   let clusterKey = "";
   const applyNetworkForces = (): void => {
-    const scaled = mode !== "timeline";
-    chargeForce?.strength(
-      scaled
-        ? (n: GraphNode) =>
-            view.visible.has(n.id) ? -Math.max(30, distance * 1.5) : 0
-        : -30,
+    chargeForce?.strength((n: GraphNode) =>
+      view.visible.has(n.id) ? -Math.max(30, distance * 1.5) : 0,
     );
-    chargeForce?.distanceMax(scaled ? distance * 4 : Infinity);
+    chargeForce?.distanceMax(distance * 4);
     graph.d3Force("clusters", mode === "network" ? clusters : null);
-    graph.d3Force("layersX", mode === "layers" ? spreadLayers : null);
   };
   // Clusters as shown: visible nodes joined by visible links. Returns true
   // when they differ from the last call.
@@ -615,87 +563,16 @@ function main(): void {
     distance = d;
     linkForce?.distance(d);
     applyNetworkForces();
-    // Ego and layer positions are spaced by the edge length too.
-    if (mode === "ego" || mode === "layers") refresh();
+    // Ego positions are spaced by the edge length too.
+    if (mode === "ego") refresh();
     graph.d3ReheatSimulation();
   };
 
-  // Timeline layout (G11): x is fixed by year, y stays free but is pulled
-  // gently towards the axis so the band does not drift apart.
-  let timeline: TimeScale | null = null;
-  let layoutNodes: GraphNode[] = [];
-  // Items whose labels would overlap horizontally (near years) are pushed
-  // apart vertically, so the timeline does not stack labels on one line.
-  const LABEL_GAP = 34; // vertical room per label row, graph units
-  const pullToAxis = Object.assign(
-    (alpha: number): void => {
-      for (const n of layoutNodes)
-        n.vy = (n.vy ?? 0) - (n.y ?? 0) * 0.05 * alpha;
-      const shown = layoutNodes
-        .filter((n) => view.visible.has(n.id))
-        .sort((a, b) => (a.fx ?? 0) - (b.fx ?? 0));
-      for (let i = 0; i < shown.length; i++) {
-        const a = shown[i];
-        const wa = estimateLabelWidth(a.label);
-        for (let j = i + 1; j < shown.length; j++) {
-          const b = shown[j];
-          const dx = (b.fx ?? 0) - (a.fx ?? 0);
-          if (dx >= (wa + estimateLabelWidth(b.label)) / 2) break;
-          const dy = (b.y ?? 0) - (a.y ?? 0);
-          if (Math.abs(dy) >= LABEL_GAP) continue;
-          const push = (LABEL_GAP - Math.abs(dy)) * 0.5 * alpha;
-          const dir = dy === 0 ? (j % 2 ? 1 : -1) : Math.sign(dy);
-          a.vy = (a.vy ?? 0) - push * dir;
-          b.vy = (b.vy ?? 0) + push * dir;
-        }
-      }
-    },
-    {
-      initialize: (ns: GraphNode[]): void => {
-        layoutNodes = ns;
-      },
-    },
-  );
-  // Layered layout: y is fixed by layer; items of one layer are pushed
-  // apart horizontally so their labels do not overlap.
-  let layerNodes: GraphNode[] = [];
-  const spreadLayers = Object.assign(
-    (alpha: number): void => {
-      const rows = new Map<number, GraphNode[]>();
-      for (const n of layerNodes) {
-        const l = layers.get(n.id);
-        if (l === undefined || !view.visible.has(n.id)) continue;
-        const row = rows.get(l);
-        if (row) row.push(n);
-        else rows.set(l, [n]);
-      }
-      for (const row of rows.values()) {
-        row.sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
-        for (let i = 0; i + 1 < row.length; i++) {
-          const a = row[i];
-          const b = row[i + 1];
-          const need =
-            (estimateLabelWidth(a.label) + estimateLabelWidth(b.label)) / 2 +
-            10;
-          const dx = (b.x ?? 0) - (a.x ?? 0);
-          if (dx >= need) continue;
-          const push = (need - dx) * 0.3; // like a collision, not cooled by alpha
-          a.vx = (a.vx ?? 0) - push;
-          b.vx = (b.vx ?? 0) + push;
-        }
-      }
-    },
-    {
-      initialize: (ns: GraphNode[]): void => {
-        layerNodes = ns;
-      },
-    },
-  );
   // Fit the view once the new positions are roughly in place, and again
-  // when the layout has settled. Ego and layer labels need more margin.
+  // when the layout has settled. Ego labels need more margin.
   let refitOnStop = false;
   const fit = (): void => {
-    const pad = mode === "ego" || mode === "layers" ? 100 : 40;
+    const pad = mode === "ego" ? 100 : 40;
     graph.zoomToFit(600, pad, (n) => view.visible.has(n.id));
   };
   const fitSoon = (): void => {
@@ -710,15 +587,11 @@ function main(): void {
   const applyLayout = (next: LayoutMode, refit = true): void => {
     mode = next;
     if (mode === "ego") egoCenter = null; // pick afresh (Zotero selection)
-    timeline =
-      mode === "timeline" ? timeScale(current.nodes.map((n) => n.year)) : null;
     for (const n of current.nodes) {
       delete n.fx;
       delete n.fy;
-      if (timeline) n.fx = timeline.x(n.year);
     }
-    graph.d3Force("timelineY", timeline ? pullToAxis : null);
-    refresh(); // places ego and layer items, sets the forces
+    refresh(); // places ego items, sets the forces
     graph.d3ReheatSimulation();
     if (refit) fitSoon();
   };
@@ -734,12 +607,11 @@ function main(): void {
       : current.nodes; // sorted most connected first
     return pool.find((n) => view.visible.has(n.id))?.id ?? null;
   };
-  // Fix the ego / layer positions; returns a key that changes whenever they do.
+  // Fix the ego positions; returns a key that changes whenever they do.
   const placeNodes = (shown: DirectedLink[]): string => {
     egoOuter = new Set();
     egoSide = new Map();
     egoAbove = new Set();
-    layers = new Map();
     if (mode === "ego") {
       egoCenter = pickCenter();
       const byId = new Map(current.nodes.map((n) => [n.id, n]));
@@ -777,16 +649,6 @@ function main(): void {
         }
       }
       return `ego:${[...places].map(([id, p]) => `${id}@${p.x},${p.y}`).join(";")}`;
-    }
-    if (mode === "layers") {
-      layers = layerLevels(view.visible, shown);
-      layerGap = Math.max(120, distance * 2);
-      for (const n of current.nodes) {
-        const l = layers.get(n.id);
-        if (l !== undefined) n.fy = -l * layerGap;
-        else delete n.fy;
-      }
-      return `layers:${layerGap}:${[...layers].join(";")}`;
     }
     return "";
   };
@@ -847,7 +709,7 @@ function main(): void {
       },
     );
     // Charge strengths depend on visibility; re-layout when the clusters
-    // shown or the ego / layer positions have changed (filters can split or
+    // shown or the ego positions have changed (filters can split or
     // join clusters).
     const shown = current.links
       .map((l) => ({
@@ -948,7 +810,6 @@ function main(): void {
     tagSelect.setOptions(data.tagOptions);
     renderTypeFilter();
     refresh();
-    if (timeline) applyLayout("timeline", !live);
   };
   applyData({
     nodes: arg.nodes,
@@ -986,24 +847,20 @@ function main(): void {
     });
   }
 
-  // Layout switch: network, timeline (G11), ego network or layers; each
+  // Layout switch: network or ego network; each
   // button explains its layout on hover.
   const layoutMount = byId("layout");
   const hints: Record<LayoutMode, string> = {
     network: strings.hintNetwork,
-    timeline: strings.hintTimeline,
     ego: strings.hintEgo,
-    layers: strings.hintLayers,
   };
   if (layoutMount) {
-    // Network is always there; the other layouts are switched on one by
-    // one in the preferences pane. Network alone needs no switch.
+    // Network is always there; the ego network is switched on in the
+    // preferences pane. Network alone needs no switch.
     const modes = (
       [
         ["network", strings.layoutNetwork],
-        ["timeline", strings.layoutTimeline],
         ["ego", strings.layoutEgo],
-        ["layers", strings.layoutLayers],
       ] as [LayoutMode, string][]
     ).filter(([m]) => m === "network" || arg.controls[m]);
     if (modes.length === 1) layoutMount.hidden = true;
