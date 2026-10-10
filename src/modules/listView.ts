@@ -79,8 +79,16 @@ export function openListView(win: Window): void {
       collapseAll: getString("list-collapse-all"),
       sort: getString("list-sort"),
       sortAlpha: getString("list-sort-alpha"),
-      sortCount: getString("list-sort-count"),
+      sortIncoming: getString("list-sort-incoming"),
+      sortOutgoing: getString("list-sort-outgoing"),
       sortYear: getString("list-sort-year"),
+      show: getString("list-show"),
+      showAll: getString("list-show-all"),
+      showEvaluated: getString("list-show-evaluated"),
+      showCited: getString("list-show-cited"),
+      showMixed: getString("list-show-mixed"),
+      showUnevaluated: getString("list-show-unevaluated"),
+      mixed: getString("list-mixed"),
       exportMd: getString("export-md"),
       openPdf: getString("list-open-pdf"),
       openPdfTitle: getString("list-open-pdf-title"),
@@ -88,5 +96,5 @@ export function openListView(win: Window): void {
     },
   };
 
-  openViewWindow(win, "list", { width: 700, height: 720 }, arg);
+  openViewWindow(win, "list", { width: 900, height: 720 }, arg);
 }

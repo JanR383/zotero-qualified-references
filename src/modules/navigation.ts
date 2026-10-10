@@ -70,6 +70,7 @@ export function viewArgBase(
     selectItem: selectItemInPane,
     openAnchor,
     paletteCss: paletteOverrideCss(getCurrentPaletteId()),
+    fontScale: Number(Zotero.Prefs.get("fontSize")) || 1,
     scopes: buildScopeOptions(),
     getScopedData: (id: string) => {
       filter = makePredicate(id);

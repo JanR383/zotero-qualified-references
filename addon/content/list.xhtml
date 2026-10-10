@@ -8,91 +8,153 @@
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 8px;
-        padding: 8px 10px;
+        gap: 6px 8px;
+        padding: 6px 10px;
         border-bottom: 1px solid var(--material-border-quarternary, #ddd);
-        font-size: 12px;
+        font-size: 0.92em;
       }
       #toolbar #scope {
-        max-width: 320px;
+        max-width: 260px;
       }
       #search {
-        width: 180px;
-      }
-      .stance-filter {
-        display: inline-flex;
-        gap: 6px;
-      }
-      .stance-filter label {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        cursor: pointer;
+        flex: 1 1 220px;
+        min-width: 160px;
+        max-width: 300px;
       }
       .spacer {
         flex: 1 1 auto;
       }
       #list {
-        padding: 8px 10px 20px;
+        padding: 4px 6px 20px;
       }
       .node {
-        border-bottom: 1px solid var(--material-border-quarternary, #ddd);
+        border-bottom: 1px solid var(--material-border-quarternary, #e4e4e4);
+      }
+      .node.open {
+        background: color-mix(in srgb, currentColor 4%, transparent);
+      }
+      /* Collapsed row: caret | title | ± | incoming | outgoing, the last two
+         as fixed columns so the numbers line up from row to row. */
+      .node-head {
+        display: grid;
+        grid-template-columns: 1em minmax(0, 1fr) 1em 7.5em 7.5em;
+        align-items: center;
+        column-gap: 6px;
+        padding: 3px 4px;
+        cursor: pointer;
+      }
+      .node-head:hover {
+        background: color-mix(in srgb, currentColor 7%, transparent);
       }
       .node-head:focus-visible {
         outline: 2px solid var(--color-accent, Highlight);
         outline-offset: -2px;
       }
-      .node-head {
-        display: flex;
-        align-items: baseline;
-        gap: 6px;
-        padding: 5px 2px;
-        cursor: pointer;
-      }
-      .balance {
-        display: inline-flex;
-        align-items: baseline;
-        gap: 4px;
-        font-size: 0.9em;
-        opacity: 0.85;
-      }
       .caret {
-        width: 1em;
-        flex: 0 0 auto;
-        opacity: 0.7;
+        opacity: 0.6;
       }
       .node-title {
-        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .node.open .node-title {
+        white-space: normal;
+        font-weight: 600;
       }
       .node-title:hover {
         text-decoration: underline;
       }
+      .mixed {
+        text-align: center;
+        font-weight: 600;
+        cursor: help;
+      }
+      .dir {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 5px;
+        font-size: 0.9em;
+        font-variant-numeric: tabular-nums;
+      }
+      .dir-count {
+        opacity: 0.8;
+        white-space: nowrap;
+      }
+      /* Diverging stance bar (stanceBar in list/index.ts). Each half is laid
+         out from the outside in towards the centre line. */
+      .bar {
+        position: relative;
+        display: inline-flex;
+        height: 10px;
+      }
+      .bar::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -2px;
+        bottom: -2px;
+        width: 1px;
+        background: currentColor;
+        opacity: 0.45;
+      }
+      .bar-half {
+        display: flex;
+        gap: 1px;
+        width: 30px;
+        justify-content: flex-end;
+      }
+      .bar-half.pos {
+        flex-direction: row-reverse;
+      }
+      .bar-seg,
+      .bar-neutral {
+        flex: 0 0 auto;
+        height: 100%;
+      }
       .node-body {
-        padding: 2px 0 8px 22px;
+        padding: 0 8px 8px 26px;
       }
       .section {
-        margin: 4px 0;
+        margin-top: 4px;
       }
       .section-head {
         font-size: 0.85em;
-        opacity: 0.7;
-        margin-bottom: 2px;
+        opacity: 0.75;
+        margin: 2px 0;
       }
+      /* Expanded entry: pill | label, pages and PDF link, comment. */
       .entry {
-        padding: 1px 0;
+        display: grid;
+        grid-template-columns: 2.4em minmax(0, 1fr);
+        column-gap: 6px;
+        align-items: baseline;
+        padding: 2px 0;
       }
-      .entry-line {
+      .pill {
+        justify-self: start;
+        min-width: 1.6em;
+        text-align: center;
+        padding: 0 5px;
+        border-radius: 8px;
+        font-size: 0.8em;
+        color: var(--qref-stance-fg);
+      }
+      .entry-label {
+        cursor: pointer;
+      }
+      .entry-label:hover {
+        text-decoration: underline;
+      }
+      .entry-meta {
         display: flex;
-        align-items: center;
         flex-wrap: wrap;
-        gap: 7px;
-      }
-      .entry-pages {
+        gap: 0 10px;
         font-size: 0.85em;
-        opacity: 0.7;
+        opacity: 0.75;
       }
       .entry-pdf {
-        font-size: 0.85em;
         cursor: pointer;
         color: var(--color-accent, LinkText);
       }
@@ -100,9 +162,8 @@
         text-decoration: underline;
       }
       .entry-comment {
-        margin: 0 0 2px 30px;
         font-size: 0.9em;
-        opacity: 0.8;
+        opacity: 0.85;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -110,22 +171,6 @@
       }
       .entry-comment.open {
         white-space: pre-wrap;
-      }
-      .pill {
-        display: inline-block;
-        min-width: 16px;
-        text-align: center;
-        padding: 0 6px;
-        border-radius: 8px;
-        font-size: 0.8em;
-        color: var(--qref-stance-fg);
-        flex: 0 0 auto;
-      }
-      .entry-label {
-        cursor: pointer;
-      }
-      .entry-label:hover {
-        text-decoration: underline;
       }
       #empty {
         display: none;
@@ -137,14 +182,13 @@
   </head>
   <body>
     <div id="toolbar">
-      <label id="scope-label"></label>
       <div id="scope"></div>
       <input id="search" type="search" />
       <span id="stance-filter"></span>
+      <span id="show"></span>
       <span id="sort"></span>
       <span class="spacer"></span>
-      <button id="expand-all"></button>
-      <button id="collapse-all"></button>
+      <button id="toggle-all"></button>
       <span id="export"></span>
     </div>
     <div id="list"></div>

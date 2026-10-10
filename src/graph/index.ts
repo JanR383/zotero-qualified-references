@@ -27,7 +27,8 @@ import {
 } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
-import { onViewDataChanged } from "../shared/viewArg";
+import { buildStanceToggles } from "../shared/stanceToggles";
+import { applyWindowStyle, onViewDataChanged } from "../shared/viewArg";
 import {
   referencesCsv,
   referencesGraphml,
@@ -254,13 +255,9 @@ function main(): void {
 
   document.title = strings.title;
 
-  // Apply the stance-palette override (M7) before reading any --qref-stance-*
-  // values, so legend swatches and edge colours pick up the chosen palette.
-  if (arg.paletteCss) {
-    const style = create("style");
-    style.textContent = arg.paletteCss;
-    (document.head ?? document.documentElement)?.appendChild(style);
-  }
+  // Before reading any --qref-stance-* values, so legend swatches and edge
+  // colours pick up the chosen palette.
+  applyWindowStyle(arg);
 
   const isDark = !!window.matchMedia("(prefers-color-scheme: dark)")?.matches;
 
@@ -926,24 +923,9 @@ function main(): void {
   const stanceMount = byId("stance-filter");
   const stanceTitle = byId("stance-filter-label");
   if (stanceTitle) stanceTitle.textContent = strings.filterStances;
-  for (const stance of STANCE_ORDER) {
-    const pill = create("span");
-    pill.className = "pill";
-    pill.style.background = stanceColor(stance);
-    pill.textContent = STANCE_GLYPH[stance];
-    stanceMount?.appendChild(
-      checkbox(
-        pill,
-        true,
-        (on) => {
-          if (on) shownStances.add(stance);
-          else shownStances.delete(stance);
-          refresh();
-        },
-        strings.stances[stance],
-      ),
-    );
-  }
+  stanceMount?.appendChild(
+    buildStanceToggles(strings.stances, shownStances, stanceColor, refresh),
+  );
   const typeTitle = byId("type-filter-label");
   if (typeTitle) typeTitle.textContent = strings.filterTypes;
 

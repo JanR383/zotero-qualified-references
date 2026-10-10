@@ -39,7 +39,10 @@ html.qref-window body {
   height: 100%;
   background: #ffffff;
   color: #1a1a1a;
-  font: 13px sans-serif;
+  /* System font like Zotero's own UI; --qref-font-scale follows Zotero's font
+     size setting (set when the window opens, see navigation.ts). */
+  font-family: system-ui, sans-serif;
+  font-size: calc(13px * var(--qref-font-scale, 1));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -48,6 +51,37 @@ html.qref-window body {
     background: #1c1c1e;
     color: #e8e8e8;
   }
+}
+
+/* Stance filter toggles of both windows (src/shared/stanceToggles.ts). An
+ * inactive stance fades and gets a dashed outline, so the state does not rely
+ * on colour. */
+.qref-stance-toggles {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.qref-stance-toggle {
+  min-width: 26px;
+  margin: 0;
+  padding: 1px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--qref-stance-fg);
+  font: inherit;
+  font-size: 0.85em;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.qref-stance-toggle[aria-pressed="false"] {
+  opacity: 0.3;
+  border: 1px dashed currentColor;
+}
+
+.qref-stance-toggle:focus-visible {
+  outline: 2px solid var(--color-accent, Highlight);
+  outline-offset: 1px;
 }
 
 /* Item-pane section (src/modules/referenceSection.ts). Stance colours are set

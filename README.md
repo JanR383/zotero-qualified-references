@@ -59,11 +59,18 @@ graph's **Highlight tags** picker marks items carrying
 any of the chosen tags (e.g. `#Quelle` for primary sources) with a ring in the
 tag's colour — Zotero's own colour for coloured tags — and can hide everything
 except those items and their direct neighbours. A **Tools → Reference List**
-window shows the same data as an expandable list, with **Expand all / Collapse
-all**, a **search** over title and author, a **stance filter**, a **sort
-order** (alphabetical, number of references, year) and the stance balance per
-row. Each expanded entry shows its pages, a **↗ PDF** link to the anchored
-passage and the comment (one line, the whole text on click). Both windows have a **scope switcher** to narrow the view down to a single
+window shows the same data as an expandable list. Each row shows the number of
+incoming (←) and outgoing (→) references, each with a small diverging bar:
+contradicting references left of its centre line, supporting ones right of
+it, so the bar reads without telling the colours apart. A **±** marks items
+cited as supporting by one work and as contradicting by another. The toolbar
+has **Expand all / Collapse all**, a **search** over title, author and
+comments, a **stance filter**, a **Show** menu (all items, items with or
+without references of their own, mixed stances, items cited by at least three
+works but without references of their own) and a **sort order**
+(alphabetical, most cited, most references made, year). Each expanded entry
+shows its pages, a **↗ PDF** link to the anchored passage and the comment
+(one line, the whole text on click or when the search found it there). Both windows have a **scope switcher** to narrow the view down to a single
 library, a collection (including its sub-collections) or, on Zotero 10, the
 **current selection** in Zotero's collection tree. Items in the trash are left
 out of both views. Both windows **update live** while open: new, changed or

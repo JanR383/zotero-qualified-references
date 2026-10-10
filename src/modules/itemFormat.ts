@@ -37,8 +37,12 @@ export function graphFields(): FieldSet {
 }
 
 export function formatItem(item: Zotero.Item, f: FieldSet): string {
+  // Without a creator (e.g. a web page), name the publication or website in
+  // its place; publicationTitle is base-mapped to websiteTitle, blogTitle etc.
   const author = f.author
-    ? (item.getField("firstCreator") as string) || ""
+    ? (item.getField("firstCreator") as string) ||
+      item.getField("publicationTitle", false, true) ||
+      ""
     : "";
   let year = "";
   if (f.year) {

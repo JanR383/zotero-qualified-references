@@ -34,8 +34,16 @@ export interface ListStrings extends ViewStringsBase {
   collapseAll: string;
   sort: string;
   sortAlpha: string;
-  sortCount: string;
+  sortIncoming: string;
+  sortOutgoing: string;
   sortYear: string;
+  show: string;
+  showAll: string;
+  showEvaluated: string;
+  showCited: string;
+  showMixed: string;
+  showUnevaluated: string;
+  mixed: string;
   exportMd: string;
   openPdf: string;
   openPdfTitle: string;
