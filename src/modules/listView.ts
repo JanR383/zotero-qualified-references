@@ -7,18 +7,10 @@ import {
   type ItemFilter,
 } from "./navigation";
 import { formatItem, itemYear, paneFields } from "./itemFormat";
-import { loadHighlightColors, loadHighlightTags } from "./graphView";
-import { getCurrentPaletteId } from "./stancePalette";
+import { tagHighlightArg, tagSelectStrings } from "./graphView";
 import { forEachResolvedLink } from "./storage";
-import {
-  assignTagColors,
-  collectTagOptions,
-  loadTagColors,
-  TAG_PALETTE,
-  TAG_PALETTE_COLORBLIND,
-  tagKey,
-} from "./tagHighlight";
-import type { ListArg, ListEntry, ListNode } from "../list/types";
+import { collectTagOptions, loadTagColors } from "./tagHighlight";
+import type { ListArg, ListData, ListEntry, ListNode } from "../list/types";
 
 /**
  * Builds the reference list from the in-memory reverse index and opens it in a
@@ -31,10 +23,9 @@ function byStance(a: ListEntry, b: ListEntry): number {
   return b.stance - a.stance || a.label.localeCompare(b.label);
 }
 
-function buildNodes(filter?: ItemFilter): ListNode[] {
+function buildData(filter?: ItemFilter): ListData {
   const fields = paneFields();
   const nodes = new Map<number, ListNode>();
-  const itemTags = new Map<number, string[]>();
 
   const ensure = (item: Zotero.Item): ListNode => {
     let node = nodes.get(item.id);
@@ -44,15 +35,11 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
         label: formatItem(item, fields),
         year: itemYear(item),
         uri: itemUri(item),
-        tags: [],
+        tags: item.getTags().map((t) => t.tag),
         outgoing: [],
         incoming: [],
       };
       nodes.set(item.id, node);
-      itemTags.set(
-        item.id,
-        item.getTags().map((t) => t.tag),
-      );
     }
     return node;
   };
@@ -72,38 +59,30 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
     tNode.incoming.push({ ...details, id: source.id, label: sNode.label });
   }, filter);
 
-  // Tags highlighted in the graph window (C2), in the same colours.
-  const assigned = assignTagColors(
-    loadHighlightTags(),
-    collectTagOptions([...itemTags.values()], loadTagColors()),
-    getCurrentPaletteId() === "colorblind"
-      ? TAG_PALETTE_COLORBLIND
-      : TAG_PALETTE,
-    new Map(Object.entries(loadHighlightColors())),
-  );
   const result = [...nodes.values()];
-  if (assigned.size > 0) {
-    for (const node of result) {
-      const own = new Set((itemTags.get(node.id) ?? []).map(tagKey));
-      node.tags = [...assigned]
-        .filter(([key]) => own.has(key))
-        .map(([, tag]) => tag);
-    }
-  }
   for (const node of result) {
     node.outgoing.sort(byStance);
     node.incoming.sort(byStance);
   }
   result.sort((a, b) => a.label.localeCompare(b.label));
-  return result;
+  // Tags offered for highlighting (C2): all tags present in this scope.
+  const tagOptions = collectTagOptions(
+    result.map((n) => n.tags),
+    loadTagColors(),
+  );
+  return { nodes: result, tagOptions };
 }
 
 export function openListView(win: Window): void {
+  const data = buildData();
   const arg: ListArg = {
-    ...viewArgBase((filter) => ({ nodes: buildNodes(filter) })),
-    nodes: buildNodes(),
+    ...viewArgBase(buildData),
+    ...tagHighlightArg(data.tagOptions),
+    nodes: data.nodes,
     strings: {
       ...viewStringsBase("list-window-title"),
+      ...tagSelectStrings(),
+      showTagged: getString("list-show-tagged"),
       outgoing: getString("graph-out"),
       incoming: getString("graph-in"),
       noMatch: getString("list-no-match"),
@@ -129,5 +108,5 @@ export function openListView(win: Window): void {
     },
   };
 
-  openViewWindow(win, "list", { width: 900, height: 720 }, arg);
+  openViewWindow(win, "list", { width: 960, height: 720 }, arg);
 }

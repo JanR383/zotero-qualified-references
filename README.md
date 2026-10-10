@@ -65,12 +65,13 @@ incoming (←) and outgoing (→) references, each with a small diverging bar:
 contradicting references left of its centre line, supporting ones right of
 it, so the bar reads without telling the colours apart. A **±** marks
 **contested** items: cited as supporting by one work and as contradicting by
-another. Tags chosen in the graph's **Highlight tags** picker show as dots in
-their colours after the title. The toolbar
+another. A **Tags** picker, shared with the graph's **Highlight tags**
+(same selection and colours, picked up when a window opens), shows the chosen
+tags as coloured dots after the title. The toolbar
 has **Expand all / Collapse all**, a **search** over title, author and
 comments, a **stance filter**, a **Show** menu (all items, items with or
 without references of their own, contested items, items cited by at least three
-works but without references of their own) and a **sort order**
+works but without references of their own, items with a highlighted tag) and a **sort order**
 (alphabetical, most cited, most references made, year). Each expanded entry
 shows its pages, a **↗ PDF** link to the anchored passage and the comment
 (one line, the whole text on click or when the search found it there). Both windows have a **scope switcher** to narrow the view down to a single

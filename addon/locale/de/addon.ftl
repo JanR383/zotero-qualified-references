@@ -65,6 +65,7 @@ list-show-all = Alle Einträge
 list-show-evaluated = Mit eigenen Bezügen
 list-show-cited = Nur referenziert
 list-show-contested = Umstritten
+list-show-tagged = Nur markierte
 list-show-unevaluated = Oft referenziert, ohne eigene Bezüge
 list-contested = Umstritten: Von einem Werk als stützend, von einem anderen als widersprechend eingeordnet
 list-open-pdf = ↗ PDF

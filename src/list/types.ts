@@ -1,4 +1,6 @@
 import type { Stance } from "../modules/types";
+import type { TagOption } from "../modules/tagHighlight";
+import type { TagHighlightArg, TagSelectStrings } from "../shared/tagSelect";
 import type { ViewArgBase, ViewStringsBase } from "../shared/viewArg";
 
 /**
@@ -21,13 +23,12 @@ export interface ListNode {
   label: string;
   year: number | null; // parsed from the date field, for sorting (L5)
   uri: string; // zotero://select link (export, L7)
-  /** Tags highlighted in the graph window that this item carries (C2). */
-  tags: { name: string; color: string }[];
+  tags: string[]; // the item's tag names (for tag highlighting, C2)
   outgoing: ListEntry[]; // references this item makes
   incoming: ListEntry[]; // references pointing at this item
 }
 
-export interface ListStrings extends ViewStringsBase {
+export interface ListStrings extends ViewStringsBase, TagSelectStrings {
   outgoing: string;
   incoming: string;
   noMatch: string;
@@ -44,6 +45,7 @@ export interface ListStrings extends ViewStringsBase {
   showEvaluated: string;
   showCited: string;
   showContested: string;
+  showTagged: string;
   showUnevaluated: string;
   contested: string;
   exportMd: string;
@@ -52,7 +54,13 @@ export interface ListStrings extends ViewStringsBase {
   showComment: string;
 }
 
-export interface ListArg extends ViewArgBase {
+/** Scoped data the window re-requests on scope change and live refresh. */
+export interface ListData {
+  nodes: ListNode[];
+  tagOptions: TagOption[];
+}
+
+export interface ListArg extends ViewArgBase, TagHighlightArg {
   nodes: ListNode[];
   strings: ListStrings;
 }

@@ -38,7 +38,7 @@ import {
 } from "../shared/export";
 import { assignTagColors, ringColors } from "../modules/tagHighlight";
 import { escapeHtml, truncate } from "../shared/text";
-import { buildTagSelect } from "./tagSelect";
+import { buildTagSelect } from "../shared/tagSelect";
 import {
   arrowLength,
   computeView,

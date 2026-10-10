@@ -73,6 +73,7 @@ export type FluentMessageId =
   | 'list-show-comment'
   | 'list-show-contested'
   | 'list-show-evaluated'
+  | 'list-show-tagged'
   | 'list-show-unevaluated'
   | 'list-sort'
   | 'list-sort-alpha'

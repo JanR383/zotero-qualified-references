@@ -65,6 +65,7 @@ list-show-all = All items
 list-show-evaluated = With own references
 list-show-cited = Only cited
 list-show-contested = Contested
+list-show-tagged = Only highlighted
 list-show-unevaluated = Often cited, no own references
 list-contested = Contested: Cited as supporting by one work and as contradicting by another
 list-open-pdf = ↗ PDF

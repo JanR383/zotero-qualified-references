@@ -1,4 +1,5 @@
 import type { Stance } from "../modules/types";
+import { tagKey } from "../modules/tagHighlight";
 import { isContested } from "../shared/contested";
 import type { ListEntry, ListNode } from "./types";
 
@@ -12,10 +13,10 @@ import type { ListEntry, ListNode } from "./types";
  * Which items the list shows: all; items with outgoing references ("I have
  * evaluated it"); items without ("only cited"); contested items (see
  * isContested); items cited by at least UNEVALUATED_MIN works but without
- * references of their own.
+ * references of their own; items carrying a highlighted tag.
  */
 export type ShowMode =
-  "all" | "evaluated" | "cited" | "contested" | "unevaluated";
+  "all" | "evaluated" | "cited" | "contested" | "unevaluated" | "tagged";
 
 export const UNEVALUATED_MIN = 3;
 
@@ -23,7 +24,11 @@ export const UNEVALUATED_MIN = 3;
 const distinctIds = (entries: ListEntry[]): Set<number> =>
   new Set(entries.map((e) => e.id));
 
-function shows(node: ListNode, mode: ShowMode): boolean {
+function shows(
+  node: ListNode,
+  mode: ShowMode,
+  tagged: ReadonlySet<string>,
+): boolean {
   switch (mode) {
     case "evaluated":
       return node.outgoing.length > 0;
@@ -36,6 +41,8 @@ function shows(node: ListNode, mode: ShowMode): boolean {
         node.outgoing.length === 0 &&
         distinctIds(node.incoming).size >= UNEVALUATED_MIN
       );
+    case "tagged":
+      return node.tags.some((t) => tagged.has(tagKey(t)));
     default:
       return true;
   }
@@ -58,7 +65,7 @@ export function commentMatches(
 
 /**
  * - `mode` is decided on the unfiltered node: it describes the item, not the
- *   stances currently shown.
+ *   stances currently shown. "tagged" uses `tagged` (lower-cased tag keys).
  * - Entries whose stance is not in `stances` are dropped; a node left without
  *   any entries is dropped too.
  * - `query` is split on whitespace; a node matches when every term occurs in
@@ -71,11 +78,12 @@ export function filterNodes(
   query: string,
   stances: ReadonlySet<Stance>,
   mode: ShowMode = "all",
+  tagged: ReadonlySet<string> = new Set(),
 ): ListNode[] {
   const terms = searchTerms(query);
   const result: ListNode[] = [];
   for (const node of nodes) {
-    if (!shows(node, mode)) continue;
+    if (!shows(node, mode, tagged)) continue;
     if (terms.length > 0) {
       const text = [
         node.label,

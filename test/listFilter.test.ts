@@ -98,6 +98,16 @@ describe("list filter", function () {
     });
   });
 
+  it("shows items carrying a highlighted tag, case-insensitively", function () {
+    const tagged = [
+      { ...nodes[0], tags: ["#Quelle"] },
+      { ...nodes[1], tags: ["other"] },
+    ];
+    const keys = new Set(["#quelle"]);
+    assert.deepEqual(ids(filterNodes(tagged, "", all, "tagged", keys)), [1]);
+    assert.deepEqual(ids(filterNodes(tagged, "", all, "tagged")), []);
+  });
+
   it("does not modify the input nodes", function () {
     filterNodes(nodes, "", new Set<Stance>());
     assert.lengthOf(nodes[0].incoming, 1);

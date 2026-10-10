@@ -16,6 +16,8 @@ import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
 import { isContested } from "../shared/contested";
 import { buildStanceToggles } from "../shared/stanceToggles";
+import { buildTagSelect } from "../shared/tagSelect";
+import { assignTagColors, tagKey } from "../modules/tagHighlight";
 import { applyWindowStyle, onViewDataChanged } from "../shared/viewArg";
 import { referencesCsv, referencesMarkdown } from "../shared/export";
 import { listExportData } from "./exportData";
@@ -27,7 +29,13 @@ import {
 } from "./filter";
 import { sortNodes, stanceCounts, type SortMode } from "./sort";
 import type { Stance } from "../modules/types";
-import type { ListArg, ListEntry, ListNode, ListStrings } from "./types";
+import type {
+  ListArg,
+  ListData,
+  ListEntry,
+  ListNode,
+  ListStrings,
+} from "./types";
 
 declare const window: Window & typeof globalThis & { arguments?: unknown[] };
 declare const document: Document;
@@ -219,6 +227,7 @@ interface NodeRow {
 function nodeRow(
   node: ListNode,
   contested: boolean,
+  marks: { name: string; color: string }[],
   arg: ListArg,
   openIds: Set<number>,
   terms: string[],
@@ -243,7 +252,7 @@ function nodeRow(
   // Tags highlighted in the graph window (C2), as dots after the title.
   const tags = create("span");
   tags.className = "tags";
-  for (const tag of node.tags) {
+  for (const tag of marks) {
     const dot = create("span");
     dot.className = "tag-dot";
     dot.style.background = tag.color;
@@ -330,6 +339,11 @@ function main(): void {
   let showMode: ShowMode = "all";
   let rows: NodeRow[] = [];
   let visible: ListNode[] = [];
+  // Tag highlighting (C2), shared with the graph window through the prefs.
+  let tagOptions = arg.tagOptions;
+  const selectedTags = new Set(arg.highlightTags);
+  const tagColors = new Map(Object.entries(arg.tagColors));
+  let assigned = new Map<string, { name: string; color: string }>();
 
   // One button for expand/collapse all (L1): collapses when every visible
   // row is open, expands otherwise.
@@ -348,7 +362,20 @@ function main(): void {
     const contested = new Set(
       nodes.filter((n) => isContested(n.incoming)).map((n) => n.id),
     );
-    visible = sortNodes(filterNodes(nodes, query, shown, showMode), sortMode);
+    assigned = assignTagColors(
+      [...selectedTags],
+      tagOptions,
+      arg.tagPalette,
+      tagColors,
+    );
+    const marks = (node: ListNode): { name: string; color: string }[] => {
+      const own = new Set(node.tags.map(tagKey));
+      return [...assigned].filter(([key]) => own.has(key)).map(([, t]) => t);
+    };
+    visible = sortNodes(
+      filterNodes(nodes, query, shown, showMode, new Set(assigned.keys())),
+      sortMode,
+    );
     root.replaceChildren();
     if (empty) {
       empty.textContent =
@@ -356,7 +383,15 @@ function main(): void {
       empty.style.display = visible.length === 0 ? "block" : "none";
     }
     rows = visible.map((node) =>
-      nodeRow(node, contested.has(node.id), arg, openIds, terms, updateToggle),
+      nodeRow(
+        node,
+        contested.has(node.id),
+        marks(node),
+        arg,
+        openIds,
+        terms,
+        updateToggle,
+      ),
     );
     for (const row of rows) root.appendChild(row.el);
     updateToggle();
@@ -394,6 +429,7 @@ function main(): void {
         { id: "cited", label: arg.strings.showCited },
         { id: "contested", label: arg.strings.showContested },
         { id: "unevaluated", label: arg.strings.showUnevaluated },
+        { id: "tagged", label: arg.strings.showTagged },
       ],
       (id) => {
         showMode = id as ShowMode;
@@ -435,15 +471,37 @@ function main(): void {
     updateToggle();
   });
 
+  // Tag picker (C2): same selection and colours as in the graph window.
+  const tagSelect = buildTagSelect(
+    arg.strings,
+    selectedTags,
+    {
+      palette: arg.tagPalette,
+      chosen: tagColors,
+      colorOf: (key) => assigned.get(key)?.color,
+    },
+    () => {
+      arg.onHighlightTagsChange?.([...selectedTags]);
+      arg.onTagColorsChange?.(Object.fromEntries(tagColors));
+      render();
+    },
+  );
+  tagSelect.setOptions(tagOptions);
+  byId("tags")?.replaceWith(tagSelect.root);
+
+  const applyData = (json: string): void => {
+    const data = JSON.parse(json) as ListData;
+    nodes = data.nodes;
+    tagOptions = data.tagOptions;
+    tagSelect.setOptions(tagOptions);
+  };
+
   // Scope switcher (N6): rebuild the list for the chosen library/collection.
   // Open rows stay open where the item still appears in the new scope.
   const scopeMount = byId("scope");
   if (scopeMount) {
     const scope = buildScopeSelect(arg.scopes, (id) => {
-      const data = JSON.parse(arg.getScopedData(id)) as {
-        nodes: ListNode[];
-      };
-      nodes = data.nodes;
+      applyData(arg.getScopedData(id));
       render();
     });
     scope.title = arg.strings.scope;
@@ -475,7 +533,7 @@ function main(): void {
 
   // Live refresh (G6/L8): same scope, search, filters and open rows.
   onViewDataChanged(() => {
-    nodes = (JSON.parse(arg.getCurrentData()) as { nodes: ListNode[] }).nodes;
+    applyData(arg.getCurrentData());
     const y = window.scrollY;
     render();
     window.scrollTo(0, y);
