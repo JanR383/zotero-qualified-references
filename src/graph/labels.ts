@@ -38,8 +38,3 @@ export class LabelBoxes {
     this.boxes.push(box);
   }
 }
-
-/** Estimated label width in graph units at zoom 1 (12px sans-serif). */
-export function estimateLabelWidth(text: string): number {
-  return Math.min(text.length, 40) * 6.5;
-}

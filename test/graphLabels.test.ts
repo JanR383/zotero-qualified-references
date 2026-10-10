@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { LabelBoxes, estimateLabelWidth, overlaps } from "../src/graph/labels";
+import { LabelBoxes, overlaps } from "../src/graph/labels";
 
 /** Pure tests for graph label collision handling. */
 describe("graph labels", function () {
@@ -23,10 +23,5 @@ describe("graph labels", function () {
     const boxes = new LabelBoxes();
     boxes.force({ x: 0, y: 0, w: 50, h: 12 });
     assert.isFalse(boxes.claim({ x: 10, y: 0, w: 50, h: 12 }));
-  });
-
-  it("estimates width from the visible text, capped like the label", function () {
-    assert.equal(estimateLabelWidth("abcd"), 26);
-    assert.equal(estimateLabelWidth("x".repeat(100)), 260);
   });
 });
