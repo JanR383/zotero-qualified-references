@@ -19,7 +19,9 @@ import {
   loadTagColors,
   TAG_PALETTE,
   TAG_PALETTE_COLORBLIND,
+  type TagOption,
 } from "./tagHighlight";
+import type { TagHighlightArg, TagSelectStrings } from "../shared/tagSelect";
 import type { Stance } from "./types";
 import type {
   GraphArg,
@@ -215,6 +217,39 @@ function loadHighlightColors(): Record<string, number> {
   }
 }
 
+/**
+ * Tag highlighting for a view window (G12, C2): the selection and colour picks
+ * live in the same prefs for the graph and the list, so both share them.
+ */
+export function tagHighlightArg(tagOptions: TagOption[]): TagHighlightArg {
+  return {
+    tagOptions,
+    highlightTags: loadHighlightTags(),
+    onHighlightTagsChange: (tags: string[]) => {
+      Zotero.Prefs.set(HIGHLIGHT_PREF, JSON.stringify(tags), true);
+    },
+    tagPalette:
+      getCurrentPaletteId() === "colorblind"
+        ? TAG_PALETTE_COLORBLIND
+        : TAG_PALETTE,
+    tagColors: loadHighlightColors(),
+    onTagColorsChange: (colors: Record<string, number>) => {
+      Zotero.Prefs.set(HIGHLIGHT_COLORS_PREF, JSON.stringify(colors), true);
+    },
+  };
+}
+
+/** Strings of the tag picker, for both windows. */
+export function tagSelectStrings(): TagSelectStrings {
+  return {
+    tags: getString("graph-tags"),
+    tagsFilter: getString("graph-tags-filter"),
+    tagsNone: getString("graph-tags-none"),
+    tagColor: getString("graph-tag-color"),
+    tagColorAuto: getString("graph-tag-color-auto"),
+  };
+}
+
 const CONTROL_PREFS: Record<GraphControlGroup, string> = {
   search: "graphShowSearch",
   filters: "graphShowFilters",
@@ -256,17 +291,15 @@ export function openGraphView(win: Window): void {
       filterStances: getString("graph-filter-stances"),
       filterTypes: getString("graph-filter-types"),
       minLinks: getString("graph-min-links"),
+      contestedFocus: getString("graph-contested-focus"),
+      noMatch: getString("list-no-match"),
       sizeByIncoming: getString("graph-size-incoming"),
       sourcePages: getString("field-source-pages"),
       targetPages: getString("field-target-pages"),
       linkOpenPdf: getString("graph-link-open-pdf"),
       linkSelect: getString("graph-link-select"),
-      tags: getString("graph-tags"),
-      tagsFilter: getString("graph-tags-filter"),
-      tagsNone: getString("graph-tags-none"),
+      ...tagSelectStrings(),
       tagFocus: getString("graph-tag-focus"),
-      tagColor: getString("graph-tag-color"),
-      tagColorAuto: getString("graph-tag-color-auto"),
       layoutNetwork: getString("graph-layout-network"),
       layoutEgo: getString("graph-layout-ego"),
       hintNetwork: getString("graph-hint-network"),
@@ -277,19 +310,7 @@ export function openGraphView(win: Window): void {
     colorByType,
     typeLegend,
     itemTypes,
-    tagOptions,
-    highlightTags: loadHighlightTags(),
-    onHighlightTagsChange: (tags: string[]) => {
-      Zotero.Prefs.set(HIGHLIGHT_PREF, JSON.stringify(tags), true);
-    },
-    tagPalette:
-      getCurrentPaletteId() === "colorblind"
-        ? TAG_PALETTE_COLORBLIND
-        : TAG_PALETTE,
-    tagColors: loadHighlightColors(),
-    onTagColorsChange: (colors: Record<string, number>) => {
-      Zotero.Prefs.set(HIGHLIGHT_COLORS_PREF, JSON.stringify(colors), true);
-    },
+    ...tagHighlightArg(tagOptions),
     linkDistance: Number.isFinite(linkDistance) ? linkDistance : 40,
     onLinkDistanceChange: (v: number) => {
       Zotero.Prefs.set(`${config.prefsPrefix}.graphLinkDistance`, v, true);

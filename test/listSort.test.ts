@@ -4,7 +4,7 @@ import type { ListNode } from "../src/list/types";
 
 /**
  * Pure-function unit tests for the list window's sort order and stance
- * balance. No Zotero APIs are touched.
+ * counts. No Zotero APIs are touched.
  */
 describe("list sort", function () {
   const nodes: ListNode[] = [
@@ -46,8 +46,12 @@ describe("list sort", function () {
     assert.deepEqual(ids(sortNodes(nodes, "alpha")), [3, 2, 1, 4]);
   });
 
-  it("sorts by number of references, ties by label", function () {
-    assert.deepEqual(ids(sortNodes(nodes, "count")), [1, 3, 2, 4]);
+  it("sorts by incoming references, ties by label", function () {
+    assert.deepEqual(ids(sortNodes(nodes, "incoming")), [1, 2, 3, 4]);
+  });
+
+  it("sorts by outgoing references, ties by label", function () {
+    assert.deepEqual(ids(sortNodes(nodes, "outgoing")), [3, 1, 4, 2]);
   });
 
   it("sorts by year, oldest first, undated last", function () {
@@ -59,9 +63,9 @@ describe("list sort", function () {
     assert.deepEqual(ids(nodes), [1, 2, 3, 4]);
   });
 
-  it("counts outgoing and incoming entries per stance", function () {
-    assert.deepEqual(stanceCounts(nodes[0]), {
-      2: 2,
+  it("counts entries per stance", function () {
+    assert.deepEqual(stanceCounts(nodes[0].incoming), {
+      2: 1,
       1: 0,
       0: 0,
       [-1]: 1,

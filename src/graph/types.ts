@@ -1,6 +1,7 @@
 import type { Stance } from "../modules/types";
 import type { ViewArgBase, ViewStringsBase } from "../shared/viewArg";
 import type { TagOption } from "../modules/tagHighlight";
+import type { TagHighlightArg, TagSelectStrings } from "../shared/tagSelect";
 
 /**
  * Data contract between the plugin (graphView.ts) and the standalone graph
@@ -37,7 +38,7 @@ export interface GraphLink {
   curvature?: number; // arc bow, set by the renderer to separate parallel edges
 }
 
-export interface GraphStrings extends ViewStringsBase {
+export interface GraphStrings extends ViewStringsBase, TagSelectStrings {
   linkDistance: string;
   legend: string;
   controls: string;
@@ -50,6 +51,8 @@ export interface GraphStrings extends ViewStringsBase {
   search: string;
   searchDepth2: string;
   filters: string;
+  contestedFocus: string;
+  noMatch: string;
   filterStances: string;
   filterTypes: string;
   minLinks: string;
@@ -58,12 +61,7 @@ export interface GraphStrings extends ViewStringsBase {
   targetPages: string;
   linkOpenPdf: string;
   linkSelect: string;
-  tags: string;
-  tagsFilter: string;
-  tagsNone: string;
   tagFocus: string;
-  tagColor: string;
-  tagColorAuto: string;
 }
 
 /** Scoped data the window re-requests when the user switches scope (N6). */
@@ -79,7 +77,7 @@ export interface GraphData {
 export type GraphControlGroup =
   "search" | "filters" | "tags" | "size" | "distance" | "ego";
 
-export interface GraphArg extends ViewArgBase {
+export interface GraphArg extends ViewArgBase, TagHighlightArg {
   nodes: GraphNode[];
   links: GraphLink[];
   strings: GraphStrings;
@@ -87,18 +85,6 @@ export interface GraphArg extends ViewArgBase {
   colorByType: boolean;
   /** Localized labels for the item types present (legend, N5). */
   typeLegend: { type: string; label: string }[];
-  /** Tags present on the initial nodes, offered for highlighting (G12). */
-  tagOptions: TagOption[];
-  /** Tags selected for highlighting (lower-cased), restored from prefs. */
-  highlightTags: string[];
-  /** Persist a changed tag selection back to prefs. */
-  onHighlightTagsChange?: (tags: string[]) => void;
-  /** Six colours offered per highlighted tag (colour-blind set if enabled). */
-  tagPalette: string[];
-  /** Palette slot picked per highlighted tag (lower-cased key → slot). */
-  tagColors: Record<string, number>;
-  /** Persist changed colour picks back to prefs. */
-  onTagColorsChange?: (colors: Record<string, number>) => void;
   /** Initial force-link distance (edge length) from prefs. */
   linkDistance: number;
   /** Persist a changed link distance back to prefs. */

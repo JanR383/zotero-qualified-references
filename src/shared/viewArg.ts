@@ -2,6 +2,7 @@ import type { ScopeOption } from "../modules/scope";
 import type { Stance } from "../modules/types";
 
 declare const window: Window;
+declare const document: Document;
 
 /**
  * The part of the window argument the graph and list windows share. Handed
@@ -13,6 +14,8 @@ export interface ViewArgBase {
   openAnchor: (sourceId: number, linkId: string) => void;
   /** Optional stance-palette override CSS (M7); injected before reading vars. */
   paletteCss?: string;
+  /** Zotero's font size setting (1 = default); scales the window's text. */
+  fontScale?: number;
   /** Scope dropdown options (N6); first is "all", matching the initial data. */
   scopes: ScopeOption[];
   /**
@@ -69,4 +72,22 @@ export function onViewDataChanged(reload: () => void, delay = 300): void {
       reload();
     }, delay);
   });
+}
+
+/**
+ * Apply the stance-palette override (M7) and Zotero's font size to the window.
+ * Call before reading any --qref-stance-* value.
+ */
+export function applyWindowStyle(arg: ViewArgBase): void {
+  if (arg.paletteCss) {
+    const style = document.createElement("style");
+    style.textContent = arg.paletteCss;
+    (document.head ?? document.documentElement)?.appendChild(style);
+  }
+  if (arg.fontScale && Number.isFinite(arg.fontScale)) {
+    (document.documentElement as HTMLElement | null)?.style.setProperty(
+      "--qref-font-scale",
+      String(arg.fontScale),
+    );
+  }
 }

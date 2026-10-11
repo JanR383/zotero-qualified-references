@@ -1,13 +1,41 @@
 /**
- * Tag picker for the graph window (G12): a button that opens a panel with a
- * filter field and one checkbox per tag. Built by hand for the same reason as
+ * Tag picker for the graph and list windows (G12, C2): a button that opens a
+ * panel with a filter field and one checkbox per tag. Built by hand for the same reason as
  * shared/scopeSelect.ts (native <select> popups misrender in chrome windows).
  */
-import { create } from "../shared/dom";
+import { create } from "./dom";
 import { orderTagOptions, type TagOption } from "../modules/tagHighlight";
 
 declare const document: Document;
 declare const window: Window;
+
+/**
+ * Tag highlighting state both windows receive (G12, C2). The selection and
+ * colour picks are stored in the same prefs, so both windows share them.
+ */
+export interface TagHighlightArg {
+  /** Tags present on the initial items, offered for highlighting. */
+  tagOptions: TagOption[];
+  /** Tags selected for highlighting (lower-cased), restored from prefs. */
+  highlightTags: string[];
+  /** Persist a changed tag selection back to prefs. */
+  onHighlightTagsChange?: (tags: string[]) => void;
+  /** Six colours offered per highlighted tag (colour-blind set if enabled). */
+  tagPalette: string[];
+  /** Palette slot picked per highlighted tag (lower-cased key → slot). */
+  tagColors: Record<string, number>;
+  /** Persist changed colour picks back to prefs. */
+  onTagColorsChange?: (colors: Record<string, number>) => void;
+}
+
+/** Strings of the tag picker. */
+export interface TagSelectStrings {
+  tags: string;
+  tagsFilter: string;
+  tagsNone: string;
+  tagColor: string;
+  tagColorAuto: string;
+}
 
 export interface TagSelect {
   root: HTMLElement;
@@ -24,13 +52,7 @@ export interface TagColorPick {
 }
 
 export function buildTagSelect(
-  strings: {
-    tags: string;
-    tagsFilter: string;
-    tagsNone: string;
-    tagColor: string;
-    tagColorAuto: string;
-  },
+  strings: TagSelectStrings,
   selected: Set<string>,
   colors: TagColorPick,
   onChange: () => void,

@@ -7,8 +7,10 @@ import {
   type ItemFilter,
 } from "./navigation";
 import { formatItem, itemYear, paneFields } from "./itemFormat";
+import { tagHighlightArg, tagSelectStrings } from "./graphView";
 import { forEachResolvedLink } from "./storage";
-import type { ListArg, ListEntry, ListNode } from "../list/types";
+import { collectTagOptions, loadTagColors } from "./tagHighlight";
+import type { ListArg, ListData, ListEntry, ListNode } from "../list/types";
 
 /**
  * Builds the reference list from the in-memory reverse index and opens it in a
@@ -21,7 +23,7 @@ function byStance(a: ListEntry, b: ListEntry): number {
   return b.stance - a.stance || a.label.localeCompare(b.label);
 }
 
-function buildNodes(filter?: ItemFilter): ListNode[] {
+function buildData(filter?: ItemFilter): ListData {
   const fields = paneFields();
   const nodes = new Map<number, ListNode>();
 
@@ -33,6 +35,7 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
         label: formatItem(item, fields),
         year: itemYear(item),
         uri: itemUri(item),
+        tags: item.getTags().map((t) => t.tag),
         outgoing: [],
         incoming: [],
       };
@@ -62,15 +65,24 @@ function buildNodes(filter?: ItemFilter): ListNode[] {
     node.incoming.sort(byStance);
   }
   result.sort((a, b) => a.label.localeCompare(b.label));
-  return result;
+  // Tags offered for highlighting (C2): all tags present in this scope.
+  const tagOptions = collectTagOptions(
+    result.map((n) => n.tags),
+    loadTagColors(),
+  );
+  return { nodes: result, tagOptions };
 }
 
 export function openListView(win: Window): void {
+  const data = buildData();
   const arg: ListArg = {
-    ...viewArgBase((filter) => ({ nodes: buildNodes(filter) })),
-    nodes: buildNodes(),
+    ...viewArgBase(buildData),
+    ...tagHighlightArg(data.tagOptions),
+    nodes: data.nodes,
     strings: {
       ...viewStringsBase("list-window-title"),
+      ...tagSelectStrings(),
+      showTagged: getString("list-show-tagged"),
       outgoing: getString("graph-out"),
       incoming: getString("graph-in"),
       noMatch: getString("list-no-match"),
@@ -79,8 +91,16 @@ export function openListView(win: Window): void {
       collapseAll: getString("list-collapse-all"),
       sort: getString("list-sort"),
       sortAlpha: getString("list-sort-alpha"),
-      sortCount: getString("list-sort-count"),
+      sortIncoming: getString("list-sort-incoming"),
+      sortOutgoing: getString("list-sort-outgoing"),
       sortYear: getString("list-sort-year"),
+      show: getString("list-show"),
+      showAll: getString("list-show-all"),
+      showEvaluated: getString("list-show-evaluated"),
+      showCited: getString("list-show-cited"),
+      showContested: getString("list-show-contested"),
+      showUnevaluated: getString("list-show-unevaluated"),
+      contested: getString("list-contested"),
       exportMd: getString("export-md"),
       openPdf: getString("list-open-pdf"),
       openPdfTitle: getString("list-open-pdf-title"),
@@ -88,5 +108,5 @@ export function openListView(win: Window): void {
     },
   };
 
-  openViewWindow(win, "list", { width: 700, height: 720 }, arg);
+  openViewWindow(win, "list", { width: 960, height: 720 }, arg);
 }

@@ -27,7 +27,9 @@ import {
 } from "../modules/stanceMeta";
 import { byId, create } from "../shared/dom";
 import { buildScopeSelect } from "../shared/scopeSelect";
-import { onViewDataChanged } from "../shared/viewArg";
+import { contestedIds } from "../shared/contested";
+import { buildStanceToggles } from "../shared/stanceToggles";
+import { applyWindowStyle, onViewDataChanged } from "../shared/viewArg";
 import {
   referencesCsv,
   referencesGraphml,
@@ -36,7 +38,7 @@ import {
 } from "../shared/export";
 import { assignTagColors, ringColors } from "../modules/tagHighlight";
 import { escapeHtml, truncate } from "../shared/text";
-import { buildTagSelect } from "./tagSelect";
+import { buildTagSelect } from "../shared/tagSelect";
 import {
   arrowLength,
   computeView,
@@ -254,13 +256,9 @@ function main(): void {
 
   document.title = strings.title;
 
-  // Apply the stance-palette override (M7) before reading any --qref-stance-*
-  // values, so legend swatches and edge colours pick up the chosen palette.
-  if (arg.paletteCss) {
-    const style = create("style");
-    style.textContent = arg.paletteCss;
-    (document.head ?? document.documentElement)?.appendChild(style);
-  }
+  // Before reading any --qref-stance-* values, so legend swatches and edge
+  // colours pick up the chosen palette.
+  applyWindowStyle(arg);
 
   const isDark = !!window.matchMedia("(prefers-color-scheme: dark)")?.matches;
 
@@ -268,9 +266,9 @@ function main(): void {
   if (!container) return;
 
   const empty = byId("empty");
-  const showEmpty = (show: boolean): void => {
+  const showEmpty = (show: boolean, hasData = false): void => {
     if (!empty) return;
-    empty.textContent = strings.empty;
+    empty.textContent = hasData ? strings.noMatch : strings.empty;
     empty.style.display = show ? "block" : "none";
   };
 
@@ -334,6 +332,7 @@ function main(): void {
   let assigned = new Map<string, { name: string; color: string }>();
   let rings = new Map<number, string[]>();
   let tagFocus = false;
+  let contestedFocus = false;
   // Layout mode: force network or ego network.
   type LayoutMode = "network" | "ego";
   let mode: LayoutMode = "network";
@@ -675,9 +674,27 @@ function main(): void {
     const active =
       Number(shownStances.size < STANCE_ORDER.length) +
       Number([...knownTypes].some((t) => !shownTypes.has(t))) +
-      Number(minLinks > 1);
+      Number(minLinks > 1) +
+      Number(contestedFocus);
     filterSummary.textContent =
       active > 0 ? `${strings.filters} (${active})` : strings.filters;
+  };
+
+  // Tag focus (only with highlighted tags) and contested focus (A1, decided
+  // on all links of the scope); both on keeps the items that are both.
+  const focusSet = (): Set<number> | null => {
+    const tagged = tagFocus && rings.size > 0 ? new Set(rings.keys()) : null;
+    if (!contestedFocus) return tagged;
+    const contested = contestedIds(
+      current.links.map((l) => ({
+        source: endId(l.source),
+        target: endId(l.target),
+        stance: l.stance,
+      })),
+    );
+    return tagged
+      ? new Set([...contested].filter((id) => tagged.has(id)))
+      : contested;
   };
 
   const refresh = (): void => {
@@ -703,7 +720,7 @@ function main(): void {
         stances: shownStances,
         types: shownTypes,
         minLinks,
-        focusOn: tagFocus && rings.size > 0 ? new Set(rings.keys()) : null,
+        focusOn: focusSet(),
         query,
         depth,
       },
@@ -727,7 +744,7 @@ function main(): void {
     placedKey = key;
     updateFilterSummary();
     renderLegend(arg, current.typeLegend, [...assigned.values()], isDark);
-    showEmpty(view.visible.size === 0);
+    showEmpty(view.visible.size === 0, current.nodes.length > 0);
     graph
       .nodeVal(graph.nodeVal())
       .nodeVisibility(graph.nodeVisibility())
@@ -926,24 +943,9 @@ function main(): void {
   const stanceMount = byId("stance-filter");
   const stanceTitle = byId("stance-filter-label");
   if (stanceTitle) stanceTitle.textContent = strings.filterStances;
-  for (const stance of STANCE_ORDER) {
-    const pill = create("span");
-    pill.className = "pill";
-    pill.style.background = stanceColor(stance);
-    pill.textContent = STANCE_GLYPH[stance];
-    stanceMount?.appendChild(
-      checkbox(
-        pill,
-        true,
-        (on) => {
-          if (on) shownStances.add(stance);
-          else shownStances.delete(stance);
-          refresh();
-        },
-        strings.stances[stance],
-      ),
-    );
-  }
+  stanceMount?.appendChild(
+    buildStanceToggles(strings.stances, shownStances, stanceColor, refresh),
+  );
   const typeTitle = byId("type-filter-label");
   if (typeTitle) typeTitle.textContent = strings.filterTypes;
 
@@ -976,6 +978,13 @@ function main(): void {
       refresh();
     });
   }
+
+  byId("contested-focus")?.appendChild(
+    checkbox(strings.contestedFocus, false, (on) => {
+      contestedFocus = on;
+      refresh();
+    }),
+  );
 
   const slider = byId("link-distance") as HTMLInputElement | null;
   const sliderLabel = byId("link-distance-label");
